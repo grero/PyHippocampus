@@ -44,7 +44,6 @@ MarkupSafe==1.1.1
 mccabe==0.6.1
 more-itertools==8.3.0
 neo==0.8.0
-neuroshare==0.9.4
 numpy==1.18.5
 packaging==20.4
 pathspec==0.8.0
