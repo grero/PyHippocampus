@@ -1,7 +1,10 @@
 import numpy as np
 import glob
 import os
-# import pickle
+import pickle
+import hickle
+import h5py
+import tracemalloc
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -111,13 +114,36 @@ def create_object():
 
 
 def main():
+    tracemalloc.start()
     unity_data_generated = create_object()
-    unity_data_generated.info()
+    # unity_data_generated.info()
 
     # save object to the current directory
 
+    # data dictionary
+    data = {"numSets": unity_data_generated.numSets, "unityData": unity_data_generated.unityData,
+            "unityTriggers": unity_data_generated.unityTriggers, "unityTrialTime": unity_data_generated.unityTrialTime,
+            "unityTime": unity_data_generated.unityTime}
+
+    # pickle
     # with open('unity.pkl', 'wb') as output:
     #     pickle.dump(unity_data_generated, output, pickle.HIGHEST_PROTOCOL)
+
+    # hickle
+    # hickle.dump(data, 'test.hkl', mode='w')
+
+    # hdf5
+    hf = h5py.File('test.h5', 'w')
+    hf.create_dataset('numSets', data=unity_data_generated.numSets)
+    hf.create_dataset('unityData', data=unity_data_generated.unityData)
+    hf.create_dataset('unityTriggers', data=unity_data_generated.unityTriggers)
+    hf.create_dataset('unityTrialTime', data=unity_data_generated.unityTrialTime)
+    hf.create_dataset('unityTime', data=unity_data_generated.unityTime)
+    hf.close()
+
+    current, peak = tracemalloc.get_traced_memory()
+    print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB")
+    tracemalloc.stop()
 
 
 if __name__ == "__main__":
