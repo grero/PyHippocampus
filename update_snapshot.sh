@@ -2,6 +2,8 @@
 
 # expects cluster config to reside in ~/.parallelcluster/config
 # to be run outside the master node, before shutting down the cluster
+# ~/.parallelcluster/config will be automatically repointed to the most updated snapshot
+
 # pass unique description to identify all your snapshots as first argument
 # pass the total number of snapshots (backups and current) to keep
 
@@ -46,4 +48,6 @@ fi
 echo "keeping max $keep snapshots"
 
 sed -i "s/snap-.*/$most_recent/" ~/.parallelcluster/config
+
+echo "config file updated"
 
