@@ -33,7 +33,7 @@ done
 echo "snapshot saved"
 
 keep=$2
-all_snaps=($(aws ec2 describe-snapshots --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n | sed 's/.*\t//'))
+all_snaps=($(aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n | sed 's/.*\t//'))
 total_count=${#all_snaps[@]}
 most_recent=${all_snaps[-1]}
 
