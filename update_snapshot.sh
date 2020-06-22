@@ -34,7 +34,7 @@ echo "snapshot saved"
 keep=$2
 all_snaps=($(aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n | cut -f 2))
 total_count=${#all_snaps[@]}
-most_recent=${all_snaps[-1]}
+most_recent=${all_snaps[$total_count-1]}
 
 if [ "$total_count" -ge "$(($keep+1))" ]
 then
@@ -44,7 +44,10 @@ then
 		aws ec2 delete-snapshot --snapshot-id $snap
 	done
 fi
+
 echo "keeping max $keep snapshots"
+aws ec2 describe-snapshots --owner self --filters Name=description,Values=picasso-misc2 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n
+echo " "
 
 sed -i "s/snap-.*/$most_recent/" ~/.parallelcluster/config
 
