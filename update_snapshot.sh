@@ -23,9 +23,8 @@ echo "saving snapshot"
 a=2
 until [ $a -lt 1 ]
 do
-	status=$(aws ec2 describe-snapshots --filters Name=snapshot-id,Values=$snap_in_prog --query "Snapshots[].State")
-	status1=$(echo $status | cut -d '"' -f 2)
-	if [ "$status1" == "completed" ]
+	status=$(aws ec2 describe-snapshots --filters Name=snapshot-id,Values=$snap_in_prog --query "Snapshots[].State" --output text)
+	if [ "$status" == "completed" ]
 	then
 		break
 	fi	
@@ -33,9 +32,9 @@ done
 echo "snapshot saved"
 
 keep=$2
-all_snaps=($(aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n | sed 's/.*\t//'))
+all_snaps=($(aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n | cut -f 2))
 total_count=${#all_snaps[@]}
-most_recent=${all_snaps[-1]}
+most_recent=${all_snaps[$total_count-1]}
 
 if [ "$total_count" -ge "$(($keep+1))" ]
 then
@@ -45,9 +44,18 @@ then
 		aws ec2 delete-snapshot --snapshot-id $snap
 	done
 fi
-echo "keeping max $keep snapshots"
 
-sed -i "s/snap-.*/$most_recent/" ~/.parallelcluster/config
+echo "keeping max $keep snapshots"
+aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n
+echo " "
+echo $most_recent
+
+if [ "$(uname)" = "Linux" ]
+then
+	sed -i "s/snap-.*/$most_recent/g" ~/.parallelcluster/config
+else
+	sed -i "" "s/snap-.*/$most_recent/g" ~/.parallelcluster/config
+fi
 
 echo "config file updated"
 
