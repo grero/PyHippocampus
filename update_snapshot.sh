@@ -46,10 +46,16 @@ then
 fi
 
 echo "keeping max $keep snapshots"
-aws ec2 describe-snapshots --owner self --filters Name=description,Values=picasso-misc2 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n
+aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n
 echo " "
+echo $most_recent
 
-sed -i "s/snap-.*/$most_recent/" ~/.parallelcluster/config
+if [ "$(uname)" = "Linux" ]
+then
+	sed -i "s/snap-.*/$most_recent/g" ~/.parallelcluster/config
+else
+	sed -i "" "s/snap-.*/$most_recent/g" ~/.parallelcluster/config
+fi
 
 echo "config file updated"
 
