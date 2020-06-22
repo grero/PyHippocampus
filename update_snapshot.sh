@@ -23,9 +23,8 @@ echo "saving snapshot"
 a=2
 until [ $a -lt 1 ]
 do
-	status=$(aws ec2 describe-snapshots --filters Name=snapshot-id,Values=$snap_in_prog --query "Snapshots[].State")
-	status1=$(echo $status | cut -d '"' -f 2)
-	if [ "$status1" == "completed" ]
+	status=$(aws ec2 describe-snapshots --filters Name=snapshot-id,Values=$snap_in_prog --query "Snapshots[].State" --output text)
+	if [ "$status" == "completed" ]
 	then
 		break
 	fi	
@@ -33,7 +32,7 @@ done
 echo "snapshot saved"
 
 keep=$2
-all_snaps=($(aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n | sed 's/.*\t//'))
+all_snaps=($(aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n | cut -f 2))
 total_count=${#all_snaps[@]}
 most_recent=${all_snaps[-1]}
 
