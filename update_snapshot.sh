@@ -17,7 +17,7 @@ vol=$(aws ec2 describe-volumes --filter Name=attachment.device,Values=/dev/sdb -
 
 temp=($(aws ec2 create-snapshot --volume-id $vol --description "$1" --output text))
 snap_in_prog=${temp[3]}
-echo $snap_in_prog
+echo "new snapshot id: $snap_in_prog"
 
 echo "saving snapshot"
 a=2
@@ -27,6 +27,11 @@ do
 	if [ "$status" == "completed" ]
 	then
 		break
+	fi
+	if [ "$status" == "error" ]
+	then
+		echo "ERROR: snapshot failed to save, exiting"
+		exit 1
 	fi	
 done
 echo "snapshot saved"
@@ -47,15 +52,13 @@ fi
 
 echo "keeping max $keep snapshots"
 aws ec2 describe-snapshots --owner self --filters Name=description,Values=$1 --query 'Snapshots[].[StartTime,SnapshotId]' --output text | sort -n
-echo " "
-echo $most_recent
 
-if [ "$(uname)" = "Linux" ]
-then
-	sed -i "s/snap-.*/$most_recent/g" ~/.parallelcluster/config
-else
-	sed -i "" "s/snap-.*/$most_recent/g" ~/.parallelcluster/config
-fi
+sub_n=$(grep -n snap- ~/.parallelcluster/config | cut -d : -f 1)
+head -$(($sub_n-1)) ~/.parallelcluster/config > ~/.parallelcluster/config.temp
+echo "ebs_snapshot_id = $most_recent" >> ~/.parallelcluster/config.temp
+tail -n +$(($sub_n+1)) ~/.parallelcluster/config >> ~/.parallelcluster/config.temp
+
+mv ~/.parallelcluster/config.temp ~/.parallelcluster/config
 
 echo "config file updated"
 
