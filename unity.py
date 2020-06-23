@@ -2,6 +2,9 @@ import numpy as np
 import glob
 import os
 import h5py
+import matplotlib.pyplot as plt
+import PanGUI
+import matplotlib.patches as patches
 import tracemalloc
 # import pickle
 # # import hickle
@@ -81,10 +84,10 @@ def create_object():
             inCompleteTrials = utMax - utMin
             if inCompleteTrials != 0:
                 print("Incomplete session! Last", inCompleteTrials, "trial discarded")
-            unityTriggers = np.zeros((utMin, 3))
-            unityTriggers[:, 0] = uT1[0][0:utMin]
-            unityTriggers[:, 1] = uT2[0][0:utMin]
-            unityTriggers[:, 2] = uT3[0]
+            unityTriggers = np.zeros((utMin, 3), dtype=int)
+            unityTriggers[:, 0] = uT1[0][0:utMin].astype(int)
+            unityTriggers[:, 1] = uT2[0][0:utMin].astype(int)
+            unityTriggers[:, 2] = uT3[0].astype(int)
 
             # Unity Trial Time
             totTrials = np.shape(unityTriggers)[0]
@@ -113,9 +116,42 @@ def create_object():
         return unity
 
 
+def plot(unity):
+    # Plot boundaries
+    xBound = [-12.5, 12.5, 12.5, -12.5, -12.5]
+    zBound = [12.5, 12.5, -12.5, -12.5, 12.5]
+    x1Bound = [-7.5, -2.5, -2.5, -7.5, -7.5]  # yellow pillar
+    z1Bound = [7.5, 7.5, 2.5, 2.5, 7.5]
+    x2Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # red pillar
+    z2Bound = [7.5, 7.5, 2.5, 2.5, 7.5]
+    x3Bound = [-7.5, -2.5, -2.5, -7.5, -7.5]  # blue pillar
+    z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
+    x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
+    z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
+
+    NumericArguments = 0
+    n = NumericArguments
+
+    plt.plot(xBound, zBound, color='k', linewidth=1.5)
+    plt.plot(x1Bound, z1Bound, 'k', LineWidth=1)
+    plt.plot(x2Bound, z2Bound, 'k', LineWidth=1)
+    plt.plot(x3Bound, z3Bound, 'k', LineWidth=1)
+    plt.plot(x4Bound, z4Bound, 'k', LineWidth=1)
+
+    plt.plot(unity.unityData[unity.unityTriggers[n, 1]: (unity.unityTriggers[n, 2] - 1), 2],
+             unity.unityData[unity.unityTriggers[n, 1]: (unity.unityTriggers[n, 2] - 1), 3], 'b+', LineWidth=1)
+    # plot end point identifier
+    plt.plot(unity.unityData[unity.unityTriggers[n, 2], 2], unity.unityData[unity.unityTriggers[n, 2], 3], 'k.', MarkerSize=20)
+
+    plt.show()
+
+
+
+
 def main():
     # tracemalloc.start()
     unity_data_generated = create_object()
+    plot(unity_data_generated)
     # unity_data_generated.info()
 
     # save object to the current directory
