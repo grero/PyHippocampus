@@ -19,17 +19,17 @@ def rplsplit(auto = True, channels = 'all', generateAnalogSignalTimes = False):
 		print("Too many .ns5 files. Do not know which one to use\n")
 		return 
 	reader = BlackrockIO(ns5_file[0])
-	bl = reader.get_block()
+	bl = reader.get_block(lazy = True)
 	segment = bl.segments[0]
 	chx = bl.channel_indexes[2] # For the raw data. 
-	analogSignalList = [sig[:, chx.index] for sig in chx.analogsignals]
+	samplingRate = float(segment.analogsignals[2].sampling_rate)
 	analogSignalTimes = float(segment.analogsignals[2])
 	analogSignalTimesFile = h5.File('analogSignalTimes.hdf5', 'w')
 	analogSignalTimes = analogSignalTimesFile.create_dataset('analogSignalTimes', data = analogSignalTimes)
+	analogSignalSampleRate = analogSignalTimesFile.create_dataset('samplingRate', data = samplingRate)
 	analogSignalTimesFile.close()
 	if generateAnalogSignalTimes: 
 		return "Generated analogSignalTimes.hdf5\n"
-	samplingRate = float(segment.analogsignals[2].sampling_rate)
 	annotations = chx.annotations # For AnalogInfo, fields include, max, min, units, sampling rate, nev_high_frequency_type, nev_high_freq_order, nev_high_freq_corner, nev_low_frequency_type, nev_low_freq_order, nev_low_freq_corner
 	probenames = chx.channel_names 
 	def generateAnalogInfo(annotations, analogSignals, i):
@@ -47,7 +47,7 @@ def rplsplit(auto = True, channels = 'all', generateAnalogSignalTimes = False):
 		return analogInfo
 	if channels == 'all': 
 		for i in range(len(chx.index)): # i represents the index in the list here. 
-			analogSignal = analogSignalList[0][i]
+			analogSignal = segment.analogsignals[2].load(time_slice=None, channel_indexes=[chx.index[i]])
 			arrayNumber = annotations['connector_ID'][i] + 1 
 			analogInfo = generateAnalogInfo(annotations, analogSignal, i, arrayNumber)
 			analogInfo['SampleRate'] = samplingRate
@@ -56,7 +56,7 @@ def rplsplit(auto = True, channels = 'all', generateAnalogSignalTimes = False):
 	else: 
 		for i in channels: # i represents the channel number here. 
 			index = np.where(i == chx.index)[0][0]
-			analogSignal = analogSignalList[0][index]
+			analogSignal = segment.analogsignals[2].load(time_slice=None, channel_indexes=[i])
 			arrayNumber = annotations['connector_ID'][index] + 1 
 			analogInfo = generateAnalogInfo(annotations, analogSignal, index, arrayNumber)
 			analogInfo['SampleRate'] = samplingRate
