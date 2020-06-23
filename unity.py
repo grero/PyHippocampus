@@ -1,7 +1,13 @@
 import numpy as np
 import glob
 import os
+import h5py
+import matplotlib.pyplot as plt
+import PanGUI
+import matplotlib.patches as patches
+import tracemalloc
 # import pickle
+# # import hickle
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -78,10 +84,10 @@ def create_object():
             inCompleteTrials = utMax - utMin
             if inCompleteTrials != 0:
                 print("Incomplete session! Last", inCompleteTrials, "trial discarded")
-            unityTriggers = np.zeros((utMin, 3))
-            unityTriggers[:, 0] = uT1[0][0:utMin]
-            unityTriggers[:, 1] = uT2[0][0:utMin]
-            unityTriggers[:, 2] = uT3[0]
+            unityTriggers = np.zeros((utMin, 3), dtype=int)
+            unityTriggers[:, 0] = uT1[0][0:utMin].astype(int)
+            unityTriggers[:, 1] = uT2[0][0:utMin].astype(int)
+            unityTriggers[:, 2] = uT3[0].astype(int)
 
             # Unity Trial Time
             totTrials = np.shape(unityTriggers)[0]
@@ -110,14 +116,69 @@ def create_object():
         return unity
 
 
+def plot(unity):
+    # Plot boundaries
+    xBound = [-12.5, 12.5, 12.5, -12.5, -12.5]
+    zBound = [12.5, 12.5, -12.5, -12.5, 12.5]
+    x1Bound = [-7.5, -2.5, -2.5, -7.5, -7.5]  # yellow pillar
+    z1Bound = [7.5, 7.5, 2.5, 2.5, 7.5]
+    x2Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # red pillar
+    z2Bound = [7.5, 7.5, 2.5, 2.5, 7.5]
+    x3Bound = [-7.5, -2.5, -2.5, -7.5, -7.5]  # blue pillar
+    z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
+    x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
+    z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
+
+    NumericArguments = 0
+    n = NumericArguments
+
+    plt.plot(xBound, zBound, color='k', linewidth=1.5)
+    plt.plot(x1Bound, z1Bound, 'k', LineWidth=1)
+    plt.plot(x2Bound, z2Bound, 'k', LineWidth=1)
+    plt.plot(x3Bound, z3Bound, 'k', LineWidth=1)
+    plt.plot(x4Bound, z4Bound, 'k', LineWidth=1)
+
+    plt.plot(unity.unityData[unity.unityTriggers[n, 1]: (unity.unityTriggers[n, 2] - 1), 2],
+             unity.unityData[unity.unityTriggers[n, 1]: (unity.unityTriggers[n, 2] - 1), 3], 'b+', LineWidth=1)
+    # plot end point identifier
+    plt.plot(unity.unityData[unity.unityTriggers[n, 2], 2], unity.unityData[unity.unityTriggers[n, 2], 3], 'k.', MarkerSize=20)
+
+    plt.show()
+
+
+
+
 def main():
+    # tracemalloc.start()
     unity_data_generated = create_object()
-    unity_data_generated.info()
+    plot(unity_data_generated)
+    # unity_data_generated.info()
 
     # save object to the current directory
+    # data dictionary
+    # data = {"numSets": unity_data_generated.numSets, "unityData": unity_data_generated.unityData,
+    #         "unityTriggers": unity_data_generated.unityTriggers, "unityTrialTime": unity_data_generated.unityTrialTime,
+    #         "unityTime": unity_data_generated.unityTime}
 
+    # pickle
     # with open('unity.pkl', 'wb') as output:
     #     pickle.dump(unity_data_generated, output, pickle.HIGHEST_PROTOCOL)
+
+    # hickle
+    # hickle.dump(data, 'test.hkl', mode='w')
+
+    # hdf5
+    hf = h5py.File('test.h5', 'w')
+    hf.create_dataset('numSets', data=unity_data_generated.numSets)
+    hf.create_dataset('unityData', data=unity_data_generated.unityData)
+    hf.create_dataset('unityTriggers', data=unity_data_generated.unityTriggers)
+    hf.create_dataset('unityTrialTime', data=unity_data_generated.unityTrialTime)
+    hf.create_dataset('unityTime', data=unity_data_generated.unityTime)
+    hf.close()
+
+    # current, peak = tracemalloc.get_traced_memory()
+    # print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB")
+    # tracemalloc.stop()
 
 
 if __name__ == "__main__":
