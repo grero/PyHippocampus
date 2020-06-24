@@ -127,6 +127,7 @@ z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
 z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 
+FrameIntervalTriggers = np.array([1, 2], dtype=np.int)
 
 # Class for the trial plot
 class PlotTrial(DPT.objects.DPObject):
@@ -165,15 +166,49 @@ class PlotTrial(DPT.objects.DPObject):
         return ax
 
 
+# Class for the trial FrameIntervals plot
+class PlotFrameIntervals(DPT.objects.DPObject):
+    def __init__(self, data, title="Test windwow", name="", ext="mat"):
+        self.data = data
+        self.title = title
+        self.dirs = [""]
+        self.setidx = np.zeros(data.unityTriggers.shape[0], dtype=np.int)
+
+    def load(self):
+        fname = os.path.join(self.name, self.ext)
+        if os.path.isfile(fname):
+            if self.ext == "mat":
+                dd = mio.loadmat(fname, squeeze_me=True)
+
+    def update_idx(self, i):
+        return max(0, min(i, self.data.shape[0] - 1))
+
+    def plot(self, i, ax=None, overlay=False):
+        if ax is None:
+            ax = gca()
+        if not overlay:
+            ax.clear()
+
+        indices = self.data.unityTriggers[i, FrameIntervalTriggers]
+        uData = self.data.unityData[(indices[0] + 1):indices[1], 1]
+        ax.stem(uData)
+        ax.set_xlabel('Frames')
+        ax.set_ylabel('Interval (s)')
+
+        return ax
+
+
 def plot(unity):
 
-    pp = PlotTrial(unity)
-    ppg = PanGUI.create_window(pp, indexer="trial")
+    # pp = PlotTrial(unity)
+    # ppg = PanGUI.create_window(pp, indexer="trial")
+
+    pp_in = PlotFrameIntervals(unity)
+    ppg = PanGUI.create_window(pp_in, indexer="trial")
 
 
 def main():
     unity_data_generated = create_object()
-    plot(unity_data_generated)
     # unity_data_generated.info()
 
     # save object to the current directory
@@ -190,6 +225,16 @@ def main():
     # hf.create_dataset('unityTrialTime', data=unity_data_generated.unityTrialTime)
     # hf.create_dataset('unityTime', data=unity_data_generated.unityTime)
     # hf.close()
+
+    # Read data from rplparallel.hdf5
+    # data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
+    # print(data_rplparallel.keys())
+    # n1 = np.array(data_rplparallel.get('timeStamps'))
+
+    # print(n1)
+
+    # Plot
+    plot(unity_data_generated)
 
 
 if __name__ == "__main__":
