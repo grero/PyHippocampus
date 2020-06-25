@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import PanGUI
 import DataProcessingTools as DPT
 import matplotlib.patches as patches
+import tracemalloc
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -16,13 +17,19 @@ Args = {'RedoLevels': 0, 'SaveLevels': 0, 'Auto': 0, 'ArgsOnly': 0, 'ObjectLevel
         'MaxTimeDiff': 0.002}
 
 
-class Data:
-    def __init__(self):
-        self.numSets = 0
-        self.unityData = np.empty(0)
-        self.unityTriggers = np.empty(0)
-        self.unityTrialTime = np.empty(0)
-        self.unityTime = np.empty(0)
+class Unity:
+    numSets = 0
+    unityData = np.empty(0)
+    unityTriggers = np.empty(0)
+    unityTrialTime = np.empty(0)
+    unityTime = np.empty(0)
+
+    def __init__(self, num_sets, unity_data, unity_triggers, unity_trial_time, unity_time):
+        self.numSets = num_sets
+        self.unityData = unity_data
+        self.unityTriggers = unity_triggers
+        self.unityTrialTime = unity_trial_time
+        self.unityTime = unity_time
 
     def info(self):
         print("numSets: ", self.numSets, "\n", "unityData: ", self.unityData.shape, "\n", "unityTriggers: ",
@@ -32,7 +39,7 @@ class Data:
 
 def create_object():
     # empty unity data object
-    unity = Data()
+    unity = Unity()
     # look for RawData_T * folder
     if bool(glob.glob("RawData*")):
         os.chdir(glob.glob("RawData*")[0])
@@ -129,6 +136,7 @@ z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 
 FrameIntervalTriggers = np.array([1, 2], dtype=np.int)
 
+
 # Class for the trial plot
 class PlotTrial(DPT.objects.DPObject):
     def __init__(self, data, title="Test windwow", name="", ext="mat"):
@@ -198,27 +206,78 @@ class PlotFrameIntervals(DPT.objects.DPObject):
         return ax
 
 
+# Class for the DurationDiff plot
+class PlotDurationDiffs(DPT.objects.DPObject):
+    def __init__(self, data, timeStamps, title="Test windwow", name="", ext="mat"):
+        self.data = data
+        self.timeStamps = timeStamps
+        self.title = title
+        self.dirs = [""]
+        self.setidx = np.zeros(1, dtype=np.int)
+
+    def load(self):
+        fname = os.path.join(self.name, self.ext)
+        if os.path.isfile(fname):
+            if self.ext == "mat":
+                dd = mio.loadmat(fname, squeeze_me=True)
+
+    def update_idx(self, i):
+        return max(0, min(i, self.data.shape[0] - 1))
+
+    def plot(self, i, ax=None, overlay=False):
+        if ax is None:
+            ax = gca()
+        if not overlay:
+            ax.clear()
+
+        totTrials = self.data.unityTriggers.shape[0]
+        setIndex = np.array([0, totTrials])
+        uTrigs = self.data.unityTriggers
+        uTime = self.data.unityTime
+        # add 1 to start index since we want the duration between triggers
+        startind = uTrigs[:, 0]+1
+        endind = uTrigs[:, 2]+1
+        starttime = uTime[startind]
+        endtime = uTime[endind]
+        trialDurations = endtime - starttime
+        # load the rplparallel object to get the Ripple timestamps
+        rpTrialDur = self.timeStamps[:, 2] - self.timeStamps[:, 0]
+        # multiply by 1000 to convert to ms
+        duration_diff = (trialDurations - rpTrialDur)*1000
+        num_bin = (np.amax(duration_diff) - np.amin(duration_diff))/200
+        ax.hist(x=duration_diff, bins=int(num_bin))
+        ax.set_xlabel('Time (ms)')
+        ax.set_ylabel('Frequency')
+        ax.set_yscale("log")
+        ax.grid(axis="y")
+
+        return ax
+
+
 def plot(unity):
 
     # pp = PlotTrial(unity)
     # ppg = PanGUI.create_window(pp, indexer="trial")
 
-    pp_in = PlotFrameIntervals(unity)
+    # pp_in = PlotFrameIntervals(unity)
+    # ppg = PanGUI.create_window(pp_in, indexer="trial")
+
+    # Load data from rplparallel.hdf5
+    data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
+    timeStamps = np.array(data_rplparallel.get('timeStamps'))
+    data_rplparallel.close()
+
+    pp_in = PlotDurationDiffs(unity, timeStamps)
     ppg = PanGUI.create_window(pp_in, indexer="trial")
 
 
 def main():
-    unity_data_generated = create_object()
+    # unity_data_generated = create_object()
     # unity_data_generated.info()
 
     # save object to the current directory
-    # data dictionary
-    # data = {"numSets": unity_data_generated.numSets, "unityData": unity_data_generated.unityData,
-    #         "unityTriggers": unity_data_generated.unityTriggers, "unityTrialTime": unity_data_generated.unityTrialTime,
-    #         "unityTime": unity_data_generated.unityTime}
-
-    # hdf5
-    # hf = h5py.File('test.h5', 'w')
+    # Store to hdf5
+    # hf = h5py.File('unity.hdf5', 'w')
     # hf.create_dataset('numSets', data=unity_data_generated.numSets)
     # hf.create_dataset('unityData', data=unity_data_generated.unityData)
     # hf.create_dataset('unityTriggers', data=unity_data_generated.unityTriggers)
@@ -226,15 +285,24 @@ def main():
     # hf.create_dataset('unityTime', data=unity_data_generated.unityTime)
     # hf.close()
 
-    # Read data from rplparallel.hdf5
+    # Load data from rplparallel.hdf5
     # data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
     # print(data_rplparallel.keys())
     # n1 = np.array(data_rplparallel.get('timeStamps'))
+    # data_rplparallel.close()
 
-    # print(n1)
+    # Load data from unity.hdf5
+    data_unity = h5py.File('unity.hdf5', 'r')
+    n1 = np.array(data_unity.get('numSets'))
+    n2 = np.array(data_unity.get('unityData'))
+    n3 = np.array(data_unity.get('unityTriggers'))
+    n4 = np.array(data_unity.get('unityTrialTime'))
+    n5 = np.array(data_unity.get('unityTime'))
+    unity_data_load = Unity(n1, n2, n3, n4, n5)
+    data_unity.close()
 
     # Plot
-    plot(unity_data_generated)
+    plot(unity_data_load)
 
 
 if __name__ == "__main__":
