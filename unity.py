@@ -36,8 +36,34 @@ class Unity:
               self.unityTriggers.shape, "\n", "unityTrialTime: ", self.unityTrialTime.shape, "\n", "unityTime: ",
               self.unityTime.shape)
 
+    def save(self):
+        # save object to the current directory
+        # Store to hdf5
+        hf = h5py.File('unity.hdf5', 'w')
+        hf.create_dataset('numSets', data=self.numSets)
+        hf.create_dataset('unityData', data=self.unityData)
+        hf.create_dataset('unityTriggers', data=self.unityTriggers)
+        hf.create_dataset('unityTrialTime', data=self.unityTrialTime)
+        hf.create_dataset('unityTime', data=self.unityTime)
+        hf.close()
 
-def create_object():
+    def plot(self):
+        # pp = PlotTrial(self)
+        # ppg = PanGUI.create_window(pp, indexer="trial")
+
+        # pp_in = PlotFrameIntervals(self)
+        # ppg = PanGUI.create_window(pp_in, indexer="trial")
+
+        # Load data from rplparallel.hdf5
+        data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
+        timeStamps = np.array(data_rplparallel.get('timeStamps'))
+        data_rplparallel.close()
+
+        pp_in = PlotDurationDiffs(self, timeStamps)
+        ppg = PanGUI.create_window(pp_in, indexer="trial")
+
+
+def create():
     # empty unity data object
     unity = Unity()
     # look for RawData_T * folder
@@ -254,43 +280,7 @@ class PlotDurationDiffs(DPT.objects.DPObject):
         return ax
 
 
-def plot(unity):
-
-    # pp = PlotTrial(unity)
-    # ppg = PanGUI.create_window(pp, indexer="trial")
-
-    # pp_in = PlotFrameIntervals(unity)
-    # ppg = PanGUI.create_window(pp_in, indexer="trial")
-
-    # Load data from rplparallel.hdf5
-    data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
-    timeStamps = np.array(data_rplparallel.get('timeStamps'))
-    data_rplparallel.close()
-
-    # pp_in = PlotDurationDiffs(unity, timeStamps)
-    # ppg = PanGUI.create_window(pp_in, indexer="trial")
-
-
-def main():
-    # unity_data_generated = create_object()
-    # unity_data_generated.info()
-
-    # save object to the current directory
-    # Store to hdf5
-    # hf = h5py.File('unity.hdf5', 'w')
-    # hf.create_dataset('numSets', data=unity_data_generated.numSets)
-    # hf.create_dataset('unityData', data=unity_data_generated.unityData)
-    # hf.create_dataset('unityTriggers', data=unity_data_generated.unityTriggers)
-    # hf.create_dataset('unityTrialTime', data=unity_data_generated.unityTrialTime)
-    # hf.create_dataset('unityTime', data=unity_data_generated.unityTime)
-    # hf.close()
-
-    # Load data from rplparallel.hdf5
-    # data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
-    # print(data_rplparallel.keys())
-    # n1 = np.array(data_rplparallel.get('timeStamps'))
-    # data_rplparallel.close()
-
+def load():
     # Load data from unity.hdf5
     data_unity = h5py.File('unity.hdf5', 'r')
     n1 = np.array(data_unity.get('numSets'))
@@ -300,12 +290,7 @@ def main():
     n5 = np.array(data_unity.get('unityTime'))
     unity_data_load = Unity(n1, n2, n3, n4, n5)
     data_unity.close()
-
-    # Plot
-    plot(unity_data_load)
-
-
-if __name__ == "__main__":
-    main()
+    
+    return unity_data_load
 
 

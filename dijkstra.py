@@ -35,7 +35,7 @@ def list_dijkstra(l, w, s, d):
         else:
             index2 = w.shape[0]
             while index2 > 0:
-                if w[index2-1,d] < w[index2-2,d]
+                if w[index2-1,d] < w[index2-2,d]:
                     l = np.array([l, w[index2,1]])
                     l = list_dijkstra(l,w,s,w[index2,0])
                     index2 = 0
