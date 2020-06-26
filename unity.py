@@ -90,9 +90,9 @@ def create_object():
             if inCompleteTrials != 0:
                 print("Incomplete session! Last", inCompleteTrials, "trial discarded")
             unityTriggers = np.zeros((utMin, 3), dtype=int)
-            unityTriggers[:, 0] = uT1[0][0:utMin].astype(int)
-            unityTriggers[:, 1] = uT2[0][0:utMin].astype(int)
-            unityTriggers[:, 2] = uT3[0].astype(int)
+            unityTriggers[:, 0] = uT1[0][0:utMin]
+            unityTriggers[:, 1] = uT2[0][0:utMin]
+            unityTriggers[:, 2] = uT3[0]
             unityTriggers = unityTriggers.astype(int)
 
             # Unity Trial Time
@@ -164,13 +164,13 @@ class PlotTrial(DPT.objects.DPObject):
         ax.plot(x2Bound, z2Bound, 'k', LineWidth=1)
         ax.plot(x3Bound, z3Bound, 'k', LineWidth=1)
         ax.plot(x4Bound, z4Bound, 'k', LineWidth=1)
-        ax.plot(self.data.unityData[int(self.data.unityTriggers[i, 1]): int(self.data.unityTriggers[i, 2] - 1), 2],
-                self.data.unityData[int(self.data.unityTriggers[i, 1]): int(self.data.unityTriggers[i, 2] - 1), 3],
+        ax.plot(self.data.unityData[int(self.data.unityTriggers[i, 1]): int(self.data.unityTriggers[i, 2]), 2],
+                self.data.unityData[int(self.data.unityTriggers[i, 1]): int(self.data.unityTriggers[i, 2]), 3],
                 'b+', LineWidth=1)
 
         # plot end point identifier
         ax.plot(self.data.unityData[self.data.unityTriggers[i, 2], 2],
-                self.data.unityData[self.data.unityTriggers[i, 2], 3], 'k.', MarkerSize=20)
+                self.data.unityData[self.data.unityTriggers[i, 2], 3], 'k.', MarkerSize=10)
         return ax
 
 
@@ -198,7 +198,7 @@ class PlotFrameIntervals(DPT.objects.DPObject):
             ax.clear()
 
         indices = self.data.unityTriggers[i, FrameIntervalTriggers]
-        uData = self.data.unityData[(indices[0] + 1):indices[1], 1]
+        uData = self.data.unityData[(indices[0] + 1):(indices[1]+1), 1]
         ax.stem(uData)
         ax.set_xlabel('Frames')
         ax.set_ylabel('Interval (s)')
@@ -267,8 +267,8 @@ def plot(unity):
     timeStamps = np.array(data_rplparallel.get('timeStamps'))
     data_rplparallel.close()
 
-    pp_in = PlotDurationDiffs(unity, timeStamps)
-    ppg = PanGUI.create_window(pp_in, indexer="trial")
+    # pp_in = PlotDurationDiffs(unity, timeStamps)
+    # ppg = PanGUI.create_window(pp_in, indexer="trial")
 
 
 def main():
