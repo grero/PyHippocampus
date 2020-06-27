@@ -15,6 +15,11 @@ class dirfiles(DPT.DPObject):
         # create object if there are some items in this directory
         if dnum > 0:
             # update fields in parent
-            self.dirs = os.getcwd()
-            self.dir_list = dir_listing
+            self.dirs = [os.getcwd()]
             self.setidx = [0, dnum]
+            # update fields in child
+            self.dir_list = dir_listing
+
+    def append(self, df):
+        DPT.DPObject.append(self, df)
+        self.dir_list = self.dir_list + df.dir_list
