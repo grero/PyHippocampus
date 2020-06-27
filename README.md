@@ -13,6 +13,15 @@ While still in the Terminal window, change directory to where the pyedfread code
 cd ~/Documents/Python/pyedfread
 pip install .
 
+You should also clone the following two repositories:
+
+https://github.com/grero/DataProcessingTools
+https://github.com/grero/PanGUI
+
+Change to the directory where the code is saved, and install them using:
+
+pip install -e .
+
 Close the Terminal window, select Home in the sidebar of the Anaconda Navigator window, and launch Spyder. Type the following from the python prompt: 
 
 import PyHippocampus as pyh
