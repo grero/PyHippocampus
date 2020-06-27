@@ -22,4 +22,4 @@ class dirfiles(DPT.DPObject):
 
     def append(self, df):
         DPT.DPObject.append(self, df)
-        self.dir_list = self.dir_list + df.dir_list
+        self.dir_list += df.dir_list
