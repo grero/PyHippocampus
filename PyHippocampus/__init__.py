@@ -1,1 +1,1 @@
-from .phtest import pyhcheckfrom .dirfiles import dirfilesfrom .rplraw import rplraw
+from .phtest import pyhcheckfrom .dirfiles import DirFilesfrom .rplraw import rplraw
