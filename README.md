@@ -28,8 +28,21 @@ import PyHippocampus as pyh
 
 You should be able to use the functions by doing: 
 
-rw = pyh.rplraw(...)
 pyh.pyhcheck('hello')
+cd ~/Documents/Python/PyHippocampus
+# count number of items in the directory
+df1 = pyh.DirFiles()
+cd PyHippocampus
+# count number of items in the directory
+df2 = pyh.DirFiles()
+# add both objects together
+df1.append(df2)
+# plot the number of items in the first directory
+df1.plot(i=0)
+# plot the number of items in the second directory
+df1.plot(i=1)
+
+rw = pyh.rplraw(...)
 uy = pyh.unity(...)
 el = pyh.eyelink(...)
 
