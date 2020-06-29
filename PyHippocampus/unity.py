@@ -101,11 +101,14 @@ class Unity:
         # ppg = PanGUI.create_window(pp_in, indexer="trial")
 
         # Load data from rplparallel.hdf5
-        data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
-        timeStamps = np.array(data_rplparallel.get('timeStamps'))
-        data_rplparallel.close()
+        # data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
+        # timeStamps = np.array(data_rplparallel.get('timeStamps'))
+        # data_rplparallel.close()
 
-        pp_in = PlotDurationDiffs(self, timeStamps)
+        # pp_in = PlotDurationDiffs(self, timeStamps)
+        # ppg = PanGUI.create_window(pp_in, indexer="trial")
+
+        pp_in = PlotSumCost(self)
         ppg = PanGUI.create_window(pp_in, indexer="trial")
 
 
@@ -241,6 +244,11 @@ def create():
                             else:
                                 sumCost[a, 5] = 1
 
+                # Calculate performance
+                errorInd = np.where(sumCost[:, 4] == 40)
+                sumCost[errorInd, 5] = 0
+                sumCost[errorInd[0] + 1, 5] = 0
+
             unity.sumCost = sumCost
             unity.unityData = unityData
             unity.unityTriggers = unityTriggers
@@ -252,6 +260,16 @@ def create():
             return unity
     else:
         return unity
+
+
+def align_yaxis(ax1, v1, ax2, v2):
+    """adjust ax2 ylimit so that v2 in ax2 is aligned to v1 in ax1"""
+    _, y1 = ax1.transData.transform((0, v1))
+    _, y2 = ax2.transData.transform((0, v2))
+    inv = ax2.transData.inverted()
+    _, dy = inv.transform((0, 0)) - inv.transform((0, y1-y2))
+    miny, maxy = ax2.get_ylim()
+    ax2.set_ylim(miny+dy, maxy+dy)
 
 
 # Class for the trial plot
@@ -316,7 +334,7 @@ class PlotFrameIntervals(DPT.objects.DPObject):
 
         indices = self.data.unityTriggers[i, FrameIntervalTriggers]
         uData = self.data.unityData[(indices[0] + 1):(indices[1]+1), 1]
-        ax.stem(uData)
+        ax.stem(uData, basefmt=" ", use_line_collection=True)
         ax.set_xlabel('Frames')
         ax.set_ylabel('Interval (s)')
 
@@ -371,6 +389,47 @@ class PlotDurationDiffs(DPT.objects.DPObject):
         return ax
 
 
+# Class for the DurationDiff plot
+class PlotSumCost(DPT.objects.DPObject):
+    def __init__(self, data, title="Test windwow", name="", ext="mat"):
+        self.data = data
+        self.title = title
+        self.dirs = [""]
+        self.setidx = np.zeros(1, dtype=np.int)
+
+    def load(self):
+        fname = os.path.join(self.name, self.ext)
+        if os.path.isfile(fname):
+            if self.ext == "mat":
+                dd = mio.loadmat(fname, squeeze_me=True)
+
+    def update_idx(self, i):
+        return max(0, min(i, self.data.shape[0] - 1))
+
+    def plot(self, i, ax=None, overlay=False):
+        if ax is None:
+            ax = gca()
+        if not overlay:
+            ax.clear()
+
+        totTrials = self.data.unityTriggers.shape[0]
+        xind = np.arange(0, totTrials)
+        # Calculate optimal width
+        width = np.min(np.diff(xind)) / 3
+        ax.bar(xind-width/2, self.data.sumCost[xind, 0], width, color='yellow')
+        ax.bar(xind+width/2, self.data.sumCost[xind, 1], width, color='cyan')
+        ax1 = ax.twinx()
+        ratio = np.divide(self.data.sumCost[xind, 1], self.data.sumCost[xind, 0])
+        markerline, stemlines, baseline = ax1.stem(xind, ratio, 'magenta', markerfmt='mo', basefmt=" ", use_line_collection=True, label='Ratio')
+        markerline.set_markersize(2)
+        stemlines.set_linewidth(0.4)
+        markerline.set_markerfacecolor('none')
+        align_yaxis(ax,0,ax1,0)
+        # ax.grid(axis="y")
+
+        return ax
+
+
 def load():
     # Load data from unity.hdf5
     data_unity = h5py.File('unity.hdf5', 'r')
@@ -385,4 +444,7 @@ def load():
 
     return unity_data_load
 
+
+a = load()
+a.plot()
 
