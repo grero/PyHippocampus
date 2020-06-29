@@ -167,25 +167,27 @@ def create():
             unityTriggers[:, 2] = uT3[0]
             unityTriggers = unityTriggers.astype(int)
 
+            # Unity Time
+            unityTime = np.append(np.array([0]), np.cumsum(text_data[:, 1]))
+
             # Unity Trial Time
             totTrials = np.shape(unityTriggers)[0]
             unityTrialTime = np.empty((int(np.amax(uT3[0] - unityTriggers[:, 1])+2), totTrials))
             unityTrialTime.fill(np.nan)
 
+            trial_counter = 0  # set up trial counter
+            sumCost = np.zeros((404, 6))
+
             for a in range(0, totTrials):
-                uDidx = np.array(range(int(unityTriggers[a, 1]+1), int(unityTriggers[a, 2]+1)))
+
+                # Unity Trial Time
+                uDidx = np.array(range(int(unityTriggers[a, 1] + 1), int(unityTriggers[a, 2] + 1)))
                 numUnityFrames = uDidx.shape[0]
-                tindices = np.array(range(0, numUnityFrames+1))
+                tindices = np.array(range(0, numUnityFrames + 1))
                 tempTrialTime = np.append(np.array([0]), np.cumsum(unityData[uDidx, 1]))
                 unityTrialTime[tindices, a] = tempTrialTime
 
-            # Unity Time
-            unityTime = np.append(np.array([0]), np.cumsum(text_data[:, 1]))
-
-            # Sum Cost
-            trial_counter = 0  # set up trial counter
-            sumCost = np.zeros((404, 6))
-            for a in range(0, totTrials):
+                # Sum Cost
                 trial_counter = trial_counter + 1
 
                 # get target identity
@@ -202,7 +204,7 @@ def create():
 
                 idealCost, path = nx.bidirectional_dijkstra(G, destPos, startPos)
 
-                mpath = np.array([])
+                mpath = np.empty(0)
                 # get actual route taken(match to vertices)
                 for b in range(0, (unityTriggers[a, 2]-unityTriggers[a, 1]+1)):
                     currPos = unityData[unityTriggers[a, 1] + b, 2:4]
@@ -384,5 +386,3 @@ def load():
     return unity_data_load
 
 
-b = create()
-print(b.sumCost[0:10,:])
