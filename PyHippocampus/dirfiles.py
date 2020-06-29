@@ -14,7 +14,7 @@ class DirFiles(DPT.DPObject):
         if dnum > 0:
             # update fields in parent
             self.dirs = [os.getcwd()]
-            self.setidx = [0, dnum]
+            self.setidx = [0 for i in range(dnum)]
             # update fields in child
             self.dirList = dirListing
             self.dirNum = [dnum]
