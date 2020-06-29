@@ -21,5 +21,5 @@ def rpllfp(lowPassFrequency = [1, 150], LFPOrder = 8, resampleRate = 1000, displ
 	probeInfo = lfp_file.create_dataset('ProbeInfo', data = str(np.array(data['ProbeInfo'])).replace('raw', 'lfp'))
 	data.close()
 	lfp_file.close()
-	print("rpllfp.hd5 has been written")
+	print("rpllfp.hdf5 has been written")
 	return 

@@ -40,6 +40,7 @@ def lfpPlot(originalData, resampledData, filteredData, saveFig, samplingRate = 3
 	ax2.plot(filteredData, color = 'red', label = 'Filtered')
 	ax2.set_title("Resampled Data at Sampling Rate of {} Hz".format(resampleRate))
 	ax2.legend()
+	plt.tight_layout()
 	if saveFig: 
 		fig.savefig('lfp-plot.png')
 	# plt.show()
