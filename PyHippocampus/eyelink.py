@@ -4,6 +4,7 @@ import pandas as pd
 import h5py
 import os
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 # import PanGUI
 
 Args = {'RedoLevels': 0, 'SaveLevels': 0, 'Auto': 0, 'ArgsOnly': 0, 'ObjectLevel': 'Session',
@@ -13,20 +14,13 @@ Args = {'RedoLevels': 0, 'SaveLevels': 0, 'Auto': 0, 'ArgsOnly': 0, 'ObjectLevel
         'TriggerMessage': 'Trigger Version 84', 'NumTrialMessages': 3,
         'StartMessage': 'Start_Trial', 'CueMessage': 'Cue_Offset'}
 
-
-class navData:
+class eyelink:
     def __init__(self):
-        self.trial_timestamps = pd.DataFrame()
-        self.indices = pd.DataFrame()
-        self.eye_pos = pd.DataFrame()
-        self.numSets = 0
+        self.nav_trial_timestamps = pd.DataFrame()
+        self.nav_indices = pd.DataFrame()
+        self.nav_eye_pos = pd.DataFrame()
+        self.nav_numSets = 0
 
-    def info(self):
-        print("navData")
-
-
-class calibData:
-    def __init__(self):
         self.trial_timestamps = pd.DataFrame()
         self.indices = pd.DataFrame()
         self.eye_pos = pd.DataFrame()
@@ -41,10 +35,6 @@ class calibData:
         self.trial_codes = pd.DataFrame()
         self.session_start = 0
         self.session_start_index = 0
-
-    def info(self):
-        print("calibdata")
-
 
 def pread(filename,
           ignore_samples=False,
@@ -77,14 +67,8 @@ def pread(filename,
 
     return samples, events, messages
 
-
 ######### Navigation file #########
-
-
-def create_nav_obj(fileName):
-
-    # empty eyelink object
-    eyelink_nav = navData()
+def create_nav_obj(fileName, eyelink):
 
     samples, events, messages = pread(
         fileName, trial_marker=b'1  0  0  0  0  0  0  0')
@@ -141,26 +125,21 @@ def create_nav_obj(fileName):
     # numSets
     numSets = 1
 
-    eyelink_nav.eye_pos = eye_pos
-    eyelink_nav.indices = indices
-    eyelink_nav.trial_timestamps = trial_timestamps
-    eyelink_nav.numSets = numSets
+    eyelink.nav_eye_pos = eye_pos
+    eyelink.nav_indices = indices
+    eyelink.nav_trial_timestamps = trial_timestamps
+    eyelink.nav_numSets = numSets
 
-    return eyelink_nav
+    return
 
 ######### Calibration file #########
-
-
-def create_calib_obj(fileName):
-
-    # create empty eyelink object
-    eyelink_calib = calibData()
+def create_calib_obj(fileName, eyelink):
 
     samples, events, messages = pread(
         fileName, trial_marker=b'Start Trial')
 
     '''
-    Used to filter out unneeded columns of dataframes returned by pread.
+    # Used to filter out unneeded columns of dataframes returned by pread.
     samp_cols = ['px_left', 'px_right', 'py_left', 'py_right',
                  'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
                  'pa_right', 'gx_right', 'gy_right',
@@ -191,25 +170,20 @@ def create_calib_obj(fileName):
 
     # expTime
     expTime = samples['time'].iloc[0] - 1
-    # print(expTime)
 
     # timestamps
-    timestamps = samples['time']
-    # print(timestamps.iloc[0:10])
+    timestamps = samples['time'] - 2198659
 
     # eye_positions
     eye_pos = samples[['gx_left', 'gy_left']].copy()
-    eye_pos['gx_left'][eye_pos['gx_left'] < 0] = np.nan
-    eye_pos['gy_left'][eye_pos['gy_left'] < 0] = np.nan
-    # print(eye_pos[0:10])
+    eye_pos['gx_left'][(eye_pos['gx_left'] < 0) | (eye_pos['gx_left'] > Args.get('ScreenX'))] = np.nan
+    eye_pos['gy_left'][(eye_pos['gy_left'] < 0) | (eye_pos['gy_left'] > Args.get('ScreenY'))] = np.nan
 
     # timeout
     timeouts = messages['Timeout_time'].dropna()
-    # print(timeouts)
 
     # noOfTrials
     noOfTrials = len(messages) - 1
-    # print(noOfTrials)
 
     # fix_event
     duration = events['end'] - events['start']
@@ -217,9 +191,8 @@ def create_calib_obj(fileName):
     fix_event = fix_event.loc[events['type']
                               == 'fixation']  # get fixations only
     fix_event = fix_event.iloc[3:]  # 3 might not hold true for all files
-    # print(fix_event[0:20])
 
-    # fix_times , start and end columns are not adjusted
+    # fix_times
     fix_times = pd.concat([events['start'], events['end'],
                            duration], axis=1, sort=False)
     fix_times = fix_times.loc[events['type']
@@ -232,7 +205,6 @@ def create_calib_obj(fileName):
     sacc_event = sacc_event.loc[events['type']
                                 == 'saccade']  # get fixations only
     sacc_event = sacc_event.iloc[3:]
-    # print(sacc_event[0:10])
 
     # numSets
     numSets = 1
@@ -254,72 +226,137 @@ def create_calib_obj(fileName):
     end_split = end_split.rename(columns=lambda x: 'end_' + str(x))
     trial_codes = pd.concat(
         [trial_id, cue_split['cue_1'], end_split['end_1']], axis=1, sort=False)
-    # convert all columns into float dt
     trial_codes = trial_codes.iloc[1:]
-    trial_codes = trial_codes.astype(np.float64)
-    # print(trial_codes)
+    trial_codes = trial_codes.astype(np.float64)  # convert all columns into float dt
 
     # session_start
     samples2, events2, messages2 = pread(
         fileName, trial_marker=b'Trigger Version 84')
     session_start = messages2['trialid_time'].iloc[1]
-    # print(session_start)
 
     # session_start_index
     session_start_index = session_start - expTime
-    # print(session_start_index)
 
-    eyelink_calib.expTime = expTime
-    eyelink_calib.timestamps = timestamps
-    eyelink_calib.eye_pos = eye_pos
-    eyelink_calib.timeouts = timeouts
-    eyelink_calib.noOfTrials = noOfTrials
-    eyelink_calib.fix_event = fix_event
-    eyelink_calib.fix_times = fix_times
-    eyelink_calib.sacc_event = sacc_event
-    eyelink_calib.numSets = numSets
-    eyelink_calib.trial_timestamps = trial_timestamps
-    eyelink_calib.trial_codes = trial_codes
-    eyelink_calib.session_start = session_start
-    eyelink_calib.session_start_index = session_start_index
+    eyelink.expTime = expTime
+    eyelink.timestamps = timestamps
+    eyelink.eye_pos = eye_pos
+    eyelink.timeouts = timeouts
+    eyelink.noOfTrials = noOfTrials
+    eyelink.fix_event = fix_event
+    eyelink.fix_times = fix_times
+    eyelink.sacc_event = sacc_event
+    eyelink.numSets = numSets
+    eyelink.trial_timestamps = trial_timestamps
+    eyelink.trial_codes = trial_codes
+    eyelink.session_start = session_start
+    eyelink.session_start_index = session_start_index
 
-    return eyelink_calib
+    return
 
 
 def plot(obj):
-    # differentiating between which eyelink object type to plot
-    # through arguments?
+    n = 0
 
-    # if (Args.Trial):
-    # Plot x vs t and y vs t positions per trial
-    # get trial_timestamps
-    x = obj.trial_timestamps
+    # if statements are temporary, must be commented out to run
+    # missing argument processing in the shell
+    
+    if (Args.Trial):
+        # Plot x vs t and y vs t positions per trial
+        x = obj.trial_timestamps.to_numpy()
+        obj_timestamps = obj.timestamps.to_numpy()
+        trial_start_time = obj_timestamps[x[n][0].astype(int)]
+        trial_cue_time = obj_timestamps[x[n][1].astype(int)] - trial_start_time - 1
+        trial_end_time = obj_timestamps[x[n][2].astype(int)] - 1
 
-    trial_start_time = obj.timestamps[x['trialid_time']]
-    trial_cue_time = obj.timestamps[x['Cue_time']] - trial_start_time
-    trial_end_time = obj.timestamps[x['End_time']]
+        # timestamps is the x axis to be plotted
+        timestamps = obj_timestamps[x[n][0].astype(int) - 501 : x[n][2].astype(int)]
+        timestamps = timestamps - trial_start_time
+        obj_eye_pos = obj.eye_pos.to_numpy()
+        y = obj_eye_pos[x[n][0].astype(int) - 501 : x[n][2].astype(int)].transpose()
+        
+        # plot x axis data
+        plt.plot(timestamps, y[:][0], 'b-', LineWidth=0.5, Label='X position')
+        # label axis
+        plt.title('Eye Movements versus Time for Trial -')
+        plt.xlabel('Time (ms)')
+        plt.ylabel('Position (screen pixels)')
+        # plot y axis
+        plt.plot(timestamps, y[:][1], 'g-', LineWidth=0.5, Label='Y position')
+        
+        # Plotting lines to mark the start, cue offset, and end/timeout for the trial
+        plt.plot([0, 0], plt.ylim(), 'g', LineWidth=0.5)
+        plt.plot([trial_cue_time, trial_cue_time], plt.ylim(), 'm', LineWidth=0.5)
+        timedOut = obj.timeouts == trial_end_time
+        trial_end_time = trial_end_time - trial_start_time
+        timedOut = np.nonzero(timedOut.to_numpy)
 
-    # timestamps is x axis to be plotted
-    timestamps = obj.timestamps.loc[x['trialid_time'].iloc[0] -
-                                    500: x['End_time'].iloc[0]]  # iloc[0] or n?
-    timestamps = timestamps - trial_start_time
+        if not timedOut: # trial did not timeout
+            plt.plot([trial_end_time, trial_end_time], plt.ylim(), 'b', LineWidth=0.5)
+        else: # trial did timeout
+            plt.plot([trial_end_time, trial_end_time], plt.ylim(), 'r', LineWidth=0.5)
 
-    y = obj.eye_pos.loc[x['trialid_time'].iloc[0] -
-                        500: x['End_time'].iloc[0], :]   # both cols
+        plt.xlim([0, trial_end_time]) # set axis boundaries
+        plt.ylim([0, 1800])
+        plt.show()
+ 
+    elif (Args.XY):
+        # Plots the x and y movement of the eye per trial 
+        # extract all the trials from one session 
+        
+        x = obj.trial_timestamps.to_numpy()
+        obj_eye_pos = obj.eye_pos.to_numpy()
+        y = obj_eye_pos[x[n][0].astype(int) : x[n][2].astype(int), :].transpose()
+        plotGazeXY(y[0], y[1], 'b') # plot blue circles
+        
+    elif (Args.Calibration):
+        # working on it
+    
+    else: # some other argument
+        # Histogram of fixations and saccades per session
+        sacc_durations = obj.sacc_event.to_numpy()
+        fix_durations = obj.fix_event.to_numpy()
+        
+        sacc_durations = sacc_durations[sacc_durations != 0]
+        fix_durations = fix_durations[fix_durations != 0]
 
-    '''
-    plt.plot(timestamps, y['gx_left'], 'b-')
-    plt.title('Eye Movements versus Time for Trial -')
-    plt.xlabel('Time (ms)')
-    plt.ylabel('Position (screen pixels)')
-    plt.plot(timestamps, y['gy_left'], 'g-')
+        lower = np.amin(fix_durations)
+        upper = np.amax(fix_durations)
+        
+        edges = np.arange(lower, upper, 25).tolist()
+        edges = [x for x in edges if x <= 1000]
+
+        plt.hist(sacc_durations, density=1, alpha=0.5, color='#31b4e8', bins=edges, label='Saccades', edgecolor='black', linewidth=0.3)
+        plt.hist(fix_durations, density=1, alpha=0.5, color='#ed7f18', bins=edges, label='Fixations', edgecolor='black', linewidth=0.3)
+        plt.title ('Distribution of Saccades and Fixations for the Session')
+        plt.xlabel ('Duration (ms)')
+        plt.ylabel ('# of events')
+
+        plt.xlim([0, 1000]) # set axis boundaries
+        plt.ylim([0, 0.04])
+        plt.show()
+    
+
+# plotGazeXY helper method to plot gaze position. Uses matlab's plot function
+def plotGazeXY(gx, gy, lineType):
+    plt.scatter(gx, gy, color='none', edgecolor=lineType)
+    plt.gca().invert_yaxis() # reverse current y axis
+    # rect = patches.Rectangle# draw rect to represent the screen
+    # rect = plt.Rectangle((0,0), 1920, 1080, )
+    # plt.gca().add_patch(rect)
+    plt.title('Calibration Eye movements from session')
+    plt.xlabel('Gaze Position X (screen pixels)')
+    plt.ylabel(('Gaze Position Y (screen pixels)'))
+
+    plt.xlim([0, 2000]) # set axis boundaries
+    plt.ylim([1200, 0])
     plt.show()
-    '''
-
 
 def main():
     # create empty h5 file
     hf = h5py.File('eyelink.hdf5', mode='w')
+
+    # create empty object
+    el = eyelink()
 
     # search current directory for .edf files
     for root, dirs, files in os.walk("."):
@@ -328,45 +365,36 @@ def main():
                 if file.startswith(Args['CalibFileNameChar']):
                     # navigation file w/ format: 'Pm_d.edf'
                     print('Reading P edf file.\n')
-                    nav_object = create_nav_obj(file)
+                    create_nav_obj(file, el)
 
-                    hf.create_dataset('nav_numSets', data=nav_object.numSets)
-                    hf.create_dataset('nav_trial_timestamps',
-                                      data=nav_object.trial_timestamps)
-                    hf.create_dataset('nav_indices', data=nav_object.indices)
-                    hf.create_dataset('nav_eye_pos', data=nav_object.eye_pos)
+                    hf.create_dataset('nav_numSets', data=el.nav_numSets)
+                    hf.create_dataset('nav_trial_timestamps', data=el.nav_trial_timestamps)
+                    hf.create_dataset('nav_indices', data=el.nav_indices)
+                    hf.create_dataset('nav_eye_pos', data=el.nav_eye_pos)
 
                 else:
                     # calibration file w/ format: 'yymmdd.edf'
                     print('Reading day edf file.\n')
-                    calib_object = create_calib_obj(file)
+                    create_calib_obj(file, el)
 
-                    hf.create_dataset('numSets', data=calib_object.numSets)
-                    hf.create_dataset('trial_timestamps',
-                                      data=calib_object.trial_timestamps)
-                    hf.create_dataset('indices', data=calib_object.indices)
-                    hf.create_dataset('eye_pos', data=calib_object.eye_pos)
-                    hf.create_dataset('expTime', data=calib_object.expTime)
-                    hf.create_dataset('timestamps',
-                                      data=calib_object.timestamps)
-                    hf.create_dataset('timeouts', data=calib_object.timeouts)
-                    hf.create_dataset(
-                        'noOfTrials', data=calib_object.noOfTrials)
-                    hf.create_dataset('fix_event', data=calib_object.fix_event)
-                    hf.create_dataset('fix_times',
-                                      data=calib_object.fix_times)
-                    hf.create_dataset(
-                        'sacc_event', data=calib_object.sacc_event)
-                    hf.create_dataset(
-                        'trial_codes', data=calib_object.trial_codes)
-                    hf.create_dataset(
-                        'session_start', data=calib_object.session_start)
-                    hf.create_dataset('session_start_index',
-                                      data=calib_object.session_start_index)
+                    hf.create_dataset('numSets', data=el.numSets)
+                    hf.create_dataset('trial_timestamps', data=el.trial_timestamps)
+                    hf.create_dataset('indices', data=el.indices)
+                    hf.create_dataset('eye_pos', data=el.eye_pos)
+                    hf.create_dataset('expTime', data=el.expTime)
+                    hf.create_dataset('timestamps', data=el.timestamps)
+                    hf.create_dataset('timeouts', data=el.timeouts)
+                    hf.create_dataset('noOfTrials', data=el.noOfTrials)
+                    hf.create_dataset('fix_event', data=el.fix_event)
+                    hf.create_dataset('fix_times', data=el.fix_times)
+                    hf.create_dataset('sacc_event', data=el.sacc_event)
+                    hf.create_dataset('trial_codes', data=el.trial_codes)
+                    hf.create_dataset('session_start', data=el.session_start)
+                    hf.create_dataset('session_start_index', data=el.session_start_index)
 
     hf.close()
 
-    plot(calib_object)
+    plot(el)
 
 
 if __name__ == "__main__":
