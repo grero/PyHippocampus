@@ -2,11 +2,10 @@ import numpy as np
 import glob
 import os
 import h5py
-import matplotlib.pyplot as plt
 import PanGUI
 import DataProcessingTools as DPT
-import matplotlib.patches as patches
-import tracemalloc
+import networkx as nx
+from scipy.spatial.distance import cdist
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -16,6 +15,50 @@ Args = {'RedoLevels': 0, 'SaveLevels': 0, 'Auto': 0, 'ArgsOnly': 0, 'ObjectLevel
         'DirName': 'RawData*', 'FileName': 'session*txt', 'TriggerVal1': 10, 'TriggerVal2': 20, 'TriggerVal3': 30,
         'MaxTimeDiff': 0.002}
 
+A = np.array([[0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 5, 0, 5, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 5, 0, 0, 5, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 5, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0]])
+
+G = nx.from_numpy_matrix(A)
+
+# Vertices coordinates:
+vertices = np.array([[-10, 10], [-5, 10], [0, 10], [5, 10], [10, 10], [-10, 5], [0, 5],
+                     [10, 5], [-10, 0], [-5, 0], [0, 0], [5, 0], [10, 0], [-10, -5],
+                     [0, -5], [10, -5], [-10, -10], [-5, -10], [0, -10], [5, -10], [10, -10]])
+# Poster coordinates
+poster_pos = np.array([[-5, -7.55], [-7.55, 5], [7.55, -5], [5, 7.55], [5, 2.45], [-5, -2.45]])
+# Plot boundaries
+xBound = [-12.5, 12.5, 12.5, -12.5, -12.5]
+zBound = [12.5, 12.5, -12.5, -12.5, 12.5]
+x1Bound = [-7.5, -2.5, -2.5, -7.5, -7.5]  # yellow pillar
+z1Bound = [7.5, 7.5, 2.5, 2.5, 7.5]
+x2Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # red pillar
+z2Bound = [7.5, 7.5, 2.5, 2.5, 7.5]
+x3Bound = [-7.5, -2.5, -2.5, -7.5, -7.5]  # blue pillar
+z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
+x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
+z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
+
+FrameIntervalTriggers = np.array([1, 2], dtype=np.int)
+
 
 class Unity:
     numSets = 0
@@ -23,13 +66,15 @@ class Unity:
     unityTriggers = np.empty(0)
     unityTrialTime = np.empty(0)
     unityTime = np.empty(0)
+    sumCost = np.empty(0)
 
-    def __init__(self, num_sets, unity_data, unity_triggers, unity_trial_time, unity_time):
+    def __init__(self, num_sets, unity_data, unity_triggers, unity_trial_time, unity_time, sum_cost):
         self.numSets = num_sets
         self.unityData = unity_data
         self.unityTriggers = unity_triggers
         self.unityTrialTime = unity_trial_time
         self.unityTime = unity_time
+        self.sumCost = sum_cost
 
     def info(self):
         print("numSets: ", self.numSets, "\n", "unityData: ", self.unityData.shape, "\n", "unityTriggers: ",
@@ -45,6 +90,7 @@ class Unity:
         hf.create_dataset('unityTriggers', data=self.unityTriggers)
         hf.create_dataset('unityTrialTime', data=self.unityTrialTime)
         hf.create_dataset('unityTime', data=self.unityTime)
+        hf.create_dataset('sumCost', data=self.sumCost)
         hf.close()
 
     def plot(self):
@@ -65,7 +111,7 @@ class Unity:
 
 def create():
     # empty unity data object
-    unity = Unity()
+    unity = Unity(np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0))
     # look for RawData_T * folder
     if bool(glob.glob("RawData*")):
         os.chdir(glob.glob("RawData*")[0])
@@ -136,6 +182,64 @@ def create():
             # Unity Time
             unityTime = np.append(np.array([0]), np.cumsum(text_data[:, 1]))
 
+            # Sum Cost
+            trial_counter = 0  # set up trial counter
+            sumCost = np.zeros((404, 6))
+            for a in range(0, totTrials):
+                trial_counter = trial_counter + 1
+
+                # get target identity
+                target = unityData[unityTriggers[a, 2], 0] % 10
+
+                # (starting position) get nearest neighbour vertex
+                x = unityData[unityTriggers[a, 1], 2:4]
+                s = cdist(vertices, x.reshape(1, -1))
+                startPos = s.argmin()
+
+                # (destination, target) get nearest neighbour vertex
+                d = cdist(vertices, (poster_pos[int(target-1), :]).reshape(1, -1))
+                destPos = d.argmin()
+
+                idealCost, path = nx.bidirectional_dijkstra(G, destPos, startPos)
+
+                mpath = np.array([])
+                # get actual route taken(match to vertices)
+                for b in range(0, (unityTriggers[a, 2]-unityTriggers[a, 1]+1)):
+                    currPos = unityData[unityTriggers[a, 1] + b, 2:4]
+                    # (current position)
+                    cp = cdist(vertices, currPos.reshape(1, -1))
+                    I3 = cp.argmin()
+                    mpath = np.append(mpath, I3)
+
+                pathdiff = np.diff(mpath)
+                change = np.array([1])
+                change = np.append(change, pathdiff)
+                index = np.where(np.abs(change) > 0)
+                actualRoute = mpath[index]
+                actualCost = (actualRoute.shape[0]-1)*5
+                # actualTime = index
+
+                # Store summary
+                sumCost[a, 0] = idealCost
+                sumCost[a, 1] = actualCost
+                sumCost[a, 2] = actualCost - idealCost
+                sumCost[a, 3] = target
+                sumCost[a, 4] = unityData[unityTriggers[a, 2], 0] - target
+
+                if sumCost[a, 2] <= 0:  # least distance taken
+                    sumCost[a, 5] = 1  # mark out trials completed via shortest route
+                elif sumCost[a, 2] > 0 and sumCost[a, 4] == 30:
+                    pathdiff = np.diff(actualRoute)
+
+                    for c in range(0, pathdiff.shape[0]-1):
+                        if pathdiff[c] == pathdiff[c + 1] * (-1):
+                            timeingrid = np.where(mpath == actualRoute[c + 1])[0].shape[0]
+                            if timeingrid > 165:
+                                break
+                            else:
+                                sumCost[a, 5] = 1
+
+            unity.sumCost = sumCost
             unity.unityData = unityData
             unity.unityTriggers = unityTriggers
             unity.unityTrialTime = unityTrialTime
@@ -146,21 +250,6 @@ def create():
             return unity
     else:
         return unity
-
-
-# Plot boundaries
-xBound = [-12.5, 12.5, 12.5, -12.5, -12.5]
-zBound = [12.5, 12.5, -12.5, -12.5, 12.5]
-x1Bound = [-7.5, -2.5, -2.5, -7.5, -7.5]  # yellow pillar
-z1Bound = [7.5, 7.5, 2.5, 2.5, 7.5]
-x2Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # red pillar
-z2Bound = [7.5, 7.5, 2.5, 2.5, 7.5]
-x3Bound = [-7.5, -2.5, -2.5, -7.5, -7.5]  # blue pillar
-z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
-x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
-z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
-
-FrameIntervalTriggers = np.array([1, 2], dtype=np.int)
 
 
 # Class for the trial plot
@@ -288,9 +377,12 @@ def load():
     n3 = np.array(data_unity.get('unityTriggers'))
     n4 = np.array(data_unity.get('unityTrialTime'))
     n5 = np.array(data_unity.get('unityTime'))
-    unity_data_load = Unity(n1, n2, n3, n4, n5)
+    n6 = np.array(data_unity.get('sumCost'))
+    unity_data_load = Unity(n1, n2, n3, n4, n5, n6)
     data_unity.close()
-    
+
     return unity_data_load
 
 
+b = create()
+print(b.sumCost[0:10,:])
