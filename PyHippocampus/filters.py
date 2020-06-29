@@ -14,7 +14,7 @@ def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq
 	lowFreq = lowFreq / fn 
 	highFreq = highFreq / fn 
 	sos = signal.butter(LFPOrder, [lowFreq, highFreq], 'bandpass', fs = resampleRate, output = "sos")
-	print("Applying low-pass filter with frequencies {} and {} Hz\n".format(lowFreq * fn, highFreq * fn))
+	print("Applying low-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
 	lfps = signal.sosfiltfilt(sos, lfpsData, padlen = padlen)
 	if display: 
 		lfpPlot(analogData, lfpsData, lfps, saveFig = saveFig)
@@ -26,10 +26,10 @@ def highPassFilter(analogData, samplingRate = 30000, lowFreq = 500, highFreq = 7
 	lowFreq = lowFreq / fn 
 	highFreq = highFreq / fn 
 	sos = signal.butter(HPOrder, [lowFreq, highFreq], 'bandpass', fs = samplingRate, output = "sos")
-	print("Applying high-pass filter with frequencies {} and {} Hz\n".format(lowFreq * fn, highFreq * fn))
+	print("Applying high-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
 	hps = signal.sosfiltfilt(sos, analogData, padlen = padlen)
 	if display: 
-		highpassPlot(analogData, saveFig = False)
+		highpassPlot(analogData, hps, lowFreq = lowFreq * fn, highFreq = highFreq * fn saveFig = False)
 	return hps, samplingRate
 
 def lfpPlot(originalData, resampledData, filteredData, saveFig, samplingRate = 30000, resampleRate = 1000):
@@ -43,8 +43,15 @@ def lfpPlot(originalData, resampledData, filteredData, saveFig, samplingRate = 3
 	plt.tight_layout()
 	if saveFig: 
 		fig.savefig('lfp-plot.png')
-	# plt.show()
 	return 
 
-def highpassPlot(analogData, saveFig):
-	pass
+def highpassPlot(originalData, filteredData, lowFreq = 500, highFreq = 7500,saveFig):
+	fig = plt.figure()
+	plt.plot(originalData, color = 'blue', label = 'Original')
+	plt.plot(filteredData, color = 'red', label = 'Filtered')
+	plt.set_title('High pass filtered data between {} and {} Hz'.format(lowFreq, highFreq))
+	plt.legend()
+	plt.tight_layout()
+	if savefig:
+		fig.savefig('highpass-plot.png')
+	return 
