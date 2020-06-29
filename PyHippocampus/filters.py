@@ -15,13 +15,13 @@ def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq
 	highFreq = highFreq / fn 
 	sos = signal.butter(LFPOrder, [lowFreq, highFreq], 'bandpass', fs = resampleRate, output = "sos")
 	print("Applying low-pass filter with frequencies {} and {} Hz\n".format(lowFreq * fn, highFreq * fn))
-	lfps = signal.sosfiltfilt(sos, analogData, padlen = padlen)
+	lfps = signal.sosfiltfilt(sos, lfpsData, padlen = padlen)
 	if display: 
 		lfpPlot(analogData, lfpsData, lfps, saveFig = saveFig)
 		print('saved figure')
 	return lfps, resampleRate
 
-def highPassFilter(analogData, samplingRate = 30000, lowFreq = 500, highFreq = 7500, HPorder = 8, padlen = 0, display = False, savefig = False):
+def highPassFilter(analogData, samplingRate = 30000, lowFreq = 500, highFreq = 7500, HPOrder = 8, padlen = 0, display = False, savefig = False):
 	fn = samplingRate / 2
 	lowFreq = lowFreq / fn 
 	highFreq = highFreq / fn 

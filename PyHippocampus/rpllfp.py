@@ -23,3 +23,5 @@ def rpllfp(lowPassFrequency = [1, 150], LFPOrder = 8, resampleRate = 1000, displ
 	lfp_file.close()
 	print("rpllfp.hdf5 has been written")
 	return 
+
+rpllfp()
