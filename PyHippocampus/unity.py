@@ -6,6 +6,7 @@ import PanGUI
 import DataProcessingTools as DPT
 import networkx as nx
 from scipy.spatial.distance import cdist
+# import time
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -246,10 +247,10 @@ def create():
                             else:
                                 sumCost[a, 5] = 1
 
-                # Calculate performance
-                errorInd = np.where(sumCost[:, 4] == 40)
-                sumCost[errorInd, 5] = 0
-                sumCost[errorInd[0] + 1, 5] = 0
+            # Calculate performance
+            errorInd = np.where(sumCost[:, 4] == 40)
+            sumCost[errorInd, 5] = 0
+            sumCost[errorInd[0] + 1, 5] = 0
 
             unity.sumCost = sumCost
             unity.unityData = unityData
@@ -446,5 +447,9 @@ def load():
 
     return unity_data_load
 
+# tic = time.perf_counter()
+# b = create()
+# toc = time.perf_counter()
+# print(f"{toc - tic} seconds")
 
 
