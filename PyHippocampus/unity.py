@@ -94,22 +94,24 @@ class Unity:
         hf.close()
 
     def plot(self):
-        # pp = PlotTrial(self)
-        # ppg = PanGUI.create_window(pp, indexer="trial")
+        chose = input("Select which to plot (1.Trial 2.FrameIntervals 3.DurationDiffs 4.SumCost): ")
+        if chose == '1':
+            pp = PlotTrial(self)
+            ppg = PanGUI.create_window(pp, indexer="trial")
+        elif chose == '2':
+            pp_in = PlotFrameIntervals(self)
+            ppg = PanGUI.create_window(pp_in, indexer="trial")
+        elif chose == '3':
+            # Load data from rplparallel.hdf5
+            data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
+            timeStamps = np.array(data_rplparallel.get('timeStamps'))
+            data_rplparallel.close()
 
-        # pp_in = PlotFrameIntervals(self)
-        # ppg = PanGUI.create_window(pp_in, indexer="trial")
-
-        # Load data from rplparallel.hdf5
-        # data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
-        # timeStamps = np.array(data_rplparallel.get('timeStamps'))
-        # data_rplparallel.close()
-
-        # pp_in = PlotDurationDiffs(self, timeStamps)
-        # ppg = PanGUI.create_window(pp_in, indexer="trial")
-
-        pp_in = PlotSumCost(self)
-        ppg = PanGUI.create_window(pp_in, indexer="trial")
+            pp_in = PlotDurationDiffs(self, timeStamps)
+            ppg = PanGUI.create_window(pp_in, indexer="trial")
+        else:
+            pp_in = PlotSumCost(self)
+            ppg = PanGUI.create_window(pp_in, indexer="trial")
 
 
 def create():
@@ -445,6 +447,4 @@ def load():
     return unity_data_load
 
 
-a = load()
-a.plot()
 
