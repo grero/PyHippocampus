@@ -6,7 +6,6 @@ import PanGUI
 import DataProcessingTools as DPT
 import networkx as nx
 from scipy.spatial.distance import cdist
-# import time
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -100,7 +99,11 @@ class Unity:
             pp = PlotTrial(self)
             ppg = PanGUI.create_window(pp, indexer="trial")
         elif chose == '2':
-            pp_in = PlotFrameIntervals(self)
+            data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
+            timeStamps = np.array(data_rplparallel.get('timeStamps'))
+            data_rplparallel.close()
+
+            pp_in = PlotFrameIntervals(self,timeStamps)
             ppg = PanGUI.create_window(pp_in, indexer="trial")
         elif chose == '3':
             # Load data from rplparallel.hdf5
@@ -309,13 +312,19 @@ class PlotTrial(DPT.objects.DPObject):
         # plot end point identifier
         ax.plot(self.data.unityData[self.data.unityTriggers[i, 2], 2],
                 self.data.unityData[self.data.unityTriggers[i, 2], 3], 'k.', MarkerSize=10)
+        rstr = str(self.data.sumCost[i, 1])
+        sstr = str(self.data.sumCost[i, 0])
+        ratiostr = str(self.data.sumCost[i, 1] / self.data.sumCost[i, 0])
+        title = ' T: ' + str(i) + ' Route: ' + rstr + ' Shortest: ' + sstr + ' Ratio: ' + ratiostr
+        ax.set_title(title)
         return ax
 
 
 # Class for the trial FrameIntervals plot
 class PlotFrameIntervals(DPT.objects.DPObject):
-    def __init__(self, data, title="Test windwow", name="", ext="mat"):
+    def __init__(self, data, timeStamps, title="Test windwow", name="", ext="mat"):
         self.data = data
+        self.timeStamps = timeStamps
         self.title = title
         self.dirs = [""]
         self.setidx = np.zeros(data.unityTriggers.shape[0], dtype=np.int)
@@ -337,9 +346,18 @@ class PlotFrameIntervals(DPT.objects.DPObject):
 
         indices = self.data.unityTriggers[i, FrameIntervalTriggers]
         uData = self.data.unityData[(indices[0] + 1):(indices[1]+1), 1]
-        ax.stem(uData, basefmt=" ", use_line_collection=True)
+        markerline, stemlines, baseline = ax.stem(uData, basefmt=" ", use_line_collection=True)
+        stemlines.set_linewidth(0.5)
+        markerline.set_markerfacecolor('none')
+        ax.set_ylim(bottom=0)
         ax.set_xlabel('Frames')
         ax.set_ylabel('Interval (s)')
+        start = self.timeStamps[i, 1]
+        end = self.timeStamps[i, 2]
+        rpTrialDur = end - start
+        uet = np.cumsum(uData)
+        title = " Trial " + str(i) + ' Duration disparity: ' + str(1000*(uet[-1]-rpTrialDur)) + ' ms'
+        ax.set_title(title)
 
         return ax
 
@@ -388,11 +406,12 @@ class PlotDurationDiffs(DPT.objects.DPObject):
         ax.set_ylabel('Frequency')
         ax.set_yscale("log")
         ax.grid(axis="y")
+        ax.set_title('Unity trial duration - Ripple trial duration ')
 
         return ax
 
 
-# Class for the DurationDiff plot
+# Class for the sumCost plot
 class PlotSumCost(DPT.objects.DPObject):
     def __init__(self, data, title="Test windwow", name="", ext="mat"):
         self.data = data
@@ -419,16 +438,23 @@ class PlotSumCost(DPT.objects.DPObject):
         xind = np.arange(0, totTrials)
         # Calculate optimal width
         width = np.min(np.diff(xind)) / 3
-        ax.bar(xind-width/2, self.data.sumCost[xind, 0], width, color='yellow')
-        ax.bar(xind+width/2, self.data.sumCost[xind, 1], width, color='cyan')
+        ax.bar(xind-width/2, self.data.sumCost[xind, 0], width, color='yellow', label="Shortest")
+        ax.bar(xind+width/2, self.data.sumCost[xind, 1], width, color='cyan', label="Route")
         ax1 = ax.twinx()
         ratio = np.divide(self.data.sumCost[xind, 1], self.data.sumCost[xind, 0])
-        markerline, stemlines, baseline = ax1.stem(xind, ratio, 'magenta', markerfmt='mo', basefmt=" ", use_line_collection=True, label='Ratio')
-        markerline.set_markersize(2)
+        markerline, stemlines, baseline = ax1.stem(xind, ratio, 'magenta', markerfmt='mo', basefmt=" ",
+                                                   use_line_collection=True, label='Ratio')
+        # markerline.set_markersize(5)
         stemlines.set_linewidth(0.4)
         markerline.set_markerfacecolor('none')
-        align_yaxis(ax,0,ax1,0)
-        # ax.grid(axis="y")
+        align_yaxis(ax, 0, ax1, 0)
+        ax1.grid(axis="y")
+        ax1.spines['right'].set_color('magenta')
+        ax1.tick_params(axis='y', colors='magenta')
+        lines, labels = ax.get_legend_handles_labels()
+        lines2, labels2 = ax1.get_legend_handles_labels()
+        ax1.legend(lines + lines2, labels + labels2, loc="upper right")
+        ax.set_title("p20181105s1")
 
         return ax
 
@@ -447,9 +473,7 @@ def load():
 
     return unity_data_load
 
-# tic = time.perf_counter()
-# b = create()
-# toc = time.perf_counter()
-# print(f"{toc - tic} seconds")
+# a = load()
+# a.plot()
 
 
