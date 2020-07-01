@@ -316,6 +316,12 @@ class PlotTrial(DPT.objects.DPObject):
         sstr = str(self.data.sumCost[i, 0])
         ratiostr = str(self.data.sumCost[i, 1] / self.data.sumCost[i, 0])
         title = ' T: ' + str(i) + ' Route: ' + rstr + ' Shortest: ' + sstr + ' Ratio: ' + ratiostr
+        # cwd = os.getcwd()
+        dir = "volume1/Hippocampus/Data/picasso-misc/20181105/session01"
+        subject = DPT.levels.get_shortname("subject", dir)
+        date = DPT.levels.get_shortname("day", dir)
+        session = DPT.levels.get_shortname("session", dir)
+        title = subject + date + session + title
         ax.set_title(title)
         return ax
 
@@ -357,6 +363,12 @@ class PlotFrameIntervals(DPT.objects.DPObject):
         rpTrialDur = end - start
         uet = np.cumsum(uData)
         title = " Trial " + str(i) + ' Duration disparity: ' + str(1000*(uet[-1]-rpTrialDur)) + ' ms'
+        # cwd = os.getcwd()
+        dir = "volume1/Hippocampus/Data/picasso-misc/20181105/session01"
+        subject = DPT.levels.get_shortname("subject", dir)
+        date = DPT.levels.get_shortname("day", dir)
+        session = DPT.levels.get_shortname("session", dir)
+        title = subject + date + session + title
         ax.set_title(title)
 
         return ax
@@ -406,7 +418,12 @@ class PlotDurationDiffs(DPT.objects.DPObject):
         ax.set_ylabel('Frequency')
         ax.set_yscale("log")
         ax.grid(axis="y")
-        ax.set_title('Unity trial duration - Ripple trial duration ')
+        # cwd = os.getcwd()
+        dir = "volume1/Hippocampus/Data/picasso-misc/20181105/session01"
+        subject = DPT.levels.get_shortname("subject", dir)
+        date = DPT.levels.get_shortname("day", dir)
+        session = DPT.levels.get_shortname("session", dir)
+        ax.set_title('Unity trial duration - Ripple trial duration ' + subject + date + session)
 
         return ax
 
@@ -454,7 +471,12 @@ class PlotSumCost(DPT.objects.DPObject):
         lines, labels = ax.get_legend_handles_labels()
         lines2, labels2 = ax1.get_legend_handles_labels()
         ax1.legend(lines + lines2, labels + labels2, loc="upper right")
-        ax.set_title("p20181105s1")
+        # cwd = os.getcwd()
+        dir = "volume1/Hippocampus/Data/picasso-misc/20181105/session01"
+        subject = DPT.levels.get_shortname("subject", dir)
+        date = DPT.levels.get_shortname("day", dir)
+        session = DPT.levels.get_shortname("session", dir)
+        ax.set_title(subject + date + session)
 
         return ax
 
