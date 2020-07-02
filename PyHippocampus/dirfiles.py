@@ -1,16 +1,13 @@
 import os
 from matplotlib.pyplot import gca
 import DataProcessingTools as DPT
-import h5py
-import numpy as np
-import hashlib
 
 class DirFiles(DPT.DPObject):
     """
     DirFiles(redoLevel=0, saveLevel=0, ObjectLevel='Session', 
              FilesOnly=0, DirsOnly=0)
     """
-    filename = "dirfiles.h5"
+    filename = "dirfiles.hkl"
     argsList = [("FilesOnly", False), ("DirsOnly", False), ("ObjectLevel", "Session")]
 
     def __init__(self, *args, **kwargs):
@@ -50,43 +47,7 @@ class DirFiles(DPT.DPObject):
             
         if saveLevel > 0:
             self.save()
-
-    def save(self, fname=None):
-        if fname is None:
-            fname = self.get_filename()
-
-        with h5py.File(fname, "w") as ff:
-            args = ff.create_group("args")
-            args["FilesOnly"] = self.args["FilesOnly"]
-            args["DirsOnly"] = self.args["DirsOnly"]
-            args["ObjectLevel"] = self.args["ObjectLevel"]
-            ff["itemList"] = np.array(self.itemList, dtype='S256')
-            ff["itemNum"] = self.itemNum
-            ff["dirs"] = np.array(self.dirs, dtype='S256')
-            ff["setidx"] = self.setidx
-
-    def load(self, fname=None):
-        DPT.DPObject.load(self)
-        if fname is None:
-            fname = self.filename
-        with h5py.File(fname,"r") as ff:
-            args = {}
-            for (k, v) in ff["args"].items():
-                self.args[k] = v.value
-            self.itemList = [s.decode() for s in ff["itemList"][:]]
-            self.itemNum = ff["itemNum"][:].tolist()
-
-    def hash(self):
-        """
-        Returns a hash representation of this object's arguments.
-        """
-        #TODO: This is not replicable across sessions
-        h = hashlib.sha1(b"psth")
-        for (k, v) in self.args.items():
-            x = np.atleast_1d(v)
-            h.update(x.tobytes())
-        return h.hexdigest()
-
+        
     def append(self, df):
         # update fields in parent
         DPT.DPObject.append(self, df)
