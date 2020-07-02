@@ -7,11 +7,11 @@ import hashlib
 
 class DirFiles(DPT.DPObject):
     """
-    DirFiles(redoLevel=0, saveLevel=0, objectLevel='Session', 
-             filesOnly=0, dirsOnly=0)
+    DirFiles(redoLevel=0, saveLevel=0, ObjectLevel='Session', 
+             FilesOnly=0, DirsOnly=0)
     """
     filename = "dirfiles.h5"
-    argsList = [("filesOnly", 0), ("dirsOnly", 0), ("objectLevel", "Session")]
+    argsList = [("FilesOnly", False), ("DirsOnly", False), ("ObjectLevel", "Session")]
 
     def __init__(self, *args, **kwargs):
         # initialize fields in parent
@@ -23,12 +23,12 @@ class DirFiles(DPT.DPObject):
         dirList = os.listdir()
         print(dirList)
         
-        if self.args["filesOnly"]:
-            print("filesOnly")
+        if self.args["FilesOnly"]:
+            print("FilesOnly")
             # filter and save only files
             itemList = list(filter(os.path.isfile, dirList))
-        elif self.args["dirsOnly"]:
-            print("dirsOnly")
+        elif self.args["DirsOnly"]:
+            print("DirsOnly")
             # filter and save only dirs
             itemList = list(filter(os.path.isdir, dirList))
         else:
@@ -57,10 +57,10 @@ class DirFiles(DPT.DPObject):
 
         with h5py.File(fname, "w") as ff:
             args = ff.create_group("args")
-            args["filesOnly"] = self.args["filesOnly"]
-            args["dirsOnly"] = self.args["dirsOnly"]
-            args["objectLevel"] = self.args["objectLevel"]
-            ff["itemList"] = self.itemList
+            args["FilesOnly"] = self.args["FilesOnly"]
+            args["DirsOnly"] = self.args["DirsOnly"]
+            args["ObjectLevel"] = self.args["ObjectLevel"]
+            ff["itemList"] = np.array(self.itemList, dtype='S256')
             ff["itemNum"] = self.itemNum
             ff["dirs"] = np.array(self.dirs, dtype='S256')
             ff["setidx"] = self.setidx
@@ -69,12 +69,12 @@ class DirFiles(DPT.DPObject):
         DPT.DPObject.load(self)
         if fname is None:
             fname = self.filename
-        with h5py.File(fname) as ff:
+        with h5py.File(fname,"r") as ff:
             args = {}
             for (k, v) in ff["args"].items():
                 self.args[k] = v.value
-            self.itemList = ff["itemList"][:]
-            self.itemNum = ff["itemNum"][:]
+            self.itemList = [s.decode() for s in ff["itemList"][:]]
+            self.itemNum = ff["itemNum"][:].tolist()
 
     def hash(self):
         """
