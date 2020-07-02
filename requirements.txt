@@ -1,4 +1,5 @@
 Cython
+hickle
 h5py
 matplotlib
 neo
