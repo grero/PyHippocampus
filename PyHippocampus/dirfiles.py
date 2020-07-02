@@ -11,22 +11,24 @@ class DirFiles(DPT.DPObject):
              filesOnly=0, dirsOnly=0)
     """
     filename = "dirfiles.h5"
-    argsList = [("FilesOnly",0, "DirsOnly",0, "ObjectLevel","Session")]
+    argsList = [("filesOnly", 0), ("dirsOnly", 0), ("objectLevel", "Session")]
 
     def __init__(self, *args, **kwargs):
         # initialize fields in parent
         DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
-        
+        saveLevel = kwargs.get("saveLevel", 0)
         # check for files or directories in current directory
         dirList = os.listdir()
         print(dirList)
         
-        if self.args["FilesOnly"]:
+        if self.args["filesOnly"]:
+            print("filesOnly")
             # filter and save only files
             itemList = list(filter(os.path.isfile, dirList))
-        elif self.args["DirsOnly"]:
+        elif self.args["dirsOnly"]:
+            print("dirsOnly")
             # filter and save only dirs
             itemList = list(filter(os.path.isdir, dirList))
         else:
@@ -46,7 +48,7 @@ class DirFiles(DPT.DPObject):
             self.itemList = itemList
             self.itemNum = [dnum]
             
-        if kwargs.get("saveLevel",1) > 0:
+        if saveLevel > 0:
             self.save()
 
     def save(self, fname=None):
@@ -55,9 +57,9 @@ class DirFiles(DPT.DPObject):
 
         with h5py.File(fname, "w") as ff:
             args = ff.create_group("args")
-            args["FilesOnly"] = self.args["FilesOnly"]
-            args["DirsOnly"] = self.args["DirsOnly"]
-            args["ObjectLevel"] = self.args["ObjectLevel"]
+            args["filesOnly"] = self.args["filesOnly"]
+            args["dirsOnly"] = self.args["dirsOnly"]
+            args["objectLevel"] = self.args["objectLevel"]
             ff["itemList"] = self.itemList
             ff["itemNum"] = self.itemNum
             ff["dirs"] = np.array(self.dirs, dtype='S256')
