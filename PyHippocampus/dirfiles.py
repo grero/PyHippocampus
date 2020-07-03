@@ -12,7 +12,7 @@ class DirFiles(DPT.DPObject):
 
     def __init__(self, *args, **kwargs):
         # initialize fields in parent
-        DPT.DPObject.__init__(self, *args, **kwargs)
+        DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
 
     def create(self, *args, **kwargs):
         saveLevel = kwargs.get("saveLevel", 0)
