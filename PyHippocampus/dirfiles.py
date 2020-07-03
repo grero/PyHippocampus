@@ -1,11 +1,12 @@
 import os
 from matplotlib.pyplot import gca
 import DataProcessingTools as DPT
+import numpy as np
 
 class DirFiles(DPT.DPObject):
     """
     DirFiles(redoLevel=0, saveLevel=0, ObjectLevel='Session', 
-             FilesOnly=0, DirsOnly=0)
+             FilesOnly=False, DirsOnly=False)
     """
     filename = "dirfiles.hkl"
     argsList = [("FilesOnly", False), ("DirsOnly", False), ("ObjectLevel", "Session")]
@@ -15,37 +16,41 @@ class DirFiles(DPT.DPObject):
         DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
 
     def create(self, *args, **kwargs):
-        saveLevel = kwargs.get("saveLevel", 0)
         # check for files or directories in current directory
+        cwd = os.getcwd()
         dirList = os.listdir()
-        print(dirList)
         
         if self.args["FilesOnly"]:
-            print("FilesOnly")
+            print("Checking " + cwd + " for files")
             # filter and save only files
             itemList = list(filter(os.path.isfile, dirList))
         elif self.args["DirsOnly"]:
-            print("DirsOnly")
+            print("Checking " + cwd + " for directories")
             # filter and save only dirs
             itemList = list(filter(os.path.isdir, dirList))
         else:
+            print("Checking " + cwd + " for both files and directories")
             # save both files and directories
             itemList = dirList
             
         # check number of items
         dnum = len(itemList)
-        print(dnum)
+        print(str(dnum) + " items found")
         
         # create object if there are some items in this directory
         if dnum > 0:
             # update fields in parent
-            self.dirs = [os.getcwd()]
+            self.dirs = [cwd]
             self.setidx = [0 for i in range(dnum)]
             # update fields in child
             self.itemList = itemList
             self.itemNum = [dnum]
             
-        if saveLevel > 0:
+        # set plot options
+        self.plotopts = {"Horizontal": False, "All": False, "BarWidth": 0.8}
+        
+        # check if we need to save the object, with the default being 0
+        if kwargs.get("saveLevel", 0) > 0:
             self.save()
         
     def append(self, df):
@@ -55,10 +60,15 @@ class DirFiles(DPT.DPObject):
         self.itemList += df.itemList
         self.itemNum += df.itemNum
 
-    def plot(self, i, ax=None, overlay=False):
+    def plot(self, i=None, ax=None, overlay=False):
         if ax is None:
             ax = gca()
         if not overlay:
             ax.clear()
             
-        ax.bar(1,self.itemNum[i],width=0.5)
+        if self.plotopts["All"]:
+            ax.bar(np.arange(len(self.itemNum)),self.itemNum, width=self.plotopts["BarWidth"])
+        elif self.plotopts["Horizontal"]:
+            ax.barh(1,self.itemNum[i],height=self.plotopts["BarWidth"])
+        else:
+            ax.bar(1,self.itemNum[i],width=self.plotopts["BarWidth"])
