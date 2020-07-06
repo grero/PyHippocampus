@@ -47,7 +47,8 @@ class DirFiles(DPT.DPObject):
             self.itemNum = [dnum]
             
         # set plot options
-        self.plotopts = {"Horizontal": False, "All": False, "BarWidth": 0.8}
+        self.plotopts = {"Type": DPT.objects.ExclusiveOptions(["Vertical", "Horizontal","All"],0),
+                         "BarWidth": 0.8}
         
         # check if we need to save the object, with the default being 0
         if kwargs.get("saveLevel", 0) > 0:
@@ -61,14 +62,16 @@ class DirFiles(DPT.DPObject):
         self.itemNum += df.itemNum
 
     def plot(self, i=None, ax=None, overlay=False):
+        self.current_idx = i
         if ax is None:
             ax = gca()
         if not overlay:
             ax.clear()
             
-        if self.plotopts["All"]:
+        plottype = self.plotopts["Type"].selected()
+        if plottype is "All":
             ax.bar(np.arange(len(self.itemNum)),self.itemNum, width=self.plotopts["BarWidth"])
-        elif self.plotopts["Horizontal"]:
+        elif plottype is "Horizontal":
             ax.barh(1,self.itemNum[i],height=self.plotopts["BarWidth"])
         else:
             ax.bar(1,self.itemNum[i],width=self.plotopts["BarWidth"])
