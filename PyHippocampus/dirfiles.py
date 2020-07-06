@@ -69,9 +69,9 @@ class DirFiles(DPT.DPObject):
             ax.clear()
             
         plottype = self.plotopts["Type"].selected()
-        if plottype is "All":
+        if plottype == "All":
             ax.bar(np.arange(len(self.itemNum)),self.itemNum, width=self.plotopts["BarWidth"])
-        elif plottype is "Horizontal":
+        elif plottype == "Horizontal":
             ax.barh(1,self.itemNum[i],height=self.plotopts["BarWidth"])
         else:
             ax.bar(1,self.itemNum[i],width=self.plotopts["BarWidth"])
