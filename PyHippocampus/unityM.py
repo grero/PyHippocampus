@@ -64,7 +64,7 @@ def load_time_stamp():
 
 class Unity(DPT.DPObject):
     filename = "unity.hkl"
-    argsList = [("FilesOnly", False), ("DirsOnly", False), ("ObjectLevel", "Session")]
+    # argsList = [("FilesOnly", False), ("DirsOnly", False), ("ObjectLevel", "Session")]
 
     def __init__(self, *args, **kwargs):
         DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
@@ -355,5 +355,5 @@ class Unity(DPT.DPObject):
         return ax
 
 
-pg = Unity()
-ppg = PanGUI.create_window(pg, indexer="trial")
+# pg = Unity()
+# ppg = PanGUI.create_window(pg, indexer="trial")
