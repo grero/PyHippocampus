@@ -4,9 +4,10 @@ from pylab import gcf, gca
 import numpy as np
 import os
 import glob
-import h5py
 import networkx as nx
 from scipy.spatial.distance import cdist
+from . import rplparallel
+# import rplparallel
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -55,16 +56,10 @@ x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
 z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 
 
-def load_time_stamp():
-    data_rplparallel = h5py.File('rplparallel.hdf5', 'r')
-    time_stamps = np.array(data_rplparallel.get('timeStamps'))
-    data_rplparallel.close()
-    return time_stamps
-
-
 class Unity(DPT.DPObject):
     filename = "unity.hkl"
-    # argsList = [("FilesOnly", False), ("DirsOnly", False), ("ObjectLevel", "Session")]
+    argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
+                ('TriggerVal2', 20), ('TriggerVal3', 30)]
 
     def __init__(self, *args, **kwargs):
         DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
@@ -85,17 +80,17 @@ class Unity(DPT.DPObject):
         self.unityTime = np.empty(0)
 
         # look for RawData_T * folder
-        if bool(glob.glob("RawData*")):
-            os.chdir(glob.glob("RawData*")[0])
+        if bool(glob.glob(self.args["DirName"])):
+            os.chdir(glob.glob(self.args["DirName"])[0])
             # look for session_1_*.txt in RawData_T*
-            if bool(glob.glob("session*")):
-                filename = glob.glob("session*")
+            if bool(glob.glob(self.args["FileName"])):
+                filename = glob.glob(self.args["FileName"])
                 self.numSets = len(filename)
 
                 # load data of all session files into one matrix
                 for index in range(0, len(filename)):
                     if index == 0:
-                        text_data = np.loadtxt(filename[index], skiprows=15)
+                        text_data = np.loadtxt(filename[index], skiprows=self.args["FileLineOffset"])
                     else:
                         text_data = np.concatenate((text_data, np.loadtxt(filename[index], skiprows=15)))
 
@@ -123,9 +118,9 @@ class Unity(DPT.DPObject):
                 unityData = np.append(text_data, direction_and_direction, axis=1)
 
                 # Unity Triggers
-                uT1 = np.where((text_data[:, 0] > 10) & (text_data[:, 0] < 20))
-                uT2 = np.where((text_data[:, 0] > 20) & (text_data[:, 0] < 30))
-                uT3 = np.where(text_data[:, 0] > 30)
+                uT1 = np.where((text_data[:, 0] > self.args["TriggerVal1"]) & (text_data[:, 0] < self.args["TriggerVal2"]))
+                uT2 = np.where((text_data[:, 0] > self.args["TriggerVal2"]) & (text_data[:, 0] < self.args["TriggerVal3"]))
+                uT3 = np.where(text_data[:, 0] > self.args["TriggerVal3"])
                 # Check if there is any incomplete trial
                 utRows = [uT1[0].size, uT2[0].size, uT3[0].size]
                 utMax = max(utRows)
@@ -234,6 +229,10 @@ class Unity(DPT.DPObject):
 
     def plot(self, i, ax=None, overlay=False):
         self.current_idx = i
+        # fig = ax.get_figure()
+        # ax_list = fig.get_axes()
+        # for ax in ax_list:
+        #     ax.clear()
         if ax is None:
             ax = gca()
         if not overlay:
@@ -267,10 +266,11 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "FrameIntervals":
 
-            timeStamps = load_time_stamp()
-            FrameIntervalTriggers = np.array([self.plotopts["FrameIntervalTriggers"]["from"],
-                                              self.plotopts["FrameIntervalTriggers"]["to"]], dtype=np.int)
-            indices = self.unityTriggers[i, FrameIntervalTriggers]
+            rl = rplparallel.rplparallel()
+            time_stamps = rl.timeStamp
+            frame_interval_triggers = np.array([self.plotopts["FrameIntervalTriggers"]["from"],
+                                                self.plotopts["FrameIntervalTriggers"]["to"]], dtype=np.int)
+            indices = self.unityTriggers[i, frame_interval_triggers]
             uData = self.unityData[(indices[0] + 1):(indices[1] + 1), 1]
             markerline, stemlines, baseline = ax.stem(uData, basefmt=" ", use_line_collection=True)
             stemlines.set_linewidth(0.5)
@@ -279,11 +279,11 @@ class Unity(DPT.DPObject):
             ax.set_ylim(bottom=0)
             ax.set_xlabel('Frames')
             ax.set_ylabel('Interval (s)')
-            start = timeStamps[i, 1]
-            end = timeStamps[i, 2]
-            rpTrialDur = end - start
+            start = time_stamps[i, 1]
+            end = time_stamps[i, 2]
+            rp_trial_dur = end - start
             uet = np.cumsum(uData)
-            title = " Trial " + str(i) + ' Duration disparity: ' + str(1000 * (uet[-1] - rpTrialDur)) + ' ms'
+            title = " Trial " + str(i) + ' Duration disparity: ' + str(1000 * (uet[-1] - rp_trial_dur)) + ' ms'
 
             dir = "volume1/Hippocampus/Data/picasso-misc/20181105/session01"
             subject = DPT.levels.get_shortname("subject", dir)
@@ -294,21 +294,22 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "DurationDiffs":
 
-            timeStamps = load_time_stamp()
-            totTrials = self.unityTriggers.shape[0]
-            setIndex = np.array([0, totTrials])
+            rl = rplparallel.rplparallel()
+            time_stamps = rl.timeStamp
+            # tot_trials = self.unityTriggers.shape[0]
+            # setIndex = np.array([0, tot_trials])
             uTrigs = self.unityTriggers
             uTime = self.unityTime
             # add 1 to start index since we want the duration between triggers
-            startind = uTrigs[:, 0] + 1
-            endind = uTrigs[:, 2] + 1
-            starttime = uTime[startind]
-            endtime = uTime[endind]
-            trialDurations = endtime - starttime
+            start_ind = uTrigs[:, 0] + 1
+            end_ind = uTrigs[:, 2] + 1
+            start_time = uTime[start_ind]
+            end_time = uTime[end_ind]
+            trial_durations = end_time - start_time
             # load the rplparallel object to get the Ripple timestamps
-            rpTrialDur = timeStamps[:, 2] - timeStamps[:, 0]
+            rpTrialDur = time_stamps[:, 2] - time_stamps[:, 0]
             # multiply by 1000 to convert to ms
-            duration_diff = (trialDurations - rpTrialDur) * 1000
+            duration_diff = (trial_durations - rpTrialDur) * 1000
             num_bin = (np.amax(duration_diff) - np.amin(duration_diff)) / 200
 
             ax.hist(x=duration_diff, bins=int(num_bin))
@@ -324,8 +325,8 @@ class Unity(DPT.DPObject):
             ax.set_title('Unity trial duration - Ripple trial duration ' + subject + date + session)
 
         elif plot_type == "SumCost":
-            totTrials = self.unityTriggers.shape[0]
-            xind = np.arange(0, totTrials)
+            tot_trials = self.unityTriggers.shape[0]
+            xind = np.arange(0, tot_trials)
             # Calculate optimal width
             width = np.min(np.diff(xind)) / 3
             ax.bar(xind - width / 2, self.sumCost[xind, 0], width, color='yellow', label="Shortest")
@@ -337,7 +338,6 @@ class Unity(DPT.DPObject):
             # markerline.set_markersize(5)
             stemlines.set_linewidth(0.4)
             markerline.set_markerfacecolor('none')
-            # align_yaxis(ax, 0, ax1, 0)
             ax1.set_ylim(bottom=0)
             ax1.grid(axis="y")
             ax1.spines['right'].set_color('magenta')
@@ -355,5 +355,5 @@ class Unity(DPT.DPObject):
         return ax
 
 
-# pg = Unity()
+# pg = Unity(saveLevel=1)
 # ppg = PanGUI.create_window(pg, indexer="trial")
