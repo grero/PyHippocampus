@@ -10,9 +10,9 @@ import matplotlib.patches as patches
 import PanGUI
 import DataProcessingTools as DPT
 
-class eyelink(DPT.DPObject):
+class Eyelink(DPT.DPObject):
     '''
-    eyelink(redoLevel=0, saveLevel=0)
+    Eyelink(redoLevel=0, saveLevel=0)
     '''
     filename = 'eyelink.hkl'
     argsList = [('ObjectLevel', 'Session'), ('FileName', '.edf'), ('CalibFileNameChar', 'P'), 
@@ -53,7 +53,6 @@ class eyelink(DPT.DPObject):
                 if file.startswith(self.args['CalibFileNameChar']):
                     # calibration file w/ format: 'Pm_d.edf'
                     print('Reading P edf file.\n')
-                    # create_calib_obj(self, file)
 
                     samples, events, messages = pread(
                     file, trial_marker=b'1  0  0  0  0  0  0  0')
@@ -120,7 +119,7 @@ class eyelink(DPT.DPObject):
                 else:
                     # navigation file w/ format: 'yymmdd.edf'
                     print('Reading day edf file.\n')
-                    #create_nav_obj(self, file)
+                    
                     samples, events, messages = pread(
                             file, trial_marker=b'Start Trial')
                     
@@ -390,199 +389,6 @@ def plotGazeXY(ax, gx, gy, lineType):
     ax.legend(loc='best')
 
     return ax
-
-######### Calibration file #########
-def create_calib_obj(el, fileName):
-
-    samples, events, messages = pread(
-        fileName, trial_marker=b'1  0  0  0  0  0  0  0')
-
-    '''
-    Used to filter out unneeded columns of dataframes returned by pread when viewing them in the terminal.
-
-    samp_cols2 = ['px_left', 'px_right', 'py_left', 'py_right',
-                'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
-                'pa_right', 'gx_right', 'gy_right',
-                'rx', 'ry', 'gxvel_left', 'gxvel_right', 'gyvel_left',
-                'gyvel_right', 'hxvel_left', 'hxvel_right', 'hyvel_left',
-                'hyvel_right', 'rxvel_left', 'rxvel_right', 'ryvel_left',
-                'ryvel_right', 'fgxvel', 'fgyvel', 'fhxyvel', 'fhyvel',
-                'frxyvel', 'fryvel', 'buttons', 'flags', 'input',
-                'errors']
-
-    msg_cols2 = ['DISPLAY_COORDS', 'DISPLAY_COORDS_time',
-                '!CAL', '!CAL_time', 'VALIDATE', 'VALIDATE_time',
-                'RECCFG', 'RECCFG_time', 'ELCLCFG', 'ELCLCFG_time',
-                'GAZE_COORDS', 'GAZE_COORDS_time', 'THRESHOLDS',  'THRESHOLDS_time',
-                'ELCL_PROC', 'ELCL_PROC_time', 'ELCL_PCR_PARAM']
-
-    samples2 = samples2.drop(samp_cols2, 1)
-    messages2 = messages2.drop(msg_cols2, 1)
-    '''
-
-    # trial_timestamps
-    time_split = (messages['0_time']).apply(pd.Series)
-    time_split = time_split.rename(columns=lambda x: 'time_' + str(x))
-    removed = time_split['time_0'].iloc[-1]
-    # remove end value from middle column
-    time_split['time_0'] = time_split['time_0'][:-1]
-    # append removed value to last column
-    time_split['time_1'].iloc[-1] = removed
-    trial_timestamps = pd.concat(
-        [messages['trialid_time'], time_split['time_0'], time_split['time_1']], axis=1, sort=False)
-    trial_timestamps = trial_timestamps.iloc[1:]
-    # print(trial_timestamps)
-
-    # indices
-    index_1 = (messages['trialid_time'] - samples['time'].iloc[0]).iloc[1:]
-    index_2 = (time_split['time_0'] - samples['time'].iloc[0]).iloc[1:]
-    index_3 = (time_split['time_1'] - samples['time'].iloc[0]).iloc[1:]
-    indices = pd.concat([index_1, index_2, index_3], axis=1, sort=False)
-    # print(indices)
-
-    # eye_positions
-    eye_pos = samples[['gx_left', 'gy_left']].copy()
-    eye_pos['gx_left'][eye_pos['gx_left'] < 0] = np.nan
-    eye_pos['gx_left'][eye_pos['gx_left'] > el.args['ScreenX']] = np.nan
-    eye_pos['gy_left'][eye_pos['gy_left'] < 0] = np.nan
-    eye_pos['gy_left'][eye_pos['gy_left'] > el.args['ScreenY']] = np.nan
-    # print(eye_pos[1:10])
-    
-    # numSets
-    numSets = 1
-
-    el.calib_eye_pos = eye_pos
-    el.calib_indices = indices
-    el.calib_trial_timestamps = trial_timestamps
-    el.calib_numSets = numSets
-
-    return el
-
-######### Navigation file #########
-def create_nav_obj(el, fileName):
-
-    samples, events, messages = pread(
-        fileName, trial_marker=b'Start Trial')
- 
-    # Used to filter out unneeded columns of dataframes returned by pread.
-    samp_cols = ['px_left', 'px_right', 'py_left', 'py_right',
-                 'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
-                 'pa_right', 'gx_right', 'gy_right',
-                 'rx', 'ry', 'gxvel_left', 'gxvel_right', 'gyvel_left',
-                 'gyvel_right', 'hxvel_left', 'hxvel_right', 'hyvel_left',
-                 'hyvel_right', 'rxvel_left', 'rxvel_right', 'ryvel_left',
-                 'ryvel_right', 'fgxvel', 'fgyvel', 'fhxyvel', 'fhyvel',
-                 'frxyvel', 'fryvel', 'buttons', 'htype',
-                 'errors']
-
-    event_cols = ['hstx', 'hsty', 'gstx', 'supd_x',
-                  'gsty', 'sta', 'henx', 'heny',
-                  'genx', 'geny', 'ena', 'havx',
-                  'havy', 'gavx', 'gavy', 'ava',
-                  'avel', 'pvel', 'svel', 'evel',
-                  'eupd_x', 'eye', 'buttons', 'trial', 'blink']
-
-    msg_cols = ['RECCFG', 'RECCFG_time', 'ELCLCFG', 'ELCLCFG_time',
-                'GAZE_COORDS', 'GAZE_COORDS_time', 'THRESHOLDS',
-                'THRESHOLDS_time', 'ELCL_PROC', 'ELCL_PROC_time',
-                'ELCL_PCR_PARAM', 'ELCL_PCR_PARAM_time', '!MODE',
-                '!MODE_time']
-
-    samples = samples.drop(samp_cols, 1)
-    events = events.drop(event_cols, 1)
-    messages = messages.drop(msg_cols, 1)
-    
-    #print(samples)
-    #print(events)
-    #print(messages)
-
-    # expTime
-    expTime = samples['time'].iloc[0] - 1
-
-    # timestamps
-    timestamps = samples['time'] - 2198659
-
-    # eye_positions
-    eye_pos = samples[['gx_left', 'gy_left']].copy()
-    eye_pos['gx_left'][(eye_pos['gx_left'] < 0) | (eye_pos['gx_left'] > el.args['ScreenX'])] = np.nan
-    eye_pos['gy_left'][(eye_pos['gy_left'] < 0) | (eye_pos['gy_left'] > el.args['ScreenY'])] = np.nan
-
-    # timeout
-    timeouts = messages['Timeout_time'].dropna()
-
-    # noOfTrials
-    noOfTrials = len(messages) - 1
-
-    # fix_event
-    duration = events['end'] - events['start']
-    fix_event = duration  # difference is duration
-    fix_event = fix_event.loc[events['type'] == 'fixation']  # get fixations only
-    fix_event = fix_event.iloc[3:]  # 3 might not hold true for all files
-
-    # fix_times
-    fix_times = pd.concat([events['start'], events['end'],
-                           duration], axis=1, sort=False)
-    fix_times = fix_times.loc[events['type'] == 'fixation'] # get fixations only
-    fix_times['start'] = fix_times['start'] - 2198659
-    fix_times['end'] = fix_times['end'] - 2198659
-    fix_times = fix_times.iloc[3:]
-    # print(fix_times)
-
-    # sacc_event
-    sacc_event = events['end'] - events['start']  # difference is duration
-    sacc_event = sacc_event.loc[events['type'] == 'saccade']  # get fixations only
-    sacc_event = sacc_event.iloc[3:]
-
-    # numSets
-    numSets = 1
-
-    # trial_timestamps
-    timestamps_1 = messages['trialid_time'] - expTime
-    timestamps_2 = messages['Cue_time'] - expTime
-    timestamps_3 = messages['End_time'] - expTime
-    trial_timestamps = pd.concat(
-        [timestamps_1, timestamps_2, timestamps_3], axis=1, sort=False)
-    trial_timestamps = trial_timestamps.iloc[1:]
-    # print(trial_timestamps)
-
-    # trial_codes
-    trial_id = messages['trialid '].str.replace(
-        r'\D', '')  # remove 'Start Trial ' from string
-    cue_split = messages['Cue'].apply(pd.Series)
-    cue_split = cue_split.rename(columns=lambda x: 'cue_' + str(x))
-    end_split = messages['End'].apply(pd.Series)
-    end_split = end_split.rename(columns=lambda x: 'end_' + str(x))
-    trial_codes = pd.concat(
-        [trial_id, cue_split['cue_1'], end_split['end_1']], axis=1, sort=False)
-    trial_codes = trial_codes.iloc[1:]
-    trial_codes = trial_codes.astype(np.float64)  # convert all columns into float dt
-
-    # session_start
-    samples2, events2, messages2 = pread(
-        fileName, trial_marker=b'Trigger Version 84')
-    session_start = messages2['trialid_time'].iloc[1]
-    
-    messages2 = messages2.drop(msg_cols, 1)
-    # print(messages2)
-    # session_start_index
-    session_start_index = session_start - expTime
-    # print(session_start_index)
-
-    el.expTime = expTime
-    el.timestamps = timestamps
-    el.eye_pos = eye_pos
-    el.timeouts = timeouts
-    el.noOfTrials = noOfTrials
-    el.fix_event = fix_event
-    el.fix_times = fix_times
-    el.sacc_event = sacc_event
-    el.numSets = numSets
-    el.trial_timestamps = trial_timestamps
-    el.trial_codes = trial_codes
-    el.session_start = session_start
-    el.session_start_index = session_start_index
-
-    return el
 
 def pread(filename,
           ignore_samples=False,
