@@ -62,7 +62,13 @@ class Unity(DPT.DPObject):
                 ('TriggerVal2', 20), ('TriggerVal3', 30)]
 
     def __init__(self, *args, **kwargs):
-        DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+        current_level = DPT.levels.level(os.getcwd())
+        if current_level != "session":
+            rr = DPT.levels.resolve_level("session", current_level)
+            with DPT.misc.CWD(rr):
+                DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+        else:
+            DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
 
     def create(self, *args, **kwargs):
         # set plot options
@@ -355,11 +361,11 @@ class Unity(DPT.DPObject):
         return ax
 
 
-# pg = Unity(saveLevel=1)
+# os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/201811105/session01/array01")
+# pg = Unity()
+# print(os.getcwd())
 # print(pg.get_filename())
 # ag = rplparallel.RPLParallel()
 # print(ag.get_filename())
 # ag.load(fname="rplparallel_b6ee.hkl")
-# print(ag.get_filename())
-# print(ag.timeStamps)
 # ppg = PanGUI.create_window(pg, indexer="trial")
