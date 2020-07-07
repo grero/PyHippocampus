@@ -1,27 +1,43 @@
 import numpy as np 
-import h5py as h5 
-from filters import lowPassFilter 
+from . import lowPassFilter 
+from DataProcessingTools import DPT 
 
-def rpllfp(lowPassFrequency = [1, 150], LFPOrder = 8, resampleRate = 1000, display = False, saveFig = False):
-	file = 'rplraw.hdf5'
-	data = h5.File(file, 'r')
-	analogData = np.array(data['analogSignal'])
-	samplingRate = np.array(data['SampleRate'])
-	lfpData, resampleRate = lowPassFilter(analogData, samplingRate = samplingRate, resampleRate = resampleRate, LFPOrder = LFPOrder, lowFreq = lowPassFrequency[0], highFreq = lowPassFrequency[1], display = False, saveFig = False)
-	lfp_file = h5.File('rpllfp.hdf5', 'w')
-	lanalogData = lfp_file.create_dataset('analogData', data = lfpData)
-	sampleRate = lfp_file.create_dataset('SampleRate', data = resampleRate)
-	minVal = lfp_file.create_dataset('MinVal', data = np.amin(lfpData))
-	maxVal = lfp_file.create_dataset('MaxVal', data = np.amax(lfpData))
-	highFreqCorner = lfp_file.create_dataset('HighFreqCorner', data = lowPassFrequency[0]*resampleRate)
-	lowFreqCorner = lfp_file.create_dataset('LowFreqCorner', data = lowPassFrequency[1]*resampleRate)
-	numberSamples = lfp_file.create_dataset('NumberSamples', data = len(lfpData))
-	highFreqOrder = lfp_file.create_dataset('HighFreqOrder', data = LFPOrder)
-	lowFreqOrder = lfp_file.create_dataset('LowFreqOrder', data = LFPOrder)
-	probeInfo = lfp_file.create_dataset('ProbeInfo', data = str(np.array(data['ProbeInfo'])).replace('raw', 'lfp'))
-	data.close()
-	lfp_file.close()
-	print("rpllfp.hdf5 has been written")
-	return 
+class RPLLFP(DPT.DPObject):
+	def __init__(self):
+		DPT.DPObject.__init__(self)
+		self.analogData = []
+		self.analogInfo = {}
 
-rpllfp()
+	def plot():
+		pass 
+
+def rpllfp(saveLevel = 0, redoLevel = 0, data = [], lowPassFrequency = [1, 150], LFPOrder = 6, resampleRate = 1000, display = False, saveFig = False):
+	if len(data) > 0: 
+		analogData = data 
+		# There isnt a data object so how does this work now? 
+	else:
+		rw = RPLRaw(saveLevel = saveLevel - 1)
+		rw.load('rplraw.hkl')
+		if not rw.isempty(): 
+			analogData = rw.analogData 
+			analogInfo = rw.analogInfo 
+			samplingRate = analogInfo['SampleRate']
+			lfpData, resampleRate = lowPassFilter(analogData, samplingRate = samplingRate, resampleRate = resampleRate, LFPOrder = LFPOrder, lowFreq = lowPassFrequency[0], highFreq = lowPassFrequency[1], display = False, saveFig = False)
+			analogInfo['SampleRate'] = resampleRate
+			analogInfo['MinVal'] = np.amin(lfpData)
+			analogInfo['MaxVal'] = np.amax(lfpData)
+			analogInfo['HighFreqCorner'] = lowPassFrequency[0] * resampleRate
+			analogInfo['LowFreqCorner'] = lowPassFrequency[1] * resampleRate
+			analogInfo['NumberSamples'] = len(lfpData)
+			analogInfo['HighFreqOrder'] = LFPOrder
+			analogInfo['LowFreqOrder'] = LFPOrder
+			analogInfo['ProbeInfo'] = analogInfo['ProbeInfo'].replace('raw', 'lfp')
+			rlfp = RPLLFP()
+			rlfp.data = lfpData
+			rlfp.analogInfo = analogInfo
+		else: 
+			rlfp = RPLLFP()
+		if saveLevel > 0: 
+			rlfp.save()
+		return 
+
