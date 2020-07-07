@@ -46,10 +46,6 @@ class DirFiles(DPT.DPObject):
             self.itemList = itemList
             self.itemNum = [dnum]
             
-        # set plot options
-        self.plotopts = {"Type": DPT.objects.ExclusiveOptions(["Vertical", "Horizontal","All"],0),
-                         "BarWidth": 0.8}
-        
         # check if we need to save the object, with the default being 0
         if kwargs.get("saveLevel", 0) > 0:
             self.save()
@@ -61,17 +57,44 @@ class DirFiles(DPT.DPObject):
         self.itemList += df.itemList
         self.itemNum += df.itemNum
 
-    def plot(self, i=None, ax=None, overlay=False):
-        self.current_idx = i
+    def plot(self, i=None, getNumEvents=False, getLevels=False, 
+             getPlotOpts=False, ax=None, **kwargs):
+        """
+        DirFiles.plot(Type=["Vertical", "Horizontal", "All"], BarWidth=0.8)
+        """
+        # set plot options
+        plotopts = {"Type": DPT.objects.ExclusiveOptions(["Vertical", "Horizontal","All"],0),
+                         "BarWidth": 0.8}
+        if getPlotOpts:
+            return plotopts
+        
+        # Extract the recognized plot options from kwargs
+        for (k, v) in plotopts.items():
+            plotopts[k] = kwargs.get(k, v)
+
+        plottype = plotopts["Type"].selected()
+
+        if getNumEvents:
+            # Return the number of events avilable
+            if plottype == "All":
+                return 1
+            else:
+                return len(self.itemNum)
+            
+        if getLevels:        
+            # Return the possible levels for this object
+            return ["item", "all"]
+        
         if ax is None:
             ax = gca()
-        if not overlay:
-            ax.clear()
+        
+        ax.clear()
             
-        plottype = self.plotopts["Type"].selected()
         if plottype == "All":
-            ax.bar(np.arange(len(self.itemNum)),self.itemNum, width=self.plotopts["BarWidth"])
+            ax.bar(np.arange(len(self.itemNum)),self.itemNum, width=plotopts["BarWidth"])
         elif plottype == "Horizontal":
-            ax.barh(1,self.itemNum[i],height=self.plotopts["BarWidth"])
+            ax.barh(1,self.itemNum[i],height=plotopts["BarWidth"])
         else:
-            ax.bar(1,self.itemNum[i],width=self.plotopts["BarWidth"])
+            ax.bar(1,self.itemNum[i],width=plotopts["BarWidth"])
+                
+        return ax
