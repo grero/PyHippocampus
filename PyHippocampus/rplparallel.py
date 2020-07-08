@@ -5,7 +5,6 @@ import glob
 import DataProcessingTools as DPT 
 import PanGUI
 
-# Call constructor with data to save. 
 def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 	rawMarkers = markers 
 	rm1 = np.reshape(rawMarkers, (2, -1), order = "F") # Reshape into two rows. 
@@ -49,7 +48,7 @@ def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 class RPLParallel(DPT.DPObject):
 
 	filename = 'rplparallel.hkl'
-	argsList = [('ObjectLevel', 'Session')]
+	argsList = [('ObjectLevel', 'Session'), ('Data', False), ('markers', []), ('timeStamps', []), ('rawMarkers', []), ('trialIndices', []), ('sessionStartTime', []), ('sampleRate', 30000)]
 
 	def __init__(self, *args, **kwargs):
 		DPT.DPObject.__init__(self, normpath = False, *args, **kwargs) 
@@ -62,6 +61,16 @@ class RPLParallel(DPT.DPObject):
 		self.sessionStartTime = None 
 		self.samplingRate = None 
 		self.numSets = 0 
+
+		if self.args['Data']:
+			self.markers = self.args['markers'] 
+			self.timeStamps = self.args['timeStamps']
+			self.trialIndices = self.args['trialIndices']
+			self.rawMarkers = self.args['rawMarkers']
+			self.sessionStartTime = self.args['sessionStartTime']
+			self.sampleRate = self.args['sampleRate']
+			self.numSets = 1
+			return self 
 
 		nevFile = glob.glob("*.nev")
 		if len(nevFile) == 0:
@@ -90,11 +99,8 @@ class RPLParallel(DPT.DPObject):
 			ax = plt.gca()
 		if not overlay:
 			ax.clear()
-		self.plotopts = {"labelsOff": False, "groupPlots": 1, "groupPlotIndex": 1, "color":'b', 'M1':20, "M2":30}
-		raw_markers = self.markers.flatten()
-		markers = list(raw_markers[::3])
-		markers.extend(list(raw_markers[1::3])) 
-		markers.extend(list(raw_markers[2::3]))
+		self.plotopts = {"labelsOff": False, 'M1':20, "M2":30}
+		markers = list(np.transpose(self.markers).flatten())[2::2]
 		ax.stem(markers)
 		ax.hlines(self.plotopts['M1'], 0, len(markers), color = 'blue')
 		ax.hlines(self.plotopts['M2'], 0, len(markers), color = 'red')

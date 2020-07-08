@@ -3,7 +3,7 @@ from scipy import signal
 import DataProcessingTools as DPT 
 from rplraw import RPLRaw
 
-def highPassFilter(analogData, samplingRate = 30000, lowFreq = 500, highFreq = 7500, HPOrder = 8, padlen = 0, display = False, savefig = False):
+def highPassFilter(analogData, samplingRate = 30000, lowFreq = 500, highFreq = 7500, HPOrder = 8, padlen = 0):
 	analogData = analogData.flatten()
 	fn = samplingRate / 2
 	lowFreq = lowFreq / fn 
@@ -11,8 +11,6 @@ def highPassFilter(analogData, samplingRate = 30000, lowFreq = 500, highFreq = 7
 	sos = signal.butter(HPOrder, [lowFreq, highFreq], 'bandpass', fs = samplingRate, output = "sos")
 	print("Applying high-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
 	hps = signal.sosfiltfilt(sos, analogData, padlen = padlen)
-	if display: 
-		highpassPlot(analogData, hps, lowFreq = lowFreq * fn, highFreq = highFreq * fn, saveFig = False)
 	return hps, samplingRate
 
 class RPLHighPass(DPT.DPObject):
