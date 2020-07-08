@@ -79,11 +79,11 @@ class Unity(DPT.DPObject):
 
         # initialization
         self.numSets = 0
-        self.sumCost = np.empty(0)
-        self.unityData = np.empty(0)
-        self.unityTriggers = np.empty(0)
-        self.unityTrialTime = np.empty(0)
-        self.unityTime = np.empty(0)
+        self.sumCost = []
+        self.unityData = []
+        self.unityTriggers = []
+        self.unityTrialTime = []
+        self.unityTime = []
 
         # look for RawData_T * folder
         if bool(glob.glob(self.args["DirName"])):
@@ -219,12 +219,12 @@ class Unity(DPT.DPObject):
                 sumCost[error_ind, 5] = 0
                 sumCost[error_ind[0] + 1, 5] = 0
 
-                self.sumCost = sumCost
-                self.unityData = unityData
-                self.unityTriggers = unityTriggers
-                self.unityTrialTime = unityTrialTime
-                self.unityTime = unityTime
-                self.setidx = np.zeros((self.unityTriggers.shape[0],), dtype=np.int)
+                self.sumCost.append(sumCost)
+                self.unityData.append(unityData)
+                self.unityTriggers.append(unityTriggers)
+                self.unityTrialTime.append(unityTrialTime)
+                self.unityTime.append(unityTime)
+                self.setidx = ([0] * unityTriggers.shape[0])
 
         # check if we need to save the object, with the default being 0
         if kwargs.get("saveLevel", 0) > 0:
@@ -360,12 +360,21 @@ class Unity(DPT.DPObject):
 
         return ax
 
+    def append(self, uf):
+        # update fields in parent
+        DPT.DPObject.append(self, uf)
+        # update fields in child
+        self.numSets += uf.numSets
+        self.sumCost += uf.sumCost
+        self.unityData += uf.unityData
+        self.unityTriggers += uf.unityTriggers
+        self.unityTrialTime += uf.unityTrialTime
+        self.unityTime += uf.unityTime
 
-# os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/201811105/session01/array01")
+
+# os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/201811105/session01")
 # pg = Unity()
-# print(os.getcwd())
-# print(pg.get_filename())
-# ag = rplparallel.RPLParallel()
-# print(ag.get_filename())
-# ag.load(fname="rplparallel_b6ee.hkl")
+# pgg = Unity()
+# pg.append(pgg)
+# print(len(pg.setidx))
 # ppg = PanGUI.create_window(pg, indexer="trial")
