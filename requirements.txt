@@ -6,3 +6,4 @@ neo
 numpy
 pandas
 scipy
+networkx
