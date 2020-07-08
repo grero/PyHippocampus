@@ -1,65 +1,93 @@
+import numpy as np 
 import neo  
 from neo.io import BlackrockIO 
-import numpy as np 
 import os 
 import glob 
-import h5py as h5 
-from rplraw import rplraw 
+from rplraw import RPLRaw
+from rpllfp import RPLLFP 
+from rplparallel import RPLParallel
+from rplhighpass import RPLHighPass
+import DataProcessingTools as DPT 
 
-''' 
-The function must be run from within the date folder that contains the .nsx files. Splits the .ns5 file data into the individual channels. Also allows for the generation of the analogSignalTimes required to run rplparallel. 
+# RPLSplit to give the data to rplraw. 
+# If no data, rplraw to call rplsplit to open and pass it the data. 
 
-This can allow the generation of .hdf5 file for any number of channels. This can be modified by the channels argument which is set to default as 'all', if a list is used instead, this would represent a selected number of channels. 
-'''
+class RPLSplit(DPT.DPObject):
 
-def rplsplit(auto = True, channels = 'all', generateAnalogSignalTimes = False):
-	'''Splits .ns5 file into individual channels, and then calls rplraw to save the appropriate data fields in the appropriate directory.'''
-	ns5_file = glob.glob(".ns5")
-	if len(ns5_file) > 1: 
-		print("Too many .ns5 files. Do not know which one to use\n")
-		return 
-	reader = BlackrockIO(ns5_file[0])
-	bl = reader.get_block(lazy = True)
-	segment = bl.segments[0]
-	chx = bl.channel_indexes[2] # For the raw data. 
-	samplingRate = float(segment.analogsignals[2].sampling_rate)
-	analogSignalTimes = float(segment.analogsignals[2])
-	analogSignalTimesFile = h5.File('analogSignalTimes.hdf5', 'w')
-	analogSignalTimes = analogSignalTimesFile.create_dataset('analogSignalTimes', data = analogSignalTimes)
-	analogSignalSampleRate = analogSignalTimesFile.create_dataset('samplingRate', data = samplingRate)
-	analogSignalTimesFile.close()
-	if generateAnalogSignalTimes: 
-		return "Generated analogSignalTimes.hdf5\n"
-	annotations = chx.annotations # For AnalogInfo, fields include, max, min, units, sampling rate, nev_high_frequency_type, nev_high_freq_order, nev_high_freq_corner, nev_low_frequency_type, nev_low_freq_order, nev_low_freq_corner
-	probenames = chx.channel_names 
-	def generateAnalogInfo(annotations, analogSignals, i):
-		analogInfo = {}
-		analogInfo['Units'] = 'uV'
-		analogInfo['HighFreqCorner'] = annotations['nev_hi_freq_corner'][i]
-		analogInfo['HighFreqOrder'] = annotations['nev_hi_freq_order'][i]
-		analogInfo['HighFilterType'] = annotations['nev_hi_freq_type'][i]
-		analogInfo['LowFreqCorner'] = annotations['nev_lo_freq_corner'][i]
-		analogInfo['LowFreqOrder'] = annotations['nev_lo_freq_order'][i]
-		analogInfo['LowFilterType'] = annotations['nev_lo_freq_type'][i]
-		analogInfo['MaxVal'] = max(analogSignal)
-		analogInfo['MinVal'] = min(analogSignal)
-		analogInfo['NumberSamples'] = len(analogSignal)
-		return analogInfo
-	if channels == 'all': 
-		for i in range(len(chx.index)): # i represents the index in the list here. 
-			analogSignal = segment.analogsignals[2].load(time_slice=None, channel_indexes=[chx.index[i]])
-			arrayNumber = annotations['connector_ID'][i] + 1 
-			analogInfo = generateAnalogInfo(annotations, analogSignal, i, arrayNumber)
-			analogInfo['SampleRate'] = samplingRate
-			analogInfo['ProbeInfo'] = probenames[i]
-			rplraw(analogSignal, analogInfo, i)
-	else: 
-		for i in channels: # i represents the channel number here. 
-			index = np.where(i == chx.index)[0][0]
-			analogSignal = segment.analogsignals[2].load(time_slice=None, channel_indexes=[i])
-			arrayNumber = annotations['connector_ID'][index] + 1 
-			analogInfo = generateAnalogInfo(annotations, analogSignal, index, arrayNumber)
-			analogInfo['SampleRate'] = samplingRate
-			analogInfo['ProbeInfo'] = probenames[index]
-			rplraw(analogSignal, analogInfo, index)
-	return "rplsplit complete\n"
+	filename = 'rplsplit.hkl'
+	argsList = [('channel', []), ('SkipLFP', False), ('SkipParallel', False), ('SkipHighPass', False)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
+
+	def __init__(self, *args, **kwargs):
+		DPT.DPObject.__init__(self)
+
+	def create(self, *args, **kwargs):
+
+		# To check whether it is being called from the session or the channel directory. 
+		cwd = os.getcwd()
+		level = DPT.levels.level(cwd)
+		if level == 'channel':
+			rr = DPT.levels.resolve_level('session', cwd)
+			# channelNumber = int(DPT.levels.get_level_name('channel', cwd)[-3:])
+			os.chdir(rr) # Move to the session directory. 
+
+		ns5File = glob.glob('*.ns5')
+		if len(ns5File) > 1: 
+			print('Too many .ns5 files, do not know which one to use.')
+			return 
+		if len(ns5File) == 0:
+			print('.ns5 file missing')
+			return 
+		reader = BlackrockIO(ns5_file[0])
+		bl = reader.get_block(lazy = True)
+		segment = bl.segments[0]
+		chx = bl.channel_indexes[2] # For the raw data. 
+		analogInfo['SampleRate'] = float(segment.analogsignals[2].sampling_rate)
+		annotations = chx.annotations
+		names = chx.channel_names 
+		if len(self.args['channel']) == 0: 
+			for chxIdx in chx: 
+				data = segment.analogsignals[2].load(time_slice=None, channel_indexes=[chx.index[chxIndex]])
+				analogInfo['Units'] = 'uV'
+				analogInfo['HighFreqCorner'] = annotations['nev_hi_freq_corner'][chxIndex]
+				analogInfo['HighFreqOrder'] = annotations['nev_hi_freq_order'][chxIndex]
+				analogInfo['HighFilterType'] = annotations['nev_hi_freq_type'][chxIndex]
+				analogInfo['LowFreqCorner'] = annotations['nev_lo_freq_corner'][chxIndex]
+				analogInfo['LowFreqOrder'] = annotations['nev_lo_freq_order'][chxIndex]
+				analogInfo['LowFilterType'] = annotations['nev_lo_freq_type'][chxIndex]
+				analogInfo['MaxVal'] = np.amax(self.data)
+				analogInfo['MinVal'] = np.amin(self.data)
+				analogInfo['NumberSamples'] = len(self.data)
+				analogInfo['ArrayNumber'] = "{:02d}".format(annotations['connector_ID'][chxIndex] + 1)
+				analogInfo['ChannelNumber'] = list(filter(lambda x: chxIdx in x, names))[0]
+				RPLRaw(Data = True, analogData = data, analogInfo = analogInfo)
+				# Add shell command to add RPLLFP and RPLHighpass to the queue. 
+		else: 
+			for i in channels:
+				chxIdx = list(filter(lambda x: str(i) in x, names))[0]
+				data = segment.analogsignals[2].load(time_slice=None, channel_indexes=[chx.index[chxIndex]])
+				analogInfo['Units'] = 'uV'
+				analogInfo['HighFreqCorner'] = annotations['nev_hi_freq_corner'][chxIndex]
+				analogInfo['HighFreqOrder'] = annotations['nev_hi_freq_order'][chxIndex]
+				analogInfo['HighFilterType'] = annotations['nev_hi_freq_type'][chxIndex]
+				analogInfo['LowFreqCorner'] = annotations['nev_lo_freq_corner'][chxIndex]
+				analogInfo['LowFreqOrder'] = annotations['nev_lo_freq_order'][chxIndex]
+				analogInfo['LowFilterType'] = annotations['nev_lo_freq_type'][chxIndex]
+				analogInfo['MaxVal'] = np.amax(self.data)
+				analogInfo['MinVal'] = np.amin(self.data)
+				analogInfo['NumberSamples'] = len(self.data)
+				analogInfo['ArrayNumber'] = "{:02d}".format(annotations['connector_ID'][chxIndex] + 1)
+				analogInfo['ChannelNumber'] = i 
+				RPLRaw(Data = True, analogData = data, analogInfo = analogInfo)
+				# Add shell command to add RPLLFP and RPLHighpass to the queue. 
+				# if not self.args['SkipLFP']:
+				# 	rlfp = RPLLFP()
+				# if not self.args['SkipHighPass']:
+				# 	rhp = RPLHighpass()
+		if not self.args['SkipParallel']: 
+			rp = RPLParallel(saveLevels = 1)
+		return  
+
+	def plot(self, i = None, ax = None, overlay = False):
+		pass 
+
+

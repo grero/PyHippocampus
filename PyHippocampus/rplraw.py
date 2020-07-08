@@ -2,27 +2,70 @@ import neo
 from neo.io import BlackrockIO 
 import numpy as np 
 import os 
-import h5py as h5 
+import DataProcessingTools as DPT 
 
-''' 
-To be run from within the date folder that contains the raw .nsx files. Four fields to be specified which allow for the appropriate folders to be created or manouvered into to create the appropriate rplraw.hdf file for the channel. 
-'''
+# RPLSplit to give the data to rplraw. 
+# If no data, rplraw to call rplsplit to open and pass it the data. 
 
-def rplraw(analogSignal, analogInfo, channelNumber, arrayNumber):
-	'''Generates a rplraw.hdf5 file in the corresponding channel directory which contains the following fields: (i) analogInfo and (ii) analogData.'''
-	# data = {'analogData': analogSignal, 'analogInfo':analogInfo}
-	if 'session01' not in os.listdir('.'): # Beginning from the date directory check the presence of the session directory 
-		os.mkdir('session01')
-	os.chdir('session01') 
-	if 'array{:02d}'.format(arrayNumber) not in os.listdit('.'): # check whether the relevant array directory exsits 
-		os.mkdir('array{:02d}'.format(arrayNumber))
-	os.chdir('array{:02d}'.format(arrayNumber))
-	if 'channel{:02d}'.format(channelNumber) not in os.listdir('.'): # check whether the relevant channel directory exists 
-		os.mkdir('channel{:02d}'.format(channelNumber))
-	os.chdir('channel{:02d}'.format(channelNumber))	
-	# Write the file to the appropriate channel directory 
-	f = h5.File('rplraw.hd5f', 'w') 
-	analogSignal = f.create_dataset('analogSignal', data = analogSignal)
-	analogInfo = f.create_dataset('analogInfo', data = analogInfo)
-	f.close()
-	return "rplraw.hdf5 for channel number {} created".format(channelNumber)
+class RPLRaw(DPT.DPObject):
+
+	filename = 'rplraw.hkl'
+	argsList = [('Data', True), ('analogInfo', {}), ('analogData', [])]
+
+	def __init__(self, *args, **kwargs):
+		DPT.DPObject.__init__(self, *args, **kwargs)
+
+	def create(self, *args, **kwargs):
+		self.data = []
+		self.analogInfo = {}
+
+		self.data = self.args['analogData']
+		self.analogInfo = self.args['analogInfo']
+		try: # If no data is presented, generates empty object. 
+			arrayNumber = self.analogInfo['ArrayNumber']
+			channelNumber = self.analogInfo['ChannelNumber']
+		except: 
+			continue 
+		self.numSets = 1
+
+		if kwargs.get('saveLevel', 0) > 0:
+			directory = os.getcwd() # Go to the channel directory and save file there. 
+			if arrayNumber not in os.listdir('.'): 
+				os.mkdir(arrayNumber)
+			path = os.path.join(directory, arrayNumber)
+			os.chdir(arrayNumber)
+			if "{:03d}".format(channelNumber) not in os.listdir('.'):
+				os.mkdir("{:03d}".format(channelNumber))
+			path = os.path.join(path, "{:03d}".format(channelNumber))
+			os.chdir("{:03d}".format(channelNumber))
+			self.save() 
+		os.chdir(directory)
+		return self
+	
+	#TODO: Step size to split into different sub-figures; use next and previous to move through the time. 
+	def plot(self, i = None, ax = None, overlay = False):
+		self.current_idx = i 
+		if ax is None: 
+			ax = plt.gca()
+		if not overlay:
+			ax.clear()
+		self.plotopts = {'LabelsOff': False, 'FFT': False, 'XLims': [0, 150]}
+		plot_type_FFT = self.plotopts['FFT']
+		if plot_type_FFT: 
+			# TODO: Complete PlotFFT Function. 
+			ax = PlotFFT(self.data, self.analogInfo['SampleRate'])
+			if not self.plotopts['LabelsOff']:
+				ax.set_xlabel('Freq (Hz)')
+				ax.set_ylabel('Magnitude')
+		else:
+			ax.plot(self.data)
+			if not self.plotopts['LabelsOff']:
+				ax.set_ylabel('Voltage (uV)')
+				ax.set_xlabel('Time (ms)')
+		direct = self.dirs[0]
+		session = DPT.levels.get_shortname("session", direct)
+		array = DPT.levels.get_shortname("array", direct)
+		channel = DPT.levels.get_shortname("channel", direct)
+		title = session + array + channel
+		ax.set_title(title)
+		return ax 
