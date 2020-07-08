@@ -4,7 +4,7 @@ import scipy.io
 import csv
 
 
-def export_mountain_cells(pruned):
+def export_mountain_cells():
     current_path = os.getcwd()
     channel_path = current_path[0:len(current_path)-7]
     os.chdir(channel_path)
@@ -156,4 +156,4 @@ def split_into_cells_intra_session(channel, two_layer_chunk, start_ind):
         
     
 
-print(export_mountain_cells(9)) 
+#print(export_mountain_cells()) 
