@@ -9,7 +9,7 @@ def resampleData(analogData, samplingRate, resampleRate):
 	analogData = signal.resample(analogData, numberOfPoints)
 	return analogData
 
-def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 8, padlen = 0, display = False, saveFig = False):
+def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 8, padlen = 0):
 	analogData = analogData.flatten()
 	lfpsData = resampleData(analogData, samplingRate, resampleRate)
 	fn = resampleRate / 2
@@ -18,9 +18,6 @@ def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq
 	sos = signal.butter(LFPOrder, [lowFreq, highFreq], 'bandpass', fs = resampleRate, output = "sos")
 	print("Applying low-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
 	lfps = signal.sosfiltfilt(sos, lfpsData, padlen = padlen)
-	if display: 
-		lfpPlot(analogData, lfpsData, lfps, saveFig = saveFig)
-		print('saved figure')
 	return lfps, resampleRate
 
 class RPLLFP(DPT.DPObject):
