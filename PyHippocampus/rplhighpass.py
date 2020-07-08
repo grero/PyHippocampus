@@ -1,57 +1,63 @@
 import numpy as np 
-from . import highPassFilter 
+from scipy import signal 
 import DataProcessingTools as DPT 
+from rplraw import RPLRaw
+
+def highPassFilter(analogData, samplingRate = 30000, lowFreq = 500, highFreq = 7500, HPOrder = 8, padlen = 0, display = False, savefig = False):
+	analogData = analogData.flatten()
+	fn = samplingRate / 2
+	lowFreq = lowFreq / fn 
+	highFreq = highFreq / fn 
+	sos = signal.butter(HPOrder, [lowFreq, highFreq], 'bandpass', fs = samplingRate, output = "sos")
+	print("Applying high-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
+	hps = signal.sosfiltfilt(sos, analogData, padlen = padlen)
+	if display: 
+		highpassPlot(analogData, hps, lowFreq = lowFreq * fn, highFreq = highFreq * fn, saveFig = False)
+	return hps, samplingRate
 
 class RPLHighPass(DPT.DPObject):
-	def __init__(self):
-		DPT.DPObject().__init__(self)
-		self.analogData = []
+
+	filename = 'rplhighpass.hkl'
+	argsList = [('highOrder', 6), ('highPassFrequency', [500, 7500])]
+
+	def __init__(self, *args, **kwargs):
+		DPT.DPObject().__init__(self, normpath = False, *args, **kwargs)
+
+	def create(self, *args, **kwargs):
+		self.data = []
 		self.analogInfo = {}
+		rw = RPLRaw()
+		analogData = rw.data 
+		hpData, samplingRate = highPassFilter(analogData, samplingRate = rw.analogInfo['sampleRate'], HPOrder = self.args['highOrder'], lowFreq = self.args['highPassFrequency'][0], highFreq = self.args['highPassFrequency'][1])
+		self.analogInfo['SampleRate'] = samplingRate
+		self.analogInfo['MinVal'] = np.amin(hpData)
+		self.analogInfo['MaxVal'] = np.amax(hpData)
+		self.analogInfo['HighFreqCorner'] = self.args['highPassFrequency'][0] * samplingRate
+		self.analogInfo['LowFreqCorner'] = self.args['highPassFrequency'][1] * samplingRate
+		self.analogInfo['NumberSamples'] = len(hpData)
+		self.analogInfo['HighFreqOrder'] = self.args['highOrder']
+		self.analogInfo['LowFreqOrder'] = self.args['highOrder']
+		self.analogInfo['ProbeInfo'] = rw.analogInfo['ProbeInfo'].replace('raw', 'hp')
+		if kwargs.get('saveLevel', 0) > 0:
+			self.save
+		return self
+		
+	def plot(self, i = None, ax = None, overlay = False):
+		self.current_idx = i 
+		if ax is None: 
+			ax = plt.gca()
+		if not overlay:
+			ax.clear()
+		self.plotopts = {'LabelsOff': False, 'GroupPlots': 1, 'GroupPlotIndex': 1, 'Color': 'b', 'FFT': False, 'XLims': [0, 10000], 'SpikeData': [], 'SpikeTriggerIndex': 26, 'SpikeHeight': 100, 'LoadSort': False}
+		plot_type_FFT = self.plotopts['FFT']
+		if plot_type_FFT:
+			ax = PlotFFT(self.data, self.analogInfo['SampleRate']) # TODO 
+			if not self.plotopts['LabelsOff']:
+				ax.set_xlabel('Freq (Hz)')
+				ax.set_ylabel('Magnitude')
+			ax.xlim(self.plotopts['XLims'])
+		else:
+			pass 
+		return ax 
 
-	def plot():
-		pass 
 
-def rplhighpass(saveLevel = 0, redoLevel = 0, highPassFrequency = [500, 7500], highOrder = 6):
-	rw = RPLRaw()
-	rw.load('rplraw.hkl')
-	analogData = rw.analogData
-	analogInfo = rw.analogInfo
-	hpData, samplingRate = highPassFilter(analogData, samplingRate = samplingRate, HPOrder = highOrder, lowFreq = highPassFrequency[0], highFreq = highPassFrequency[1])
-	analogInfo['SampleRate'] = samplingRate
-	analogInfo['MinVal'] = np.amin(hpData)
-	analogInfo['MaxVal'] = np.amax(hpData)
-	analogInfo['HighFreqCorner'] = highPassFrequency[0] * samplingRate
-	analogInfo['LowFreqCorner'] = highPassFrequency[1] * samplingRate
-	analogInfo['NumberSamples'] = len(hpData)
-	analogInfo['HighFreqOrder'] = highOrder
-	analogInfo['LowFreqOrder'] = highOrder
-	analogInfo['ProbeInfo'] = analogInfo['ProbeInfo'].replace('raw', 'hp')
-	hp = RPLHighPass()
-	hp.analogData = analogData
-	hp.analogInfo = analogInfo
-	if saveLevel > 0:
-		hp.save()
-	return 
-
-
-# def rplhighpass(saveLevel = 0, redoLevel = 0, highPassFrequency = [500, 7500], highOrder = 8):
-# 	file = 'rplraw.hdf5'
-# 	data = h5.File(file, 'r')
-# 	analogData = np.array(data['analogSignal'])
-# 	samplingRate = np.array(data['SampleRate'])
-# 	hpData, samplingRate = highPassFilter(analogData, samplingRate = samplingRate, HPOrder = highOrder, lowFreq = highPassFrequency[0], highFreq = highPassFrequency[1])
-# 	highpass_file = h5.File('rplhighpass.hdf5', 'w')
-# 	hAnalogData = highpass_file.create_dataset('analogData', data = hpData)
-# 	sampleRate = highpass_file.create_dataset('SampleRate', data = samplingRate)
-# 	minVal = highpass_file.create_dataset('MinVal', data = np.amin(hpData))
-# 	maxVal = highpass_file.create_dataset('MaxVal', data = np.amax(hpData))
-# 	highFreqCorner = highpass_file.create_dataset('HighFreqCorner', data = highPassFrequency[0]*samplingRate)
-# 	lowFreqCorner = highpass_file.create_dataset('LowFreqCorner', data = highPassFrequency[1]*samplingRate)
-# 	numberSamples = highpass_file.create_dataset('NumberSamples', data = len(hpData))
-# 	highFreqOrder = highpass_file.create_dataset('HighFreqOrder', data = highOrder)
-# 	lowFreqOrder = highpass_file.create_dataset('LowFreqOrder', data = highOrder)
-# 	probeInfo = highpass_file.create_dataset('ProbeInfo', data = str(np.array(data['ProbeInfo'])).replace('raw', 'hp'))
-# 	data.close()
-# 	highpass_file.close()
-# 	print("rplhighpass.hdf5 has been written")
-# 	return 
