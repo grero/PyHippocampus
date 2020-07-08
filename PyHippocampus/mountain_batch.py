@@ -5,18 +5,27 @@ import csv
 from mountainlab_pytools import mdaio
 
 
-def mountain_batch(target):
+def mountain_batch(target,Overwrite):
     my_lst = ['all','hippo']
     if target in my_lst or type(target) is str:
         path = os.getcwd()
         n_path = path + '/mountains'
         print(n_path)
-        try:
+        if Overwrite == 'No':
+            try:
+                os.mkdir(n_path)
+            except OSError:
+                print("Creation of directory 'mountain' failed, folder already exists")
+            else:
+                print("Successfully created the directory 'mountains'")
+        elif Overwrite == 'Yes':
+            print('Overwriting existing "mountains" folder')
+            os.system('rm -r mountains')  
             os.mkdir(n_path)
-        except OSError:
-            print("Creation of directory 'mountain' failed")
+            print("Successfully overwritten the directory 'mountains'")
         else:
-            print("Successfully created the directory 'mountains'")
+            print('Unspecified whether overwrite folder or not, pass "Yes" or "No" in the argument  of the function')
+            return
     else:
         print('error function, specify arguments - all, hippo, <numbers>')
         return
@@ -190,11 +199,11 @@ def mountain_channel(full_cell, index):
     mdaio.writemda(data1, 'raw_data.mda', dtype='float32')
     x = mdaio.readmda('raw_data.mda')
     #print(x.shape)
-    #os.system('cp /home/carlos/temp/dataset/geom.csv .')
-    os.system('cp /home/ec2-user/geom.csv .')
+    os.system('cp /home/carlos/temp/dataset/geom.csv .')
+    #os.system('cp /home/ec2-user/geom.csv .')
     os.chdir(current_path)
-    os.system('cp /home/ec2-user/sort.sh.txt .')
-    #os.system('cp /home/carlos/temp/sort.sh.txt .')
+    #os.system('cp /home/ec2-user/sort.sh.txt .')
+    os.system('cp /home/carlos/temp/sort.sh.txt .')
     #print(os.getcwd())
     os.system('sh sort.sh.txt') 
     
@@ -203,7 +212,7 @@ def mountain_channel(full_cell, index):
             
             
 
-#print(mountain_batch('all'))
+#print(mountain_batch('03','Yes'))
         
 
     
