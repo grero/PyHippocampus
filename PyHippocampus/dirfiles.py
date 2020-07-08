@@ -9,7 +9,8 @@ class DirFiles(DPT.DPObject):
              FilesOnly=False, DirsOnly=False)
     """
     filename = "dirfiles.hkl"
-    argsList = [("FilesOnly", False), ("DirsOnly", False), ("ObjectLevel", "Session")]
+    argsList = [("FilesOnly", False), ("DirsOnly", False)]
+    level = "session"
 
     def __init__(self, *args, **kwargs):
         # initialize fields in parent
@@ -45,11 +46,7 @@ class DirFiles(DPT.DPObject):
             # update fields in child
             self.itemList = itemList
             self.itemNum = [dnum]
-            
-        # check if we need to save the object, with the default being 0
-        if kwargs.get("saveLevel", 0) > 0:
-            self.save()
-        
+
     def append(self, df):
         # update fields in parent
         DPT.DPObject.append(self, df)
