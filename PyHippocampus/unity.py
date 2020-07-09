@@ -60,6 +60,7 @@ class Unity(DPT.DPObject):
     filename = "unity.hkl"
     argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
                 ('TriggerVal2', 20), ('TriggerVal3', 30)]
+    level = "session"
 
     def __init__(self, *args, **kwargs):
         current_level = DPT.levels.level(os.getcwd())
@@ -146,7 +147,7 @@ class Unity(DPT.DPObject):
                 unityTrialTime.fill(np.nan)
 
                 trial_counter = 0  # set up trial counter
-                sumCost = np.zeros((404, 6))
+                sumCost = np.zeros((totTrials, 6))
 
                 for a in range(0, totTrials):
 
@@ -397,8 +398,7 @@ class Unity(DPT.DPObject):
         self.unityTime += uf.unityTime
 
 
-# os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/201811105/session01")
-# pg = Unity()
-# pgg = Unity()
-# pg.append(pgg)
+# os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/20181105")
+# dirs = DPT.levels.get_level_dirs('session')
+# pg = DPT.objects.processDirs(None, Unity)
 # ppg = PanGUI.create_window(pg, indexer="trial")
