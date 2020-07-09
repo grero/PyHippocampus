@@ -9,7 +9,7 @@ def mountain_batch(target,Overwrite):
     c_p = os.getcwd()
     split = c_p.split('/')
     if split[-1][0:7] == 'channel':
-        target = split[-1][8:]
+        target = split[-1][7:]
         day_dir = split[1:len(split)-3]
         day_path = ''
         for folder in day_dir:
@@ -41,8 +41,8 @@ def mountain_batch(target,Overwrite):
     
     full_cell = comb_channels_ms()
     for i in range(len(full_cell.keys())):
-        channel_no = full_cell.get(i)[0][8:]
-        
+        channel_no = full_cell.get(i)[0][7:]
+        #print(channel_no)
         if target == 'all':
             mountain_channel(full_cell, i)
         
@@ -58,7 +58,10 @@ def mountain_batch(target,Overwrite):
             for k in range(0,len(splits)):
                 if splits[k] == channel_no:
                     mountain_channel(full_cell,i)
-                    break                    
+                    break
+                else:
+                    print('Try again, channel folder cannot be accessed or input is not a 3-digit number.')
+                    return
                     
     
 def comb_channels_ms():
@@ -221,11 +224,11 @@ def mountain_channel(full_cell, index):
             
             
 
-#print(mountain_batch('34',Overwrite='No'))
+print(mountain_batch('120',Overwrite='No'))
         
 
     
-    
+
                                 
                                 
                             
