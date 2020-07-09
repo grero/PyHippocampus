@@ -6,6 +6,15 @@ from mountainlab_pytools import mdaio
 
 
 def mountain_batch(target,Overwrite):
+    c_p = os.getcwd()
+    split = c_p.split('/')
+    if split[-1][0:7] == 'channel':
+        target = split[-1][8:]
+        day_dir = split[1:len(split)-3]
+        day_path = ''
+        for folder in day_dir:
+            day_path =  day_path + '/' + folder 
+        os.chdir(day_path)
     my_lst = ['all','hippo']
     if target in my_lst or type(target) is str:
         path = os.getcwd()
@@ -212,7 +221,7 @@ def mountain_channel(full_cell, index):
             
             
 
-#print(mountain_batch('03','Yes'))
+#print(mountain_batch('34',Overwrite='No'))
         
 
     
