@@ -3,6 +3,8 @@ from neo.io import BlackrockIO
 import numpy as np 
 import os 
 import DataProcessingTools as DPT 
+# from rpllfp import RPLLFP 
+# from rplhighpass import rplhighpass
 
 # RPLSplit to give the data to rplraw. 
 # If no data, rplraw to call rplsplit to open and pass it the data. 
@@ -10,10 +12,10 @@ import DataProcessingTools as DPT
 class RPLRaw(DPT.DPObject):
 
 	filename = 'rplraw.hkl'
-	argsList = [('Data', True), ('analogInfo', {}), ('analogData', [])]
+	argsList = [('Data', True), ('analogInfo', {}), ('analogData', []), ('sessionEye', False)]
 
 	def __init__(self, *args, **kwargs):
-		DPT.DPObject.__init__(self, *args, **kwargs)
+		DPT.DPObject.__init__(self,normpath = False,  *args, **kwargs)
 
 	def create(self, *args, **kwargs):
 		self.data = []
@@ -21,25 +23,33 @@ class RPLRaw(DPT.DPObject):
 
 		self.data = self.args['analogData']
 		self.analogInfo = self.args['analogInfo']
-		try: # If no data is presented, generates empty object. 
-			arrayNumber = self.analogInfo['ArrayNumber']
-			channelNumber = self.analogInfo['ChannelNumber']
-		except: 
-			continue 
+		arrayNumber = self.analogInfo['ArrayNumber']
+		channelNumber = self.analogInfo['ChannelNumber']
 		self.numSets = 1
 
 		if kwargs.get('saveLevel', 0) > 0:
+			print('rplraw saving')
+			arrayDir = "array{:02d}".format(int(arrayNumber))
+			channelDir = "channel{:03d}".format(int(channelNumber))
+			print(arrayDir)
+			print(channelDir)
 			directory = os.getcwd() # Go to the channel directory and save file there. 
-			if arrayNumber not in os.listdir('.'): 
-				os.mkdir(arrayNumber)
-			path = os.path.join(directory, arrayNumber)
-			os.chdir(arrayNumber)
-			if "{:03d}".format(channelNumber) not in os.listdir('.'):
-				os.mkdir("{:03d}".format(channelNumber))
-			path = os.path.join(path, "{:03d}".format(channelNumber))
-			os.chdir("{:03d}".format(channelNumber))
+			if arrayDir not in os.listdir('.'): 
+				os.mkdir(arrayDir)
+			#path = os.path.join(directory, arrayNumber)
+			os.chdir(arrayDir)
+			if channelDir not in os.listdir('.'):
+				os.mkdir(channelDir)
+			#path = os.path.join(path, channelDir)
+			os.chdir(channelDir)
 			self.save() 
-		os.chdir(directory)
+			# if self.args['sessionEye']:
+			# 	print('running rpllfp...')
+			# 	RPLLFP(saveLevel = 1)
+			# 	print('running rplhighpass...')
+			# 	RPLHighPass(saveLevel = 1)
+			os.chdir(directory)
+		print(os.getcwd())
 		return self
 	
 	#TODO: Step size to split into different sub-figures; use next and previous to move through the time. 

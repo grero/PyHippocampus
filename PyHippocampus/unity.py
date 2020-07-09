@@ -1,4 +1,3 @@
-import PanGUI
 import DataProcessingTools as DPT
 from pylab import gcf, gca
 import numpy as np
@@ -7,7 +6,6 @@ import glob
 import networkx as nx
 from scipy.spatial.distance import cdist
 from . import rplparallel
-# import rplparallel
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -232,9 +230,6 @@ class Unity(DPT.DPObject):
         if kwargs.get("saveLevel", 0) > 0:
             self.save()
 
-    def update_idx(self, i):
-        return max(0, min(i, len(self.setidx)-1))
-
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
@@ -250,13 +245,17 @@ class Unity(DPT.DPObject):
         if getNumEvents:
             # Return the number of events avilable
             if plotopts["level"] == "trial":
-                return len(self.setidx)
-            elif plotopts["level"] == "all":
-                return 1
+                return len(self.setidx), 0
+            elif plotopts["level"] == "session":
+                if i is not None:
+                    nidx = self.setidx[i]
+                else:
+                    nidx = 0
+                return np.max(self.setidx) + 1, nidx
 
         if getLevels:
             # Return the possible levels for this object
-            return ["trial", "all"]
+            return ["trial", "session"]
 
         if ax is None:
             ax = gca()
@@ -272,6 +271,10 @@ class Unity(DPT.DPObject):
         if session_idx != 0:
             for x in range(0, session_idx):
                 i = i - self.unityTriggers[x].shape[0]
+
+        if plotopts["level"] == "session":
+            session_idx = i
+
         if plot_type == "Trial":
 
             ax.plot(xBound, zBound, color='k', linewidth=1.5)
@@ -398,9 +401,3 @@ class Unity(DPT.DPObject):
         self.unityTrialTime += uf.unityTrialTime
         self.unityTime += uf.unityTime
         self.timeStamps += uf.timeStamps
-
-
-# os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/20181105")
-# dirs = DPT.levels.get_level_dirs('session')
-# pg = DPT.objects.processDirs(None, Unity)
-# ppg = PanGUI.create_window(pg, indexer="trial")
