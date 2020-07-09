@@ -83,6 +83,10 @@ class Unity(DPT.DPObject):
         self.unityTrialTime = []
         self.unityTime = []
 
+        # load the rplparallel object to get the Ripple timestamps
+        rl = rplparallel.RPLParallel()
+        self.timeStamps = [rl.timeStamps]
+
         # look for RawData_T * folder
         if bool(glob.glob(self.args["DirName"])):
             os.chdir(glob.glob(self.args["DirName"])[0])
@@ -266,7 +270,7 @@ class Unity(DPT.DPObject):
         plot_type = plotopts["Plot Option"].selected()
         session_idx = self.setidx[i]
         if session_idx != 0:
-            for x in range(1, session_idx+1):
+            for x in range(0, session_idx):
                 i = i - self.unityTriggers[x].shape[0]
         if plot_type == "Trial":
 
@@ -298,8 +302,7 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "FrameIntervals":
 
-            rl = rplparallel.RPLParallel()
-            time_stamps = rl.timeStamps
+            time_stamps = self.timeStamps[session_idx]
             frame_interval_triggers = np.array([plotopts["FrameIntervalTriggers"]["from"],
                                                 plotopts["FrameIntervalTriggers"]["to"]], dtype=np.int)
             indices = self.unityTriggers[session_idx][i, frame_interval_triggers]
@@ -326,9 +329,7 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "DurationDiffs":
 
-            # load the rplparallel object to get the Ripple timestamps
-            rl = rplparallel.RPLParallel()
-            time_stamps = rl.timeStamps
+            time_stamps = self.timeStamps[session_idx]
             u_triggers = self.unityTriggers[session_idx]
             u_time = self.unityTime[session_idx]
 
@@ -396,6 +397,7 @@ class Unity(DPT.DPObject):
         self.unityTriggers += uf.unityTriggers
         self.unityTrialTime += uf.unityTrialTime
         self.unityTime += uf.unityTime
+        self.timeStamps += uf.timeStamps
 
 
 # os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/20181105")
