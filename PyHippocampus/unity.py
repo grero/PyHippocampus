@@ -60,6 +60,7 @@ class Unity(DPT.DPObject):
     filename = "unity.hkl"
     argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
                 ('TriggerVal2', 20), ('TriggerVal3', 30)]
+    level = "session"
 
     def __init__(self, *args, **kwargs):
         current_level = DPT.levels.level(os.getcwd())
@@ -72,18 +73,19 @@ class Unity(DPT.DPObject):
 
     def create(self, *args, **kwargs):
         # set plot options
-        self.plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
-                                                                      "SumCost"], 0),
-                         "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}}
         self.indexer = self.getindex("trial")
 
         # initialization
         self.numSets = 0
-        self.sumCost = np.empty(0)
-        self.unityData = np.empty(0)
-        self.unityTriggers = np.empty(0)
-        self.unityTrialTime = np.empty(0)
-        self.unityTime = np.empty(0)
+        self.sumCost = []
+        self.unityData = []
+        self.unityTriggers = []
+        self.unityTrialTime = []
+        self.unityTime = []
+
+        # load the rplparallel object to get the Ripple timestamps
+        rl = rplparallel.RPLParallel()
+        self.timeStamps = [rl.timeStamps]
 
         # look for RawData_T * folder
         if bool(glob.glob(self.args["DirName"])):
@@ -149,7 +151,7 @@ class Unity(DPT.DPObject):
                 unityTrialTime.fill(np.nan)
 
                 trial_counter = 0  # set up trial counter
-                sumCost = np.zeros((404, 6))
+                sumCost = np.zeros((totTrials, 6))
 
                 for a in range(0, totTrials):
 
@@ -219,31 +221,57 @@ class Unity(DPT.DPObject):
                 sumCost[error_ind, 5] = 0
                 sumCost[error_ind[0] + 1, 5] = 0
 
-                self.sumCost = sumCost
-                self.unityData = unityData
-                self.unityTriggers = unityTriggers
-                self.unityTrialTime = unityTrialTime
-                self.unityTime = unityTime
-                self.setidx = np.zeros((self.unityTriggers.shape[0],), dtype=np.int)
+                self.sumCost.append(sumCost)
+                self.unityData.append(unityData)
+                self.unityTriggers.append(unityTriggers)
+                self.unityTrialTime.append(unityTrialTime)
+                self.unityTime.append(unityTime)
+                self.setidx = ([0] * unityTriggers.shape[0])
 
         # check if we need to save the object, with the default being 0
         if kwargs.get("saveLevel", 0) > 0:
             self.save()
 
     def update_idx(self, i):
-        return max(0, min(i, self.unityTriggers.shape[0]-1))
+        return max(0, min(i, len(self.setidx)-1))
 
-    def plot(self, i, ax=None, overlay=False):
-        self.current_idx = i
+    def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
+        # set plot options
+        plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
+                                                                "SumCost"], 0),
+                    "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}, "level": "trial"}
+        if getPlotOpts:
+            return plotopts
+
+        # Extract the recognized plot options from kwargs
+        for (k, v) in plotopts.items():
+            plotopts[k] = kwargs.get(k, v)
+
+        if getNumEvents:
+            # Return the number of events avilable
+            if plotopts["level"] == "trial":
+                return len(self.setidx)
+            elif plotopts["level"] == "all":
+                return 1
+
+        if getLevels:
+            # Return the possible levels for this object
+            return ["trial", "all"]
+
+        if ax is None:
+            ax = gca()
+
+        ax.clear()
         # fig = ax.get_figure()
         # ax_list = fig.get_axes()
         # for ax in ax_list:
         #     ax.clear()
-        if ax is None:
-            ax = gca()
-        if not overlay:
-            ax.clear()
-        plot_type = self.plotopts["Plot Option"].selected()
+
+        plot_type = plotopts["Plot Option"].selected()
+        session_idx = self.setidx[i]
+        if session_idx != 0:
+            for x in range(0, session_idx):
+                i = i - self.unityTriggers[x].shape[0]
         if plot_type == "Trial":
 
             ax.plot(xBound, zBound, color='k', linewidth=1.5)
@@ -251,19 +279,21 @@ class Unity(DPT.DPObject):
             ax.plot(x2Bound, z2Bound, 'k', LineWidth=1)
             ax.plot(x3Bound, z3Bound, 'k', LineWidth=1)
             ax.plot(x4Bound, z4Bound, 'k', LineWidth=1)
-            ax.plot(self.unityData[int(self.unityTriggers[i, 1]): int(self.unityTriggers[i, 2]), 2],
-                    self.unityData[int(self.unityTriggers[i, 1]): int(self.unityTriggers[i, 2]), 3],
-                    'b+', LineWidth=1)
+            x_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
+                                                 int(self.unityTriggers[session_idx][i, 2]), 2]
+            y_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
+                                                 int(self.unityTriggers[session_idx][i, 2]), 3]
+            ax.plot(x_data, y_data, 'b+', LineWidth=1)
 
             # plot end point identifier
-            ax.plot(self.unityData[self.unityTriggers[i, 2], 2],
-                    self.unityData[self.unityTriggers[i, 2], 3], 'k.', MarkerSize=10)
-            route_str = str(self.sumCost[i, 1])
-            short_str = str(self.sumCost[i, 0])
-            ratio_str = str(self.sumCost[i, 1] / self.sumCost[i, 0])
+            ax.plot(self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 2],
+                    self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 3], 'k.', MarkerSize=10)
+            route_str = str(self.sumCost[session_idx][i, 1])
+            short_str = str(self.sumCost[session_idx][i, 0])
+            ratio_str = str(self.sumCost[session_idx][i, 1] / self.sumCost[session_idx][i, 0])
             title = ' T: ' + str(i) + ' Route: ' + route_str + ' Shortest: ' + short_str + ' Ratio: ' + ratio_str
 
-            dir_name = self.dirs[0]
+            dir_name = self.dirs[session_idx]
             subject = DPT.levels.get_shortname("subject", dir_name)
             date = DPT.levels.get_shortname("day", dir_name)
             session = DPT.levels.get_shortname("session", dir_name)
@@ -272,12 +302,11 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "FrameIntervals":
 
-            rl = rplparallel.RPLParallel()
-            time_stamps = rl.timeStamps
-            frame_interval_triggers = np.array([self.plotopts["FrameIntervalTriggers"]["from"],
-                                                self.plotopts["FrameIntervalTriggers"]["to"]], dtype=np.int)
-            indices = self.unityTriggers[i, frame_interval_triggers]
-            u_data = self.unityData[(indices[0] + 1):(indices[1] + 1), 1]
+            time_stamps = self.timeStamps[session_idx]
+            frame_interval_triggers = np.array([plotopts["FrameIntervalTriggers"]["from"],
+                                                plotopts["FrameIntervalTriggers"]["to"]], dtype=np.int)
+            indices = self.unityTriggers[session_idx][i, frame_interval_triggers]
+            u_data = self.unityData[session_idx][(indices[0] + 1):(indices[1] + 1), 1]
             markerline, stemlines, baseline = ax.stem(u_data, basefmt=" ", use_line_collection=True)
             stemlines.set_linewidth(0.5)
             markerline.set_markerfacecolor('none')
@@ -291,7 +320,7 @@ class Unity(DPT.DPObject):
             uet = np.cumsum(u_data)
             title = " Trial " + str(i) + ' Duration disparity: ' + str(1000 * (uet[-1] - rp_trial_dur)) + ' ms'
 
-            dir_name = self.dirs[0]
+            dir_name = self.dirs[session_idx]
             subject = DPT.levels.get_shortname("subject", dir_name)
             date = DPT.levels.get_shortname("day", dir_name)
             session = DPT.levels.get_shortname("session", dir_name)
@@ -300,11 +329,9 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "DurationDiffs":
 
-            # load the rplparallel object to get the Ripple timestamps
-            rl = rplparallel.RPLParallel()
-            time_stamps = rl.timeStamps
-            u_triggers = self.unityTriggers
-            u_time = self.unityTime
+            time_stamps = self.timeStamps[session_idx]
+            u_triggers = self.unityTriggers[session_idx]
+            u_time = self.unityTime[session_idx]
 
             # add 1 to start index since we want the duration between triggers
             start_ind = u_triggers[:, 0] + 1
@@ -324,21 +351,21 @@ class Unity(DPT.DPObject):
             ax.set_yscale("log")
             ax.grid(axis="y")
 
-            dir_name = self.dirs[0]
+            dir_name = self.dirs[session_idx]
             subject = DPT.levels.get_shortname("subject", dir_name)
             date = DPT.levels.get_shortname("day", dir_name)
             session = DPT.levels.get_shortname("session", dir_name)
             ax.set_title('Unity trial duration - Ripple trial duration ' + subject + date + session)
 
         elif plot_type == "SumCost":
-            tot_trials = self.unityTriggers.shape[0]
+            tot_trials = self.unityTriggers[session_idx].shape[0]
             xind = np.arange(0, tot_trials)
             # Calculate optimal width
             width = np.min(np.diff(xind)) / 3
-            ax.bar(xind - width / 2, self.sumCost[xind, 0], width, color='yellow', label="Shortest")
-            ax.bar(xind + width / 2, self.sumCost[xind, 1], width, color='cyan', label="Route")
+            ax.bar(xind - width / 2, self.sumCost[session_idx][xind, 0], width, color='yellow', label="Shortest")
+            ax.bar(xind + width / 2, self.sumCost[session_idx][xind, 1], width, color='cyan', label="Route")
             ax1 = ax.twinx()
-            ratio = np.divide(self.sumCost[xind, 1], self.sumCost[xind, 0])
+            ratio = np.divide(self.sumCost[session_idx][xind, 1], self.sumCost[session_idx][xind, 0])
             markerline, stemlines, baseline = ax1.stem(xind, ratio, 'magenta', markerfmt='mo', basefmt=" ",
                                                        use_line_collection=True, label='Ratio')
             # markerline.set_markersize(5)
@@ -352,7 +379,7 @@ class Unity(DPT.DPObject):
             lines2, labels2 = ax1.get_legend_handles_labels()
             ax1.legend(lines + lines2, labels + labels2, loc="upper right")
 
-            dir_name = self.dirs[0]
+            dir_name = self.dirs[session_idx]
             subject = DPT.levels.get_shortname("subject", dir_name)
             date = DPT.levels.get_shortname("day", dir_name)
             session = DPT.levels.get_shortname("session", dir_name)
@@ -360,12 +387,20 @@ class Unity(DPT.DPObject):
 
         return ax
 
+    def append(self, uf):
+        # update fields in parent
+        DPT.DPObject.append(self, uf)
+        # update fields in child
+        self.numSets += uf.numSets
+        self.sumCost += uf.sumCost
+        self.unityData += uf.unityData
+        self.unityTriggers += uf.unityTriggers
+        self.unityTrialTime += uf.unityTrialTime
+        self.unityTime += uf.unityTime
+        self.timeStamps += uf.timeStamps
 
-# os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/201811105/session01/array01")
-# pg = Unity()
-# print(os.getcwd())
-# print(pg.get_filename())
-# ag = rplparallel.RPLParallel()
-# print(ag.get_filename())
-# ag.load(fname="rplparallel_b6ee.hkl")
+
+# os.chdir("/Users/chris/Documents/GitHub/PyHippocampus/PyHippocampus/picasso-misc/20181105")
+# dirs = DPT.levels.get_level_dirs('session')
+# pg = DPT.objects.processDirs(None, Unity)
 # ppg = PanGUI.create_window(pg, indexer="trial")
