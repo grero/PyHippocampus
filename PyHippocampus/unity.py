@@ -1,5 +1,6 @@
 import DataProcessingTools as DPT
 from pylab import gcf, gca
+import matplotlib.patches as patches
 import numpy as np
 import os
 import glob
@@ -241,7 +242,7 @@ class Unity(DPT.DPObject):
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
-                                                                "SumCost", "Proportion of trial"], 0),
+                                                                "SumCost", "Proportion of trial", "Place Cells"], 0),
                     "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}, "level": "trial"}
         if getPlotOpts:
             return plotopts
@@ -397,6 +398,7 @@ class Unity(DPT.DPObject):
             ax.set_title(subject + date + session)
 
         elif plot_type == "Proportion of trial":
+
             session_num = np.arange(0, len(self.unityData))
             ax.plot(session_num, self.timePerformance, label='Completed within time limit',  marker='o', fillstyle='none')
             ax.plot(session_num, self.routePerformance, label='Completed within time limit and via the shortest route',
@@ -405,6 +407,42 @@ class Unity(DPT.DPObject):
             ax.set_ylabel('Proportion of trials')
             ax.legend(loc="lower center")
             ax.set_ylim(0, 1.2)
+
+        elif plot_type == "Place Cells":
+
+            # add grid
+            for a in range(0, 2):
+                ax.plot([x1Bound[a], x1Bound[a]], xBound[0:2], color='gray', linewidth=0.5)
+                ax.plot([x2Bound[a], x2Bound[a]], xBound[0:2], color='gray', linewidth=0.5)
+                ax.plot(xBound[0:2], [x1Bound[a], x1Bound[a]], color='gray', linewidth=0.5)
+                ax.plot(xBound[0:2], [x2Bound[a], x2Bound[a]], color='gray', linewidth=0.5)
+            # bound
+            ax.plot(xBound, zBound, color='k', linewidth=1.5)
+            rect1 = patches.Rectangle((x1Bound[0], z1Bound[0]), 5, -5, linewidth=1, edgecolor='k', facecolor='k')
+            rect2 = patches.Rectangle((x2Bound[0], z2Bound[0]), 5, -5, linewidth=1, edgecolor='k', facecolor='k')
+            rect3 = patches.Rectangle((x3Bound[0], z3Bound[0]), 5, -5, linewidth=1, edgecolor='k', facecolor='k')
+            rect4 = patches.Rectangle((x4Bound[0], z4Bound[0]), 5, -5, linewidth=1, edgecolor='k', facecolor='k')
+            ax.add_patch(rect1)
+            ax.add_patch(rect2)
+            ax.add_patch(rect3)
+            ax.add_patch(rect4)
+            # add poster
+            ax.plot(poster_pos[:, 0], poster_pos[:, 1], 'o', color='r')
+
+            # x_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
+            #                                      int(self.unityTriggers[session_idx][i, 2]), 2]
+            # y_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
+            #                                      int(self.unityTriggers[session_idx][i, 2]), 3]
+            x_data = self.unityData[session_idx][:, 2]
+            y_data = self.unityData[session_idx][:, 3]
+            ax.plot(x_data, y_data, LineWidth=1)
+
+            dir_name = self.dirs[session_idx]
+            subject = DPT.levels.get_shortname("subject", dir_name)
+            date = DPT.levels.get_shortname("day", dir_name)
+            session = DPT.levels.get_shortname("session", dir_name)
+            title = "Place Cells: " + subject + date + session
+            ax.set_title(title)
 
         return ax
 
