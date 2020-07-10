@@ -80,6 +80,8 @@ class Unity(DPT.DPObject):
         self.unityTriggers = []
         self.unityTrialTime = []
         self.unityTime = []
+        self.timePerformance = []
+        self.routePerformance = []
 
         # load the rplparallel object to get the Ripple timestamps
         rl = rplparallel.RPLParallel()
@@ -127,13 +129,14 @@ class Unity(DPT.DPObject):
                 uT1 = np.where((text_data[:, 0] > self.args["TriggerVal1"]) & (text_data[:, 0] < self.args["TriggerVal2"]))
                 uT2 = np.where((text_data[:, 0] > self.args["TriggerVal2"]) & (text_data[:, 0] < self.args["TriggerVal3"]))
                 uT3 = np.where(text_data[:, 0] > self.args["TriggerVal3"])
+                num_within_time = (np.where((text_data[:, 0] > self.args["TriggerVal3"]) & (text_data[:, 0] < 40)))[0].size
                 # Check if there is any incomplete trial
                 utRows = [uT1[0].size, uT2[0].size, uT3[0].size]
                 utMax = max(utRows)
                 utMin = min(utRows)
-                inCompleteTrials = utMax - utMin
-                if inCompleteTrials != 0:
-                    print("Incomplete session! Last", inCompleteTrials, "trial discarded")
+                incomplete_trials = utMax - utMin
+                if incomplete_trials != 0:
+                    print("Incomplete session! Last", incomplete_trials, "trial discarded")
                 unityTriggers = np.zeros((utMin, 3), dtype=int)
                 unityTriggers[:, 0] = uT1[0][0:utMin]
                 unityTriggers[:, 1] = uT2[0][0:utMin]
@@ -217,8 +220,13 @@ class Unity(DPT.DPObject):
                 # Calculate performance
                 error_ind = np.where(sumCost[:, 4] == 40)
                 sumCost[error_ind, 5] = 0
-                sumCost[error_ind[0] + 1, 5] = 0
 
+                # Proportion of trial
+                ratio_within_time = num_within_time / totTrials
+                ratio_shortest_route = np.where(sumCost[:, 5] == 1)[0].size / totTrials
+
+                self.timePerformance = [ratio_within_time]
+                self.routePerformance = [ratio_shortest_route]
                 self.sumCost.append(sumCost)
                 self.unityData.append(unityData)
                 self.unityTriggers.append(unityTriggers)
@@ -233,7 +241,7 @@ class Unity(DPT.DPObject):
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
-                                                                "SumCost"], 0),
+                                                                "SumCost", "Proportion of trial"], 0),
                     "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}, "level": "trial"}
         if getPlotOpts:
             return plotopts
@@ -388,6 +396,16 @@ class Unity(DPT.DPObject):
             session = DPT.levels.get_shortname("session", dir_name)
             ax.set_title(subject + date + session)
 
+        elif plot_type == "Proportion of trial":
+            session_num = np.arange(0, len(self.unityData))
+            ax.plot(session_num, self.timePerformance, label='Completed within time limit',  marker='o', fillstyle='none')
+            ax.plot(session_num, self.routePerformance, label='Completed within time limit and via the shortest route',
+                    marker='o', fillstyle='none')
+            ax.set_xlabel('Session')
+            ax.set_ylabel('Proportion of trials')
+            ax.legend(loc="lower center")
+            ax.set_ylim(0, 1.2)
+
         return ax
 
     def append(self, uf):
@@ -401,3 +419,5 @@ class Unity(DPT.DPObject):
         self.unityTrialTime += uf.unityTrialTime
         self.unityTime += uf.unityTime
         self.timeStamps += uf.timeStamps
+        self.timePerformance += uf.timePerformance
+        self.routePerformance += uf.routePerformance
