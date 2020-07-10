@@ -5,7 +5,7 @@ import csv
 from mountainlab_pytools import mdaio
 
 
-def mountain_batch(target,Overwrite):
+def mountain_batch(target='',Overwrite='No'):
     c_p = os.getcwd()
     split = c_p.split('/')
     if split[-1][0:7] == 'channel':
@@ -59,10 +59,6 @@ def mountain_batch(target,Overwrite):
                 if splits[k] == channel_no:
                     mountain_channel(full_cell,i)
                     break
-                else:
-                    print('Try again, channel folder cannot be accessed or input is not a 3-digit number.')
-                    return
-                    
     
 def comb_channels_ms():
     origin = os.getcwd()
@@ -168,7 +164,6 @@ def mountain_channel(full_cell, index):
     for n in range(2,full_cell.get(index)[1]+2):
         os.chdir(full_cell.get(index)[n]+ '/' + full_cell.get(index)[0])
         #os.chdir(full_cell.get(index)[0])
-        print('debugging clones!')
         #print(os.getcwd())
         temp = start_indices.get(1)
         temp.append(current)
@@ -211,11 +206,11 @@ def mountain_channel(full_cell, index):
     mdaio.writemda(data1, 'raw_data.mda', dtype='float32')
     x = mdaio.readmda('raw_data.mda')
     #print(x.shape)
-    os.system('cp /home/carlos/temp/dataset/geom.csv .')
+    os.system('cp /data/geom.csv .')
     #os.system('cp /home/ec2-user/geom.csv .')
     os.chdir(current_path)
     #os.system('cp /home/ec2-user/sort.sh.txt .')
-    os.system('cp /home/carlos/temp/sort.sh.txt .')
+    os.system('cp /data/sort.sh.txt .')
     #print(os.getcwd())
     os.system('sh sort.sh.txt') 
     
@@ -224,7 +219,7 @@ def mountain_channel(full_cell, index):
             
             
 
-print(mountain_batch('120',Overwrite='No'))
+#print(mountain_batch('120',Overwrite='No'))
         
 
     
