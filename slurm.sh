@@ -5,9 +5,9 @@
 #SBATCH --time=1:00:00   # walltime
 #SBATCH --ntasks=1   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
-#SBATCH --mem-per-cpu=1G   # memory per CPU core
+#SBATCH --mem-per-cpu=1M   # memory per CPU core
 #SBATCH -J "example-job"   # job name
-#SBATCH --mail-user=<your-email>@caltech.edu   # email address
+#SBATCH --mail-user=<your-email>@nus.edu.sg   # email address
 
 # Notify at the beginning, end of job and on failure.
 #SBATCH --mail-type=BEGIN
@@ -20,5 +20,3 @@
 ## /SBATCH -e slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-sleep 1000
-echo done
