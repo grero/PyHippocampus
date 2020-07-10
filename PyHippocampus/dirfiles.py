@@ -74,11 +74,15 @@ class DirFiles(DPT.DPObject):
         if getNumEvents:
             # Return the number of events avilable
             if plottype == "All":
-                return 1
+                return 1, 0
             else:
-                return len(self.itemNum)
+                if i is not None:
+                    nidx = i
+                else:
+                    nidx = 0
+                return len(self.itemNum), nidx
             
-        if getLevels:        
+        if getLevels:
             # Return the possible levels for this object
             return ["item", "all"]
         
