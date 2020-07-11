@@ -6,6 +6,5 @@ Created on Fri Jun 26 11:09:27 2020
 @author: syen
 """
 def pyhcheck(mystring):
-    print('Check 3')
     print(mystring)
     return
