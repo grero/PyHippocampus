@@ -254,16 +254,20 @@ class Unity(DPT.DPObject):
         for (k, v) in plotopts.items():
             plotopts[k] = kwargs.get(k, v)
 
+        plot_type = plotopts["Plot Option"].selected()
+
         if getNumEvents:
             # Return the number of events avilable
-            if plotopts["level"] == "trial":
+            if plot_type == "Trial" or plot_type == "FrameIntervals":
                 return len(self.setidx), 0
-            elif plotopts["level"] == "session":
+            elif plot_type == "DurationDiffs" or plot_type == "SumCost" or plot_type == "Place Cells":
                 if i is not None:
                     nidx = self.setidx[i]
                 else:
                     nidx = 0
                 return np.max(self.setidx) + 1, nidx
+            elif plot_type == "Proportion of trial":
+                return 1, 0
 
         if getLevels:
             # Return the possible levels for this object
@@ -278,16 +282,12 @@ class Unity(DPT.DPObject):
         # for ax in ax_list:
         #     ax.clear()
 
-        plot_type = plotopts["Plot Option"].selected()
-        session_idx = self.setidx[i]
-        if session_idx != 0:
-            for x in range(0, session_idx):
-                i = i - self.unityTriggers[x].shape[0]
-
-        if plotopts["level"] == "session":
-            session_idx = i
-
         if plot_type == "Trial":
+
+            session_idx = self.setidx[i]
+            if session_idx != 0:
+                for x in range(0, session_idx):
+                    i = i - self.unityTriggers[x].shape[0]
 
             ax.plot(xBound, zBound, color='k', linewidth=1.5)
             ax.plot(x1Bound, z1Bound, 'k', LineWidth=1)
@@ -317,6 +317,11 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "FrameIntervals":
 
+            session_idx = self.setidx[i]
+            if session_idx != 0:
+                for x in range(0, session_idx):
+                    i = i - self.unityTriggers[x].shape[0]
+
             time_stamps = self.timeStamps[session_idx]
             frame_interval_triggers = np.array([plotopts["FrameIntervalTriggers"]["from"],
                                                 plotopts["FrameIntervalTriggers"]["to"]], dtype=np.int)
@@ -344,9 +349,9 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "DurationDiffs":
 
-            time_stamps = self.timeStamps[session_idx]
-            u_triggers = self.unityTriggers[session_idx]
-            u_time = self.unityTime[session_idx]
+            time_stamps = self.timeStamps[i]
+            u_triggers = self.unityTriggers[i]
+            u_time = self.unityTime[i]
 
             # add 1 to start index since we want the duration between triggers
             start_ind = u_triggers[:, 0] + 1
@@ -366,24 +371,24 @@ class Unity(DPT.DPObject):
             ax.set_yscale("log")
             ax.grid(axis="y")
 
-            dir_name = self.dirs[session_idx]
+            dir_name = self.dirs[i]
             subject = DPT.levels.get_shortname("subject", dir_name)
             date = DPT.levels.get_shortname("day", dir_name)
             session = DPT.levels.get_shortname("session", dir_name)
             ax.set_title('Unity trial duration - Ripple trial duration ' + subject + date + session)
 
         elif plot_type == "SumCost":
-            tot_trials = self.unityTriggers[session_idx].shape[0]
+            tot_trials = self.unityTriggers[i].shape[0]
             xind = np.arange(0, tot_trials)
             # Calculate optimal width
             width = np.min(np.diff(xind)) / 3
-            ax.bar(xind - width / 2, self.sumCost[session_idx][:, 0], width, color='yellow', label="Shortest")
-            ax.bar(xind + width / 2, self.sumCost[session_idx][:, 1], width, color='cyan', label="Route")
+            ax.bar(xind - width / 2, self.sumCost[i][:, 0], width, color='yellow', label="Shortest")
+            ax.bar(xind + width / 2, self.sumCost[i][:, 1], width, color='cyan', label="Route")
             ax1 = ax.twinx()
             # ratio = np.divide(self.sumCost[session_idx][:, 1], self.sumCost[session_idx][:, 0])
             # markerline, stemlines, baseline = ax1.stem(xind, ratio, 'magenta', markerfmt='mo', basefmt=" ",
             #                                            use_line_collection=True, label='Ratio')
-            markerline, stemlines, baseline = ax1.stem(xind, self.trialRouteRatio[session_idx], 'magenta',
+            markerline, stemlines, baseline = ax1.stem(xind, self.trialRouteRatio[i], 'magenta',
                                                        markerfmt='mo', basefmt=" ", use_line_collection=True,
                                                        label='Ratio')
             # markerline.set_markersize(5)
@@ -397,7 +402,7 @@ class Unity(DPT.DPObject):
             lines2, labels2 = ax1.get_legend_handles_labels()
             ax1.legend(lines + lines2, labels + labels2, loc="upper right")
 
-            dir_name = self.dirs[session_idx]
+            dir_name = self.dirs[i]
             subject = DPT.levels.get_shortname("subject", dir_name)
             date = DPT.levels.get_shortname("day", dir_name)
             session = DPT.levels.get_shortname("session", dir_name)
@@ -406,7 +411,8 @@ class Unity(DPT.DPObject):
         elif plot_type == "Proportion of trial":
 
             session_num = np.arange(0, len(self.unityData))
-            ax.plot(session_num, self.timePerformance, label='Completed within time limit',  marker='o', fillstyle='none')
+            ax.plot(session_num, self.timePerformance, label='Completed within time limit',
+                    marker='o', fillstyle='none')
             ax.plot(session_num, self.routePerformance, label='Completed within time limit and via the shortest route',
                     marker='o', fillstyle='none')
             ax.set_xlabel('Session')
@@ -435,15 +441,11 @@ class Unity(DPT.DPObject):
             # add poster
             ax.plot(poster_pos[:, 0], poster_pos[:, 1], 'o', color='r')
 
-            # x_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
-            #                                      int(self.unityTriggers[session_idx][i, 2]), 2]
-            # y_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
-            #                                      int(self.unityTriggers[session_idx][i, 2]), 3]
-            x_data = self.unityData[session_idx][:, 2]
-            y_data = self.unityData[session_idx][:, 3]
+            x_data = self.unityData[i][:, 2]
+            y_data = self.unityData[i][:, 3]
             ax.plot(x_data, y_data, LineWidth=1)
 
-            dir_name = self.dirs[session_idx]
+            dir_name = self.dirs[i]
             subject = DPT.levels.get_shortname("subject", dir_name)
             date = DPT.levels.get_shortname("day", dir_name)
             session = DPT.levels.get_shortname("session", dir_name)
