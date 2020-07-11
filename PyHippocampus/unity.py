@@ -83,6 +83,7 @@ class Unity(DPT.DPObject):
         self.unityTime = []
         self.timePerformance = []
         self.routePerformance = []
+        self.trialRouteRatio = []
 
         # load the rplparallel object to get the Ripple timestamps
         rl = rplparallel.RPLParallel()
@@ -225,7 +226,9 @@ class Unity(DPT.DPObject):
                 # Proportion of trial
                 ratio_within_time = num_within_time / totTrials
                 ratio_shortest_route = np.where(sumCost[:, 5] == 1)[0].size / totTrials
+                ratio_each_trial_route = np.divide(sumCost[:, 1], sumCost[:, 0])
 
+                self.trialRouteRatio = [ratio_each_trial_route]
                 self.timePerformance = [ratio_within_time]
                 self.routePerformance = [ratio_shortest_route]
                 self.sumCost.append(sumCost)
@@ -374,12 +377,15 @@ class Unity(DPT.DPObject):
             xind = np.arange(0, tot_trials)
             # Calculate optimal width
             width = np.min(np.diff(xind)) / 3
-            ax.bar(xind - width / 2, self.sumCost[session_idx][xind, 0], width, color='yellow', label="Shortest")
-            ax.bar(xind + width / 2, self.sumCost[session_idx][xind, 1], width, color='cyan', label="Route")
+            ax.bar(xind - width / 2, self.sumCost[session_idx][:, 0], width, color='yellow', label="Shortest")
+            ax.bar(xind + width / 2, self.sumCost[session_idx][:, 1], width, color='cyan', label="Route")
             ax1 = ax.twinx()
-            ratio = np.divide(self.sumCost[session_idx][xind, 1], self.sumCost[session_idx][xind, 0])
-            markerline, stemlines, baseline = ax1.stem(xind, ratio, 'magenta', markerfmt='mo', basefmt=" ",
-                                                       use_line_collection=True, label='Ratio')
+            # ratio = np.divide(self.sumCost[session_idx][:, 1], self.sumCost[session_idx][:, 0])
+            # markerline, stemlines, baseline = ax1.stem(xind, ratio, 'magenta', markerfmt='mo', basefmt=" ",
+            #                                            use_line_collection=True, label='Ratio')
+            markerline, stemlines, baseline = ax1.stem(xind, self.trialRouteRatio[session_idx], 'magenta',
+                                                       markerfmt='mo', basefmt=" ", use_line_collection=True,
+                                                       label='Ratio')
             # markerline.set_markersize(5)
             stemlines.set_linewidth(0.4)
             markerline.set_markerfacecolor('none')
@@ -459,3 +465,4 @@ class Unity(DPT.DPObject):
         self.timeStamps += uf.timeStamps
         self.timePerformance += uf.timePerformance
         self.routePerformance += uf.routePerformance
+        self.trialRouteRatio += uf.trialRouteRatio
