@@ -72,7 +72,7 @@ class DirFiles(DPT.DPObject):
         plottype = plotopts["Type"].selected()
 
         if getNumEvents:
-            # Return the number of events avilable
+            # Return the number of events available
             if plottype == "All":
                 return 1, 0
             else:
