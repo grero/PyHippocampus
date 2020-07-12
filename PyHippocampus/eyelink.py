@@ -18,21 +18,31 @@ class Eyelink(DPT.DPObject):
     filename = 'eyelink.hkl'
     argsList = [('ObjectLevel', 'Session'), ('FileName', '.edf'), ('CalibFileNameChar', 'P'), 
     ('NavDirName', 'session0'), ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), ('ScreenX', 1920), ('ScreenY', 1080),
-    ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84')]
+    ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), ('StartFromDay', False)]
+	level = 'session'
 
     def __init__(self, *args, **kwargs):
-        # initialize fields in parent
-        cwd = os.getcwd()
-        ll = DPT.levels.level(cwd)
-
-        if ll == 'channel':
-            DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+        # check if StartFromDay is True
+        if kwargs.get('StartFromDay'):
+            rr = DPT.levels.resolve_level('day', ll)
         else:
-            rr = DPT.levels.resolve_level('channel', ll)
-            with DPT.misc.CWD(rr):
-                DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+            rr = DPT.levels.resolve_level(level, ll)
+        
+		with DPT.misc.CWD(rr):
+			DPT.DPObject.__init__(self, *args, **kwargs)
 
-        self.indexer = self.getindex("trial")
+#         initialize fields in parent
+#         cwd = os.getcwd()
+#         ll = DPT.levels.level(cwd)
+# 
+#         if ll == 'channel':
+#             DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+#         else:
+#             rr = DPT.levels.resolve_level('channel', ll)
+#             with DPT.misc.CWD(rr):
+#                 DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+# 
+#         self.indexer = self.getindex("trial")
         
     def create(self, *args, **kwargs):
         # initialize fields in eyelink object
