@@ -4,11 +4,9 @@ import numpy.matlib
 import pandas as pd
 import h5py
 import os
-# import glob
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import matplotlib.patches as patches
-import PanGUI
 import DataProcessingTools as DPT
 
 class Eyelink(DPT.DPObject):
@@ -17,32 +15,23 @@ class Eyelink(DPT.DPObject):
     '''
     filename = 'eyelink.hkl'
     argsList = [('ObjectLevel', 'Session'), ('FileName', '.edf'), ('CalibFileNameChar', 'P'), 
-    ('NavDirName', 'session0'), ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), ('ScreenX', 1920), ('ScreenY', 1080),
+    ('NavDirName', 'session0'), ('CalibDirName', 'sessioneye'), ('ScreenX', 1920), ('ScreenY', 1080),
     ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), ('StartFromDay', False)]
-	level = 'session'
 
     def __init__(self, *args, **kwargs):
+        level = 'session'
+        ll = DPT.levels.level(os.getcwd())
+        print('enter', ll)
         # check if StartFromDay is True
         if kwargs.get('StartFromDay'):
             rr = DPT.levels.resolve_level('day', ll)
         else:
-            rr = DPT.levels.resolve_level(level, ll)
+            rr = DPT.levels.resolve_level('session', ll)
         
-		with DPT.misc.CWD(rr):
-			DPT.DPObject.__init__(self, *args, **kwargs)
-
-#         initialize fields in parent
-#         cwd = os.getcwd()
-#         ll = DPT.levels.level(cwd)
-# 
-#         if ll == 'channel':
-#             DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
-#         else:
-#             rr = DPT.levels.resolve_level('channel', ll)
-#             with DPT.misc.CWD(rr):
-#                 DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
-# 
-#         self.indexer = self.getindex("trial")
+            with DPT.misc.CWD(rr):
+                #print('current', DPT.levels.level(os.getcwd()))
+                DPT.DPObject.__init__(self, *args, **kwargs)
+        print('exit', DPT.levels.level(os.getcwd()))
         
     def create(self, *args, **kwargs):
         # initialize fields in eyelink object
@@ -53,7 +42,7 @@ class Eyelink(DPT.DPObject):
 
         self.trial_timestamps = pd.DataFrame()
         self.eye_pos = pd.DataFrame()
-        self.numSets = []
+        self.numSets =  []
         self.expTime = []
         self.timestamps = pd.DataFrame()
         self.timeouts = pd.DataFrame()
@@ -61,220 +50,232 @@ class Eyelink(DPT.DPObject):
         self.fix_event = pd.DataFrame()
         self.fix_times = pd.DataFrame()
         self.sacc_event = pd.DataFrame()
-        self.trial_codes = pd.DataFrame()
+        self.trial_codes = pd.DataFrame() # get trial codes from rplparallel instead
         self.session_start = []
         self.session_start_index = []
         
-        # cd into directory where edf files are
-        path = os.getcwd()
-        current = path.split('/')
-        n = len(current)
+        # cd into day level directory
+        ll = DPT.levels.level(os.getcwd())
+        rr = DPT.levels.resolve_level('day', ll)
 
-        if current[n-1].startswith(self.args['NavDirName']) or current[n-1] == self.args['CalibDirName']:
-            os.chdir('..')
+        with DPT.misc.CWD(rr):
+            files = os.listdir()
+            calib_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] in i]
+            nav_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] not in i]
 
-        files = os.listdir()
-        calib_files = [i for i in files if self.args['FileName'] in i and self.args['CalibFileNameChar'] in i]
-        nav_files = [i for i in files if self.args['FileName'] in i and self.args['CalibFileNameChar'] not in i]
+            for file in calib_files:
+                # calibration file w/ format: 'Pm_d.edf'
+                print('Reading calibration edf file.\n')
 
-        for file in calib_files:
-            # calibration file w/ format: 'Pm_d.edf'
-            print('Reading P edf file.\n')
+                samples, events, messages = pread(
+                        file, trial_marker=b'1  0  0  0  0  0  0  0')
 
-            samples, events, messages = pread(
-                    file, trial_marker=b'1  0  0  0  0  0  0  0')
-            
-            # os.chdir('sessioneye')
+                '''
+                Used to filter out unneeded columns of dataframes returned by pread when viewing them in the terminal.
 
-            '''
-            Used to filter out unneeded columns of dataframes returned by pread when viewing them in the terminal.
+                samp_cols2 = ['px_left', 'px_right', 'py_left', 'py_right',
+                            'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
+                            'pa_right', 'gx_right', 'gy_right',
+                            'rx', 'ry', 'gxvel_left', 'gxvel_right', 'gyvel_left',
+                            'gyvel_right', 'hxvel_left', 'hxvel_right', 'hyvel_left',
+                            'hyvel_right', 'rxvel_left', 'rxvel_right', 'ryvel_left',
+                            'ryvel_right', 'fgxvel', 'fgyvel', 'fhxyvel', 'fhyvel',
+                            'frxyvel', 'fryvel', 'buttons', 'flags', 'input',
+                            'errors']
 
-            samp_cols2 = ['px_left', 'px_right', 'py_left', 'py_right',
-                        'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
-                        'pa_right', 'gx_right', 'gy_right',
-                        'rx', 'ry', 'gxvel_left', 'gxvel_right', 'gyvel_left',
-                        'gyvel_right', 'hxvel_left', 'hxvel_right', 'hyvel_left',
-                        'hyvel_right', 'rxvel_left', 'rxvel_right', 'ryvel_left',
-                        'ryvel_right', 'fgxvel', 'fgyvel', 'fhxyvel', 'fhyvel',
-                        'frxyvel', 'fryvel', 'buttons', 'flags', 'input',
-                        'errors']
+                msg_cols2 = ['DISPLAY_COORDS', 'DISPLAY_COORDS_time',
+                            '!CAL', '!CAL_time', 'VALIDATE', 'VALIDATE_time',
+                            'RECCFG', 'RECCFG_time', 'ELCLCFG', 'ELCLCFG_time',
+                            'GAZE_COORDS', 'GAZE_COORDS_time', 'THRESHOLDS',  'THRESHOLDS_time',
+                            'ELCL_PROC', 'ELCL_PROC_time', 'ELCL_PCR_PARAM']
 
-            msg_cols2 = ['DISPLAY_COORDS', 'DISPLAY_COORDS_time',
-                        '!CAL', '!CAL_time', 'VALIDATE', 'VALIDATE_time',
-                        'RECCFG', 'RECCFG_time', 'ELCLCFG', 'ELCLCFG_time',
-                        'GAZE_COORDS', 'GAZE_COORDS_time', 'THRESHOLDS',  'THRESHOLDS_time',
-                        'ELCL_PROC', 'ELCL_PROC_time', 'ELCL_PCR_PARAM']
+                samples2 = samples2.drop(samp_cols2, 1)
+                messages2 = messages2.drop(msg_cols2, 1)
+                '''
 
-            samples2 = samples2.drop(samp_cols2, 1)
-            messages2 = messages2.drop(msg_cols2, 1)
-            '''
+                # trial_timestamps
+                time_split = (messages['0_time']).apply(pd.Series)
+                time_split = time_split.rename(columns=lambda x: 'time_' + str(x))
+                removed = time_split['time_0'].iloc[-1]
+                # remove end value from middle column
+                time_split['time_0'] = time_split['time_0'][:-1]
+                # append removed value to last column
+                time_split['time_1'].iloc[-1] = removed
+                trial_timestamps = pd.concat(
+                    [messages['trialid_time'], time_split['time_0'], time_split['time_1']], axis=1, sort=False)
+                trial_timestamps = trial_timestamps.iloc[1:]
+                # print(trial_timestamps)
 
-            # trial_timestamps
-            time_split = (messages['0_time']).apply(pd.Series)
-            time_split = time_split.rename(columns=lambda x: 'time_' + str(x))
-            removed = time_split['time_0'].iloc[-1]
-            # remove end value from middle column
-            time_split['time_0'] = time_split['time_0'][:-1]
-            # append removed value to last column
-            time_split['time_1'].iloc[-1] = removed
-            trial_timestamps = pd.concat(
-                [messages['trialid_time'], time_split['time_0'], time_split['time_1']], axis=1, sort=False)
-            trial_timestamps = trial_timestamps.iloc[1:]
-            # print(trial_timestamps)
+                # indices
+                index_1 = (messages['trialid_time'] - samples['time'].iloc[0]).iloc[1:]
+                index_2 = (time_split['time_0'] - samples['time'].iloc[0]).iloc[1:]
+                index_3 = (time_split['time_1'] - samples['time'].iloc[0]).iloc[1:]
+                indices = pd.concat([index_1, index_2, index_3], axis=1, sort=False)
+                # print(indices)
 
-            # indices
-            index_1 = (messages['trialid_time'] - samples['time'].iloc[0]).iloc[1:]
-            index_2 = (time_split['time_0'] - samples['time'].iloc[0]).iloc[1:]
-            index_3 = (time_split['time_1'] - samples['time'].iloc[0]).iloc[1:]
-            indices = pd.concat([index_1, index_2, index_3], axis=1, sort=False)
-            # print(indices)
+                # eye_positions
+                eye_pos = samples[['gx_left', 'gy_left']].copy()
+                eye_pos['gx_left'][eye_pos['gx_left'] < 0] = np.nan
+                eye_pos['gx_left'][eye_pos['gx_left'] > self.args['ScreenX']] = np.nan
+                eye_pos['gy_left'][eye_pos['gy_left'] < 0] = np.nan
+                eye_pos['gy_left'][eye_pos['gy_left'] > self.args['ScreenY']] = np.nan
+                eye_pos = eye_pos[(eye_pos.T != 0).any()]
+                # print(eye_pos[1:10])
+                
+                # numSets
+                numSets = 1
 
-            # eye_positions
-            eye_pos = samples[['gx_left', 'gy_left']].copy()
-            eye_pos['gx_left'][eye_pos['gx_left'] < 0] = np.nan
-            eye_pos['gx_left'][eye_pos['gx_left'] > self.args['ScreenX']] = np.nan
-            eye_pos['gy_left'][eye_pos['gy_left'] < 0] = np.nan
-            eye_pos['gy_left'][eye_pos['gy_left'] > self.args['ScreenY']] = np.nan
-            # print(eye_pos[1:10])
-            
-            # numSets
-            numSets = 1
+                self.calib_eye_pos = eye_pos
+                self.calib_indices = indices
+                self.calib_trial_timestamps = trial_timestamps
+                self.calib_numSets.append(numSets)
 
-            # os.chdir('..')
+                #rr = DPT.levels.resolve_level(self.args['CalibDirName'], ll)
+                #with DPT.misc.CWD(rr):
+                os.chdir(self.args['CalibDirName'])    
+                self.save()
+                os.chdir('..')
 
-            self.calib_eye_pos = eye_pos
-            self.calib_indices = indices
-            self.calib_trial_timestamps = trial_timestamps
-            self.calib_numSets.append(numSets)
+            for file in nav_files:
+                # navigation file w/ format: 'yymmdd.edf'
+                print('Reading navigation edf file.\n')
 
-        for file in nav_files:
-            # navigation file w/ format: 'yymmdd.edf'
-            print('Reading day edf file.\n')
+                samples, events, messages = pread(
+                        file, trial_marker=b'Start Trial')
 
-            samples, events, messages = pread(
-                    file, trial_marker=b'Start Trial')
+                # Used to filter out unneeded columns of dataframes returned by pread.
+                samp_cols = ['px_left', 'px_right', 'py_left', 'py_right',
+                            'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
+                            'pa_right', 'gx_right', 'gy_right',
+                            'rx', 'ry', 'gxvel_left', 'gxvel_right', 'gyvel_left',
+                            'gyvel_right', 'hxvel_left', 'hxvel_right', 'hyvel_left',
+                            'hyvel_right', 'rxvel_left', 'rxvel_right', 'ryvel_left',
+                            'ryvel_right', 'fgxvel', 'fgyvel', 'fhxyvel', 'fhyvel',
+                            'frxyvel', 'fryvel', 'buttons', 'htype',
+                            'errors']
 
-            #os.chdir(glob.glob(self.args["DirName"])[0])
-            #print(os.getcwd())
+                event_cols = ['hstx', 'hsty', 'gstx', 'supd_x',
+                            'gsty', 'sta', 'henx', 'heny',
+                            'genx', 'geny', 'ena', 'havx',
+                            'havy', 'gavx', 'gavy', 'ava',
+                            'avel', 'pvel', 'svel', 'evel',
+                            'eupd_x', 'eye', 'buttons', 'trial', 'blink']
 
-            # Used to filter out unneeded columns of dataframes returned by pread.
-            samp_cols = ['px_left', 'px_right', 'py_left', 'py_right',
-                        'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
-                        'pa_right', 'gx_right', 'gy_right',
-                        'rx', 'ry', 'gxvel_left', 'gxvel_right', 'gyvel_left',
-                        'gyvel_right', 'hxvel_left', 'hxvel_right', 'hyvel_left',
-                        'hyvel_right', 'rxvel_left', 'rxvel_right', 'ryvel_left',
-                        'ryvel_right', 'fgxvel', 'fgyvel', 'fhxyvel', 'fhyvel',
-                        'frxyvel', 'fryvel', 'buttons', 'htype',
-                        'errors']
+                msg_cols = ['RECCFG', 'RECCFG_time', 'ELCLCFG', 'ELCLCFG_time',
+                            'GAZE_COORDS', 'GAZE_COORDS_time', 'THRESHOLDS',
+                            'THRESHOLDS_time', 'ELCL_PROC', 'ELCL_PROC_time',
+                            'ELCL_PCR_PARAM', 'ELCL_PCR_PARAM_time', '!MODE',
+                            '!MODE_time']
 
-            event_cols = ['hstx', 'hsty', 'gstx', 'supd_x',
-                        'gsty', 'sta', 'henx', 'heny',
-                        'genx', 'geny', 'ena', 'havx',
-                        'havy', 'gavx', 'gavy', 'ava',
-                        'avel', 'pvel', 'svel', 'evel',
-                        'eupd_x', 'eye', 'buttons', 'trial', 'blink']
+                samples = samples.drop(samp_cols, 1)
+                events = events.drop(event_cols, 1)
+                messages = messages.drop(msg_cols, 1)
 
-            msg_cols = ['RECCFG', 'RECCFG_time', 'ELCLCFG', 'ELCLCFG_time',
-                        'GAZE_COORDS', 'GAZE_COORDS_time', 'THRESHOLDS',
-                        'THRESHOLDS_time', 'ELCL_PROC', 'ELCL_PROC_time',
-                        'ELCL_PCR_PARAM', 'ELCL_PCR_PARAM_time', '!MODE',
-                        '!MODE_time']
+                sessionName = []
+                dirs = os.listdir()
+                for file_name in dirs:
+                    if file_name.startswith(self.args['NavDirName']):
+                        sessionName.append(file_name)
+                actualSessionNo = len(sessionName)
 
-            samples = samples.drop(samp_cols, 1)
-            events = events.drop(event_cols, 1)
-            messages = messages.drop(msg_cols, 1)
+                ###### loop for current session ######
+                current_Session = 1
 
-            # expTime
-            expTime = samples['time'].iloc[0] - 1
+                # eye_positions
+                eye_pos = samples[['gx_left', 'gy_left']].copy()
+                eye_pos['gx_left'][(eye_pos['gx_left'] < 0) | (eye_pos['gx_left'] > self.args['ScreenX'])] = np.nan
+                eye_pos['gy_left'][(eye_pos['gy_left'] < 0) | (eye_pos['gy_left'] > self.args['ScreenY'])] = np.nan
+                eye_pos = eye_pos[(eye_pos.T != 0).any()]
+                    
+                # expTime
+                expTime = samples['time'].iloc[0] - 1
 
-            # timestamps
-            timestamps = samples['time'] - 2198659
+                # timestamps
+                timestamps = samples['time'].replace(0, np.nan).dropna(axis=0, how='any').fillna(0) - 2198659
 
-            # eye_positions
-            eye_pos = samples[['gx_left', 'gy_left']].copy()
-            eye_pos['gx_left'][(eye_pos['gx_left'] < 0) | (eye_pos['gx_left'] > self.args['ScreenX'])] = np.nan
-            eye_pos['gy_left'][(eye_pos['gy_left'] < 0) | (eye_pos['gy_left'] > self.args['ScreenY'])] = np.nan
+                # timeout
+                timeouts = messages['Timeout_time'].dropna()
 
-            # timeout
-            timeouts = messages['Timeout_time'].dropna()
+                # noOfTrials
+                noOfTrials = len(messages) - 1
 
-            # noOfTrials
-            noOfTrials = len(messages) - 1
+                # fix_event
+                duration = events['end'] - events['start']
+                fix_event = duration  # difference is duration
+                fix_event = fix_event.loc[events['type'] == 'fixation']  # get fixations only
+                fix_event = fix_event.iloc[3:]  # 3 might not hold true for all files
 
-            # fix_event
-            duration = events['end'] - events['start']
-            fix_event = duration  # difference is duration
-            fix_event = fix_event.loc[events['type'] == 'fixation']  # get fixations only
-            fix_event = fix_event.iloc[3:]  # 3 might not hold true for all files
+                # fix_times
+                fix_times = pd.concat([events['start'], events['end'],
+                                    duration], axis=1, sort=False)
+                fix_times = fix_times.loc[events['type'] == 'fixation'] # get fixations only
+                fix_times['start'] = fix_times['start'] - 2198659
+                fix_times['end'] = fix_times['end'] - 2198659
+                fix_times = fix_times.iloc[3:]
+                # print(fix_times)
 
-            # fix_times
-            fix_times = pd.concat([events['start'], events['end'],
-                                duration], axis=1, sort=False)
-            fix_times = fix_times.loc[events['type'] == 'fixation'] # get fixations only
-            fix_times['start'] = fix_times['start'] - 2198659
-            fix_times['end'] = fix_times['end'] - 2198659
-            fix_times = fix_times.iloc[3:]
-            # print(fix_times)
+                # sacc_event
+                sacc_event = events['end'] - events['start']  # difference is duration
+                sacc_event = sacc_event.loc[events['type'] == 'saccade']  # get fixations only
+                sacc_event = sacc_event.iloc[3:]
 
-            # sacc_event
-            sacc_event = events['end'] - events['start']  # difference is duration
-            sacc_event = sacc_event.loc[events['type'] == 'saccade']  # get fixations only
-            sacc_event = sacc_event.iloc[3:]
+                # numSets
+                numSets = 1
 
-            # numSets
-            numSets = 1
+                # trial_timestamps
+                timestamps_1 = messages['trialid_time'] - expTime
+                timestamps_2 = messages['Cue_time'] - expTime
+                timestamps_3 = messages['End_time'] - expTime
+                trial_timestamps = pd.concat(
+                    [timestamps_1, timestamps_2, timestamps_3], axis=1, sort=False)
+                trial_timestamps = trial_timestamps.iloc[1:]
+                # print(trial_timestamps)
 
-            # trial_timestamps
-            timestamps_1 = messages['trialid_time'] - expTime
-            timestamps_2 = messages['Cue_time'] - expTime
-            timestamps_3 = messages['End_time'] - expTime
-            trial_timestamps = pd.concat(
-                [timestamps_1, timestamps_2, timestamps_3], axis=1, sort=False)
-            trial_timestamps = trial_timestamps.iloc[1:]
-            # print(trial_timestamps)
+                # trial_codes
+                trial_id = messages['trialid '].str.replace(
+                    r'\D', '')  # remove 'Start Trial ' from string
+                cue_split = messages['Cue'].apply(pd.Series)
+                cue_split = cue_split.rename(columns=lambda x: 'cue_' + str(x))
+                end_split = messages['End'].apply(pd.Series)
+                end_split = end_split.rename(columns=lambda x: 'end_' + str(x))
+                trial_codes = pd.concat(
+                    [trial_id, cue_split['cue_1'], end_split['end_1']], axis=1, sort=False)
+                trial_codes = trial_codes.iloc[1:]
+                trial_codes = trial_codes.astype(np.float64)
 
-            # trial_codes
-            trial_id = messages['trialid '].str.replace(
-                r'\D', '')  # remove 'Start Trial ' from string
-            cue_split = messages['Cue'].apply(pd.Series)
-            cue_split = cue_split.rename(columns=lambda x: 'cue_' + str(x))
-            end_split = messages['End'].apply(pd.Series)
-            end_split = end_split.rename(columns=lambda x: 'end_' + str(x))
-            trial_codes = pd.concat(
-                [trial_id, cue_split['cue_1'], end_split['end_1']], axis=1, sort=False)
-            trial_codes = trial_codes.iloc[1:]
-            trial_codes = trial_codes.astype(np.float64)  # convert all columns into float dt
+                # session_start
+                samples2, events2, messages2 = pread(
+                    file, trial_marker=b'Trigger Version 84')
+                session_start = messages2['trialid_time'].iloc[1]
+                
+                messages2 = messages2.drop(msg_cols, 1)
+                # session_start_index
+                session_start_index = session_start - expTime
 
-            #os.chdir('..')
+                # account for multiple sessions
+                # save into those directories
 
-            # session_start
-            samples2, events2, messages2 = pread(
-                file, trial_marker=b'Trigger Version 84')
-            session_start = messages2['trialid_time'].iloc[1]
-            
-            messages2 = messages2.drop(msg_cols, 1)
-            # session_start_index
-            session_start_index = session_start - expTime
+                self.expTime.append(expTime)
+                self.timestamps = timestamps
+                self.eye_pos = eye_pos
+                self.timeouts = timeouts
+                self.noOfTrials.append(noOfTrials)
+                self.fix_event = fix_event
+                self.fix_times = fix_times
+                self.sacc_event = sacc_event
+                self.numSets.append(numSets)
+                self.trial_timestamps = trial_timestamps
+                self.trial_codes = trial_codes
+                self.session_start.append(session_start)
+                self.session_start_index.append(session_start_index)
+                self.setidx = np.zeros((self.trial_timestamps.shape[0],), dtype=np.int)
 
-            self.expTime.append(expTime)
-            self.timestamps = timestamps
-            self.eye_pos = eye_pos
-            self.timeouts = timeouts
-            self.noOfTrials.append(noOfTrials)
-            self.fix_event = fix_event
-            self.fix_times = fix_times
-            self.sacc_event = sacc_event
-            self.numSets.append(numSets)
-            self.trial_timestamps = trial_timestamps
-            self.trial_codes = trial_codes
-            self.session_start.append(session_start)
-            self.session_start_index.append(session_start_index)
-            self.setidx = np.zeros((self.trial_timestamps.shape[0],), dtype=np.int)
-
-        # check if we need to save the object
-        if kwargs.get("saveLevel", 0) > 0:
-            self.save()
+                session_dir = self.args['NavDirName'] + str(current_Session)
+                # rr = DPT.levels.resolve_level(session_dir, ll)
+                # with DPT.misc.CWD(rr):
+                os.chdir(session_dir)
+                self.save()
+                os.chdir('..')
 
     def append(self, df):
         # update fields in parent
@@ -284,7 +285,7 @@ class Eyelink(DPT.DPObject):
         self.calib_trial_timestamps = pd.concat(self.calib_trial_timestamps, df.calib_trial_timestamps)
         self.calib_indices = pd.concat(self.calib_indices, df.calib_indices)
         self.calib_eye_pos = pd.concat(self.calib_eye_pos, df.calib_eye_pos)
-        self.calib_numSets += df.numSets
+        self.calib_numSets.append(df.numSets)
 
         self.trial_timestamps = pd.concat(self.trial_timestamps, df.trial_timestamps)
         self.eye_pos = pd.concat(self.eye_pos, df.eye_pos)
@@ -305,19 +306,38 @@ class Eyelink(DPT.DPObject):
 
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
         # set plot options
-        plotopts = {'Plot Options': DPT.objects.ExclusiveOptions(['Trial', 'XY', 'Calibration', 'CalTrial', 'SaccFix'],0), 'level': 'trial'}
+        plotopts = {'Plot Options': DPT.objects.ExclusiveOptions(['XT', 'XY', 'FixXY', 'FixXT', 'SaccFix'], 0), "SaccFixSession": False}
 
         if getPlotOpts:
             return plotopts
 
-        # Extract the recognized plot options from kwargs
-        for (k, v) in plotopts.items():
-            plotopts[k] = kwargs.get(k, v)
-
         plot_type = plotopts['Plot Options'].selected()
         
+        if getNumEvents:
+            # Return the number of events avilable
+            if plottype == 'SaccFix':
+                return 1, 0
+        elif plottype == 'SaccFixSession':
+            #return number of sessions and which session current trial belongs to
+            print('.')
+        else:
+            if i is not None:
+                nidx = i
+            else:
+                nidx = 0
+            return len(self.setidx), nidx
+
+        if getLevels:        
+            # Return the possible levels for this object
+            return ['session', 'trial', 'all']
+
+        if ax is None:
+            ax = plt.gca()
+        
+        ax.clear()
+        
         # Trial - Plot x vs t and y vs t positions per trial
-        if (plot_type == 'Trial'):
+        if (plot_type == 'XT'):
             x = self.trial_timestamps.to_numpy()
             obj_timestamps = self.timestamps.to_numpy()
 
@@ -369,7 +389,7 @@ class Eyelink(DPT.DPObject):
             y = obj_eye_pos[x[idx][0].astype(int) : x[idx][2].astype(int), :].transpose()
             ax = plotGazeXY(self, idx, ax, y[0], y[1], 'b') # plot blue circles
 
-        elif (plot_type == 'Calibration'):
+        elif (plot_type == 'FixXY'):
             # Calibration - Plot of calibration eye movements
             obj_eye_pos = self.calib_eye_pos.to_numpy()
             indices = self.calib_indices.to_numpy()
@@ -377,8 +397,8 @@ class Eyelink(DPT.DPObject):
             y = y.transpose()
             ax = plotGazeXY(self, idx, ax, y[0], y[1], 'b')
 
-        elif (plot_type == 'CalTrial'):
-            # CalTrial
+        elif (plot_type == 'FixXT'):
+            # Fixation of x vs t
             obj_eye_pos = self.calib_eye_pos.to_numpy()
             indices = self.calib_indices.to_numpy()
             y = obj_eye_pos[indices[idx][0].astype(int) : indices[idx][2].astype(int), :]
