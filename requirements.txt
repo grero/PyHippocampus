@@ -2,9 +2,10 @@ Cython
 hickle
 h5py
 matplotlib
-neo
+python-neo
 numpy
 pandas
 scipy
 networkx
 hickle
+hdf5storage
