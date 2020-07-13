@@ -15,7 +15,7 @@ class Eyelink(DPT.DPObject):
     '''
     filename = 'eyelink.hkl'
     argsList = [('ObjectLevel', 'Session'), ('FileName', '.edf'), ('CalibFileNameChar', 'P'), 
-    ('NavDirName', 'session0'), ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), ('ScreenX', 1920), ('ScreenY', 1080),
+    ('NavDirName', 'session0'), ('CalibDirName', 'sessioneye'), ('ScreenX', 1920), ('ScreenY', 1080),
     ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), ('StartFromDay', False)]
 
     def __init__(self, *args, **kwargs):
@@ -56,11 +56,9 @@ class Eyelink(DPT.DPObject):
         
         # cd into day level directory
         ll = DPT.levels.level(os.getcwd())
-        print('create:', ll)
         rr = DPT.levels.resolve_level('day', ll)
-        print('resolve:', rr)
+
         with DPT.misc.CWD(rr):
-            print('now:', DPT.levels.level(os.getcwd()))
             files = os.listdir()
             calib_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] in i]
             nav_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] not in i]
@@ -243,9 +241,7 @@ class Eyelink(DPT.DPObject):
                 trial_codes = pd.concat(
                     [trial_id, cue_split['cue_1'], end_split['end_1']], axis=1, sort=False)
                 trial_codes = trial_codes.iloc[1:]
-                trial_codes = trial_codes.astype(np.float64)  # convert all columns into float dt
-
-                #os.chdir('..')
+                trial_codes = trial_codes.astype(np.float64)
 
                 # session_start
                 samples2, events2, messages2 = pread(
@@ -258,7 +254,6 @@ class Eyelink(DPT.DPObject):
 
                 # account for multiple sessions
                 # save into those directories
-
 
                 self.expTime.append(expTime)
                 self.timestamps = timestamps
@@ -280,9 +275,7 @@ class Eyelink(DPT.DPObject):
                 # with DPT.misc.CWD(rr):
                 os.chdir(session_dir)
                 self.save()
-                print('after saving: ', DPT.levels.level(os.getcwd()))
                 os.chdir('..')
-                print('leave session dir: ', DPT.levels.level(os.getcwd()))
 
     def append(self, df):
         # update fields in parent
