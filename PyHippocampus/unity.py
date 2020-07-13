@@ -62,13 +62,9 @@ class Unity(DPT.DPObject):
     level = "session"
 
     def __init__(self, *args, **kwargs):
-        current_level = DPT.levels.level(os.getcwd())
-        if current_level != "session":
-            rr = DPT.levels.resolve_level("session", current_level)
-            with DPT.misc.CWD(rr):
-                DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
-        else:
-            DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+        rr = DPT.levels.resolve_level("session", os.getcwd())
+        with DPT.misc.CWD(rr):
+            DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
         # set plot options
