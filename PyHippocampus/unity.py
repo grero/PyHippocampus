@@ -244,7 +244,7 @@ class Unity(DPT.DPObject):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
                                                                 "SumCost", "Proportion of trial", "Place Cells"], 0),
-                    "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}}
+                    "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
         if getPlotOpts:
             return plotopts
 
@@ -376,9 +376,13 @@ class Unity(DPT.DPObject):
             rp_trial_dur = time_stamps[:, 2] - time_stamps[:, 0]
             # multiply by 1000 to convert to ms
             duration_diff = (trial_durations - rp_trial_dur) * 1000
-            num_bin = (np.amax(duration_diff) - np.amin(duration_diff)) / 200
-            if num_bin < 1:
-                num_bin = 1
+            # num_bin = (np.amax(duration_diff) - np.amin(duration_diff)) / 200
+            if plotopts["Number of bins"] == 0:
+                num_bin = (np.amax(duration_diff) - np.amin(duration_diff)) / 200
+                if num_bin < 1:
+                    num_bin = 1
+            else:
+                num_bin = plotopts["Number of bins"]
 
             ax.hist(x=duration_diff, bins=int(num_bin))
             ax.set_xlabel('Time (ms)')
