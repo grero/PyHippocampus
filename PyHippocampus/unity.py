@@ -54,6 +54,8 @@ z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
 z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 
+pre = "trial"
+
 
 class Unity(DPT.DPObject):
     filename = "unity.hkl"
@@ -242,7 +244,7 @@ class Unity(DPT.DPObject):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
                                                                 "SumCost", "Proportion of trial", "Place Cells"], 0),
-                    "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}, "level": "trial"}
+                    "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}}
         if getPlotOpts:
             return plotopts
 
@@ -253,15 +255,30 @@ class Unity(DPT.DPObject):
         plot_type = plotopts["Plot Option"].selected()
 
         if getNumEvents:
-            # Return the number of events avilable
+            # Return the number of events available
+            global pre
             if plot_type == "Trial" or plot_type == "FrameIntervals":
-                return len(self.setidx), 0
+                if i is not None:
+                    if pre == "trial":
+                        return len(self.setidx), i
+                    else:
+                        pre = "trial"
+                        num_idx = 0
+                        for x in range(0, i):
+                            num_idx += self.unityTriggers[x].shape[0]
+                else:
+                    num_idx = 0
+                return len(self.setidx), num_idx
             elif plot_type == "DurationDiffs" or plot_type == "SumCost" or plot_type == "Place Cells":
                 if i is not None:
-                    nidx = self.setidx[i]
+                    if pre == "session":
+                        return np.max(self.setidx) + 1, i
+                    else:
+                        pre = "session"
+                        num_idx = self.setidx[i]
                 else:
-                    nidx = 0
-                return np.max(self.setidx) + 1, nidx
+                    num_idx = 0
+                return np.max(self.setidx) + 1, num_idx
             elif plot_type == "Proportion of trial":
                 return 1, 0
 
@@ -360,6 +377,8 @@ class Unity(DPT.DPObject):
             # multiply by 1000 to convert to ms
             duration_diff = (trial_durations - rp_trial_dur) * 1000
             num_bin = (np.amax(duration_diff) - np.amin(duration_diff)) / 200
+            if num_bin < 1:
+                num_bin = 1
 
             ax.hist(x=duration_diff, bins=int(num_bin))
             ax.set_xlabel('Time (ms)')
