@@ -22,45 +22,26 @@ class Umaze(DPT.DPObject):
 
         # load the unity object to get the data
         uf = unity.Unity()
-        sumCost = uf.sumCost
-        unityData = uf.unityData
-        unityTriggers = uf.unityTriggers
-        unityTrialTime = uf.unityTrialTime
-        unityTime = uf.unityTime
-        totTrials = np.shape(unityTriggers)[0]
-        A = np.array([[0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 5, 0, 5, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 5, 0, 0, 5, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 5, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0]])        
+        sumCost = uf.sumCost[0]
+        unityData = uf.unityData[0]
+        unityTriggers = uf.unityTriggers[0]
+        unityTrialTime = uf.unityTrialTime[0]
+        unityTime = uf.unityTime[0]
+	sumCost = uf.sumCost[0]
+        totTrials = np.shape(unityTriggers)[0]        
+        
         gridSteps = args.GridSteps
+	overallGridSize = args.overallGridSize
         gridBins = gridSteps * gridSteps
         oGS2 = overallGridSize/2
         gridSize = overallGridSize/gridSteps
+	gpEdges = np.arange(0,(gridBins+1))
         horGridBound = np.arange(-oGS2, oGS2, gridSize)
         vertGridBound = horGridBound
+	
         gridPosition, binH, binV = np.histogram2d(unityData[:, 2],unityData[:, 3],bins = (horGridBound, vertGridBound))
-        gridPosition = binH + ((binV - 1) * gridSteps)  
-        vertices = np.array([[-10, 10], [-5, 10], [0, 10], [5, 10], [10, 10], [-10, 5], [0, 5],
-                             [10, 5], [-10, 0], [-5, 0], [0, 0], [5, 0], [10, 0], [-10, -5],
-                             [0, -5], [10, -5], [-10, -10], [-5, -10], [0, -10], [5, -10], [10, -10]])
-        posterpos = np.array([[-5, -7.55], [-7.55, 5], [7.55, -5], [5, 7.55], [5, 2.45], [-5, -2.45]])
+        gridPosition = binH + ((binV - 1) * gridSteps) 
+	gpDurations = np.zeros(gridBins,totTrials)
         
         #line 151-354
         trialCounter = 0
@@ -71,56 +52,57 @@ class Umaze(DPT.DPObject):
         for a in range(totTrials):
             trialCounter = trialCounter + 1
             # indeces minus 1 in python
-            target = unityData[unityTriggers[a,2],0] % 10
-            S = scipy.spatial.distance.cdist(vertices, unityData[unityTriggers[a,1],2:4], 'euclidean')
-            M1 = np.amin(S)
-            I1 = np.argmin(S)
-            startPos = I1
-            D = scipy.spatial.distance.cdist(vertices, posterpos[target-1,:], 'euclidean')
-            M2 = np.amin(D)
-            I2 = np.argmin(D)
-            destPos = I2      
-            idealCost, idealroute = nx.bidirectional_dijkstra(A, startPos, destPos)
+            #target = unityData[unityTriggers[a,2],0] % 10
+            #S = scipy.spatial.distance.cdist(vertices, unityData[unityTriggers[a,1],2:4], 'euclidean')
+            #M1 = np.amin(S)
+            #I1 = np.argmin(S)
+            #startPos = I1
+            #D = scipy.spatial.distance.cdist(vertices, posterpos[target-1,:], 'euclidean')
+            #M2 = np.amin(D)
+            #I2 = np.argmin(D)
+            #destPos = I2      
+            #idealCost, idealroute = nx.bidirectional_dijkstra(A, startPos, destPos)
             
-            mpath = np.empty(0)
-            # get actual route taken(match to vertices)
-            for b in range(0, (unityTriggers[a, 2] - unityTriggers[a, 1] + 1)):
-                curr_pos = unityData[unityTriggers[a, 1] + b, 2:4]
-                # (current position)
-                cp = cdist(vertices, curr_pos.reshape(1, -1))
-                I3 = cp.argmin()
-                mpath = np.append(mpath, I3)
+            #mpath = np.empty(0)
+            ## get actual route taken(match to vertices)
+            #for b in range(0, (unityTriggers[a, 2] - unityTriggers[a, 1] + 1)):
+                #curr_pos = unityData[unityTriggers[a, 1] + b, 2:4]
+                ## (current position)
+                #cp = cdist(vertices, curr_pos.reshape(1, -1))
+                #I3 = cp.argmin()
+                #mpath = np.append(mpath, I3)
 
-            path_diff = np.diff(mpath)
-            change = np.array([1])
-            change = np.append(change, path_diff)
-            index = np.where(np.abs(change) > 0)
-            actual_route = mpath[index]
-            actual_cost = (actual_route.shape[0] - 1) * 5
-            actualTime = np.array(index) 
-            actualTime = np.append(np.array(np.shape(mpath)[0]))
-            actualTime = np.diff(actualTime)+1            
+            #path_diff = np.diff(mpath)
+            #change = np.array([1])
+            #change = np.append(change, path_diff)
+            #index = np.where(np.abs(change) > 0)
+            #actual_route = mpath[index]
+            #actual_cost = (actual_route.shape[0] - 1) * 5
+            #actualTime = np.array(index) 
+            #actualTime = np.append(np.array(np.shape(mpath)[0]))
+            #actualTime = np.diff(actualTime)+1            
 
-            # Store summary
-            sumCost[a, 0] = ideal_cost
-            sumCost[a, 1] = actual_cost
-            sumCost[a, 2] = actual_cost - ideal_cost
-            sumCost[a, 3] = target
-            sumCost[a, 4] = unityData[unityTriggers[a, 2], 0] - target
-            #sumRoute(a,1:size(idealroute,2)) = idealroute
-            #sumActualRoute(a,1:size(actualRoute,1)) = actualRoute
-            #sumActualTime(a,1:size(actualTime,1)) = actualTime            
+            ## Store summary
+            #sumCost[a, 0] = ideal_cost
+            #sumCost[a, 1] = actual_cost
+            #sumCost[a, 2] = actual_cost - ideal_cost
+            #sumCost[a, 3] = target
+            #sumCost[a, 4] = unityData[unityTriggers[a, 2], 0] - target
+            ##sumRoute(a,1:size(idealroute,2)) = idealroute
+            ##sumActualRoute(a,1:size(actualRoute,1)) = actualRoute
+            ##sumActualTime(a,1:size(actualTime,1)) = actualTime            
             
             uDidx = np.array(range(int(unityTriggers[a, 1] + 1), int(unityTriggers[a, 2] + 1)))
             numUnityFrames = np.shape(uDidx)[1]
+            tindices = arange(0,(numUnityFrames+1))
             tempTrialTime = np.array([0], [np.cumsum(unityData[uDidx,1])])
             tstart = unityTime[uDidx[0, 0]]
             tend = unityTime[uDidx[0, np.shape(uDix)[1]-1]]
             
             # get grid positions for this trial
             tgp = gridPosition[uDidx]
-            binHt = binH[uDidx]
-            binVt = binV[uDidx]           
+            #binHt = binH[uDidx]
+            #binVt = binV[uDidx]           
             if tempTrialTime[np.shape(tempTrialTime)[0]-1] - tempTrialTime[0] != 0:
                 sessionTime[sTi, 0] = np.array([tstart])
                 sessionTime[sTi, 1] = np.array([tgp[0]])
@@ -153,7 +135,7 @@ class Umaze(DPT.DPObject):
             gridPosition[gpreseti:uDidx[0]] = 0
             gpreseti = unityTriggers(a,2)+1               
         
-        print('speed thresholding portion')
+        #print('speed thresholding portion')
         
         
         snum = sTi - 1
@@ -179,8 +161,31 @@ class Umaze(DPT.DPObject):
         for pi in range(nsTPu):
             ou_i[pi] = np.sum(sTime[sTPi[sTPind2[pi,0]:sTPind2[pi,1]],3])
         
-        
-        
+	self.gridSteps = gridSteps
+	self.overallGridSize = overallGridSize
+	self.oGS2 = oGS2
+	self.gridSize = gridSize
+	self.horGridBound = horGridBound
+	self.vertGridBound = vertGridBound
+	self.gpEdges = gpEdges
+	self.gridPosition = gridPosition
+	self.gpDurations = gpDurations
+	self.setIndex = np.array([0], [totTrials])        
+        #data.processTrials = find(ufdata.data.sumCost(:,6)==1)
+	self.processTrials = np.arange(0,totTrials)
+	self.sessionTime = sTime
+	self.sortedGPindices = sTPi
+	self.sortedGPindinfo = sortedGPindinfo
+	self.sGPi_minobs = sTPinm
+	self.sTPu = sTPu
+	self.nsTPu = nsTPu
+	self.ou_i = ou_i
+	self.P_i = ou_i / np.sum(ou_i)
+	self.gp2ind = gp2ind
+	self.unityTriggers = uf.unityTriggers
+	self.unityTrialTime = uf.unityTrialTime
+	self.unityData = unityData
+	self.unityTime = unityTime	
                 
 
         # check if we need to save the object, with the default being 0
