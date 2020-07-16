@@ -7,7 +7,7 @@ import os
 import glob
 import networkx as nx
 from scipy.spatial.distance import cdist
-from . import rplparallel
+from .rplparallel import RPLParallel
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -86,7 +86,7 @@ class Unity(DPT.DPObject):
         self.durationDiff = []
 
         # load the rplparallel object to get the Ripple timestamps
-        rl = rplparallel.RPLParallel()
+        rl = RPLParallel()
         self.timeStamps = [rl.timeStamps]
 
         # look for RawData_T * folder
