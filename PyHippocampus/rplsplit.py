@@ -3,14 +3,11 @@ import neo
 from neo.io import BlackrockIO 
 import os 
 import glob 
-from rplraw import RPLRaw
-# from rpllfp import RPLLFP 
-from rplparallel import RPLParallel
-#from rplhighpass import RPLHighPass
+from . import RPLRaw
+from . import RPLLFP 
+from . import RPLParallel
+from . import RPLHighPass
 import DataProcessingTools as DPT 
-
-# RPLSplit to give the data to rplraw. 
-# If no data, rplraw to call rplsplit to open and pass it the data. 
 
 # Slurm 
 # TODO: For EYE Submit a job takes rplraw creates 1) rplhighpass -> spike sorting and 2) rpllfp -> vmlfp -> time frequency analysis (one job each). 
@@ -19,20 +16,19 @@ import DataProcessingTools as DPT
 class RPLSplit(DPT.DPObject):
 
 	filename = 'rplsplit.hkl'
-	argsList = [('channel', []), ('SkipLFP', False), ('SkipParallel', False), ('SkipHighPass', False), ('sessionEye', False)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
+	argsList = [('channel', []), ('SkipLFP', False), ('SkipParallel', False), ('SkipHighPass', False), ('sessionEye', False), ('SkipSort', False), ('SkipHPC', False)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
+	level = 'session'
 
 	def __init__(self, *args, **kwargs):
-		DPT.DPObject.__init__(self, normpath = False, *args, **kwargs)
+		rr = DPT.levels.resolve_level("session", os.getcwd())
+		with DPT.misc.CWD(rr):
+			DPT.DPObject.__init__(self, *args, **kwargs)
 
 	def create(self, *args, **kwargs):
 
-		# To check whether it is being called from the session or the channel directory. 
-		cwd = os.getcwd()
-		level = DPT.levels.level(cwd)
-		if level == 'channel':
-			rr = DPT.levels.resolve_level('session', cwd)
-			# channelNumber = int(DPT.levels.get_level_name('channel', cwd)[-3:])
-			os.chdir(rr) # Move to the session directory. 
+		if not self.args['SkipParallel']: 
+			print('Calling RPLParallel...')
+			rp = RPLParallel(saveLevel = 1)
 
 		ns5File = glob.glob('*.ns5')
 		if len(ns5File) > 1: 
@@ -53,7 +49,7 @@ class RPLSplit(DPT.DPObject):
 		indexes = list(chx.index)
 		if len(self.args['channel']) == 0: 
 			for chxIdx in chx: 
-				data = segment.analogsignals[2].load(time_slice=None, channel_indexes=[chx.index[chxIndex]])
+				data = segment.analogsignals[2].load(time_slice=None, channel_indexes=[chxIdx])
 				analogInfo['Units'] = 'uV'
 				analogInfo['HighFreqCorner'] = annotations['nev_hi_freq_corner'][chxIndex]
 				analogInfo['HighFreqOrder'] = annotations['nev_hi_freq_order'][chxIndex]
@@ -65,10 +61,9 @@ class RPLSplit(DPT.DPObject):
 				analogInfo['MinVal'] = np.amin(data)
 				analogInfo['NumberSamples'] = len(data)
 				analogInfo['ArrayNumber'] = annotations['connector_ID'][chxIndex] + 1
-				analogInfo['ProbeName'] = names[chxIdx]
+				analogInfo['ProbeInfo'] = names[chxIdx]
 				analogInfo['ChannelNumber'] = list(filter(lambda x: chxIdx in x, names))[0]
-				RPLRaw(Data = True, analogData = data, analogInfo = analogInfo)
-				# Add shell command to add RPLLFP and RPLHighpass to the queue. 
+				RPLRaw(analogdata = data, analoginfo = analogInfo)
 		else: 
 			for i in self.args['channel']:
 				chxIndex = names.index(list(filter(lambda x: str(i) in x, names))[0])
@@ -83,23 +78,43 @@ class RPLSplit(DPT.DPObject):
 				analogInfo['MaxVal'] = np.amax(data)
 				analogInfo['MinVal'] = np.amin(data)
 				analogInfo['NumberSamples'] = len(data)
-				analogInfo['ArrayNumber'] = annotations['connector_ID'][chxIndex] + 1
-				analogInfo['ChannelNumber'] = i 
-				analogInfo['ProbeName'] = names[chxIndex]
+				arrayNumber = annotations['connector_ID'][chxIndex] + 1
+				channelNumber = i 
+				analogInfo['ProbeInfo'] = names[chxIndex]
 				print(analogInfo)
-				print('calling rplraw')
-				RPLRaw(Data = True, analogData = data, analogInfo = analogInfo, saveLevel = 1)
-				# Add shell command to add RPLLFP and RPLHighpass to the queue. 
-				# if not self.args['SkipLFP']:
-				# 	rlfp = RPLLFP()
-				# if not self.args['SkipHighPass']:
-				# 	rhp = RPLHighpass()
-		print('calling rplparallel')
-		if not self.args['SkipParallel']: 
-			rp = RPLParallel(saveLevels = 1)
-		return  
+				print('Calling RPLRaw')
+				arrayDir = "array{:02d}".format(int(arrayNumber))
+				channelDir = "channel{:03d}".format(int(channelNumber))
+				print(arrayDir)
+				print(channelDir)
+				directory = os.getcwd() # Go to the channel directory and save file there. 
+				if arrayDir not in os.listdir('.'): 
+					os.mkdir(arrayDir)
+				#path = os.path.join(directory, arrayNumber)
+				os.chdir(arrayDir)
+				if channelDir not in os.listdir('.'):
+					os.mkdir(channelDir)
+				#path = os.path.join(path, channelDir)
+				os.chdir(channelDir)
+				RPLRaw(analogdata = data, analoginfo = analogInfo, saveLevel = 1)
+			if not self.args['SkipHPC']:
+				if self.args['sessionEye']:
+					if not self.args['SkipLFP']:
+						print('calling lfp') 
+						RPLLFP(saveLevel = 1)
+					if not self.args['SkipHighPass']:
+						print('calling highpass')
+						RPLHighPass(saveLevel = 1) 
+				if not self.args['sessionEye']:
+					if not self.args['SkipLFP']: 
+						os.system("sbatch slurm-lfp.sh")
+					if not self.args['SkipHighPass']:
+						os.system("sbatch slurm-highpass.sh") 
+			os.chdir(directory)
+			print(os.getcwd())
+		return 
 
 	def plot(self, i = None, ax = None, overlay = False):
 		pass 
 
-rl = RPLSplit(saveLevel = 1, channel = [10, 2, 9])
+
