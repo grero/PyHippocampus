@@ -9,38 +9,43 @@ import networkx as nx
 
 
 class Umaze(DPT.DPObject):
-    filename = "umaze.hkl"
-    argsList = []
-    level = ""
+    filename = "unity.hkl"
+    argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
+                ('TriggerVal2', 20), ('TriggerVal3', 30)]
+    level = "session"    
 
     def __init__(self, *args, **kwargs):
-            DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
-
+	rr = DPT.levels.resolve_level("session", os.getcwd())
+	with DPT.misc.CWD(rr):
+	    DPT.DPObject.__init__(self, *args, **kwargs)
+	    
     def create(self, *args, **kwargs):
         # set plot options
         self.indexer = self.getindex("trial")
 
         # load the unity object to get the data
         uf = unity.Unity()
-        sumCost = uf.sumCost[0]
+	if uf.unityData == None:
+	    print('Unity file is empty.')
+	    return
         unityData = uf.unityData[0]
         unityTriggers = uf.unityTriggers[0]
         unityTrialTime = uf.unityTrialTime[0]
         unityTime = uf.unityTime[0]
 	sumCost = uf.sumCost[0]
         totTrials = np.shape(unityTriggers)[0]        
-        
-        gridSteps = args.GridSteps
+        # GridSteps: g should be capital letter
+        GridSteps = args.GridSteps
 	overallGridSize = args.overallGridSize
-        gridBins = gridSteps * gridSteps
+        gridBins = GridSteps * GridSteps
         oGS2 = overallGridSize/2
-        gridSize = overallGridSize/gridSteps
+        gridSize = overallGridSize/GridSteps
 	gpEdges = np.arange(0,(gridBins+1))
         horGridBound = np.arange(-oGS2, oGS2, gridSize)
         vertGridBound = horGridBound
 	
         gridPosition, binH, binV = np.histogram2d(unityData[:, 2],unityData[:, 3],bins = (horGridBound, vertGridBound))
-        gridPosition = binH + ((binV - 1) * gridSteps) 
+        gridPosition = binH + ((binV - 1) * GridSteps) 
 	gpDurations = np.zeros(gridBins,totTrials)
         
         #line 151-354
@@ -136,8 +141,7 @@ class Umaze(DPT.DPObject):
             gpreseti = unityTriggers(a,2)+1               
         
         #print('speed thresholding portion')
-        
-        
+	
         snum = sTi - 1
         sTime = sessionTime[0:snum,:]
         sTime[1:(snum-1),2] = np.diff(sTime[:,0])
@@ -161,7 +165,7 @@ class Umaze(DPT.DPObject):
         for pi in range(nsTPu):
             ou_i[pi] = np.sum(sTime[sTPi[sTPind2[pi,0]:sTPind2[pi,1]],3])
         
-	self.gridSteps = gridSteps
+	self.GridSteps = GridSteps
 	self.overallGridSize = overallGridSize
 	self.oGS2 = oGS2
 	self.gridSize = gridSize
