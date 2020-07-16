@@ -1,4 +1,4 @@
-from . import RPLRaw 
+from .rplraw import RPLRaw 
 from scipy import signal 
 import numpy as np 
 import DataProcessingTools as DPT 
@@ -33,8 +33,8 @@ class RPLHighPass(DPT.DPObject):
 		self.analogInfo['HighFreqCorner'] = self.args['HighPassFrequency'][0] * samplingRate
 		self.analogInfo['LowFreqCorner'] = self.args['HighPassFrequency'][1] * samplingRate
 		self.analogInfo['NumberSamples'] = len(hpData)
-		self.analogInfo['HighFreqOrder'] = self.args['HPOrder']
-		self.analogInfo['LowFreqOrder'] = self.args['HPOrder']
+		self.analogInfo['HighFreqOrder'] = self.args['HighOrder']
+		self.analogInfo['LowFreqOrder'] = self.args['HighOrder']
 		self.analogInfo['ProbeInfo'] = rw.analogInfo['ProbeInfo'].replace('raw', 'hp')
 		self.data = hpData
 		return self

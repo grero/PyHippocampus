@@ -10,13 +10,13 @@ class RPLRaw(DPT.DPObject):
 	level = 'channel'
 
 	def __init__(self, *args, **kwargs):
-		DPT.DPObject.__init__(self,normpath = False,  *args, **kwargs)
+		DPT.DPObject.__init__(self, *args, **kwargs)
 
 	def create(self, *args, **kwargs):
 		self.data = np.array([])
 		self.analogInfo = {}
-		self.data = self.args['analogdata']
-		self.analogInfo = self.args['analoginfo']
+		self.data = self.args['analogData']
+		self.analogInfo = self.args['analogInfo']
 		self.numSets = 1
 		return self
 	

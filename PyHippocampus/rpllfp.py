@@ -1,7 +1,7 @@
 import numpy as np 
 from scipy import signal 
 import DataProcessingTools as DPT 
-from . import RPLRaw
+from .rplraw import RPLRaw
 
 def resampleData(analogData, samplingRate, resampleRate):
 	numberOfPoints = int(resampleRate * (len(analogData) / samplingRate))

@@ -47,10 +47,10 @@ def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 class RPLParallel(DPT.DPObject):
 
 	filename = 'rplparallel.hkl'
-	argsList = [('ObjectLevel', 'Session'), ('Data', False), ('markers', []), ('timeStamps', []), ('rawMarkers', []), ('trialIndices', []), ('sessionStartTime', []), ('sampleRate', 30000)]
+	argsList = [('Data', False), ('markers', []), ('timeStamps', []), ('rawMarkers', []), ('trialIndices', []), ('sessionStartTime', []), ('sampleRate', 30000)]
 
 	def __init__(self, *args, **kwargs):
-		DPT.DPObject.__init__(self, normpath = False, *args, **kwargs) 
+		DPT.DPObject.__init__(self, *args, **kwargs) 
 
 	def create(self, *args, **kwargs):
 		self.markers = []
@@ -74,8 +74,6 @@ class RPLParallel(DPT.DPObject):
 		nevFile = glob.glob("*.nev")
 		if len(nevFile) == 0:
 			print("No .nev files in directory. Returning empty object..")
-			if kwargs.get("saveLevel", 0) > 0:
-				self.save()
 			return self 
 		else: 
 			reader = BlackrockIO(nevFile[0])
@@ -88,8 +86,6 @@ class RPLParallel(DPT.DPObject):
 				self.markers, self.timeStamps, self.trialIndices = arrangeMarkers(ev_markers, ev_times)
 			except: 
 				print('problem with arrange markers.')
-			if kwargs.get("saveLevel", 0) > 0:
-				self.save()
 			return self 
 
 	def plot(self, i = None, ax = None, overlay = False):
