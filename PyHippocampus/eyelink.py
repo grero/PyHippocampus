@@ -48,7 +48,7 @@ class Eyelink(DPT.DPObject):
         self.fix_event = pd.DataFrame()
         self.fix_times = pd.DataFrame()
         self.sacc_event = pd.DataFrame()
-        self.trial_codes = pd.DataFrame() # get trial codes from rplparallel instead
+        self.trial_codes = pd.DataFrame()
         self.session_start = []
         self.session_start_index = []
 
@@ -131,6 +131,7 @@ class Eyelink(DPT.DPObject):
                 self.trial_timestamps = trial_timestamps
                 self.numSets.append(numSets)
 
+                # will implement with processDirs instead
                 #rr = DPT.levels.resolve_level(self.args['CalibDirName'], ll)
                 #with DPT.misc.CWD(rr):
                 os.chdir(self.args['CalibDirName'])    
@@ -182,7 +183,6 @@ class Eyelink(DPT.DPObject):
                 actualSessionNo = len(sessionName)
 
                 ###### will set up loop for current session ######
-                # how will I know which session the data is part of?
 
                 current_Session = 1
 
@@ -240,20 +240,6 @@ class Eyelink(DPT.DPObject):
                 trial_timestamps = pd.concat(
                     [timestamps_1, timestamps_2, timestamps_3], axis=1, sort=False)
                 trial_timestamps = trial_timestamps.iloc[1:]
-
-                # trial_codes
-                # update to get from rplparallel instead
-                trial_id = messages['trialid '].str.replace(
-                    r'\D', '')  # remove 'Start Trial ' from string
-                cue_split = messages['Cue'].apply(pd.Series)
-                cue_split = cue_split.rename(columns=lambda x: 'cue_' + str(x))
-                end_split = messages['End'].apply(pd.Series)
-                end_split = end_split.rename(columns=lambda x: 'end_' + str(x))
-                trial_codes = pd.concat(
-                    [trial_id, cue_split['cue_1'], end_split['end_1']], axis=1, sort=False)
-                trial_codes = trial_codes.iloc[1:]
-                trial_codes = trial_codes.astype(np.float64)  # convert all columns into float dt
-                trial_codes = trial_codes.reset_index(drop=True)
 
                 samples2, events2, messages2 = pread(
                     file, trial_marker=b'Trigger Version 84')
@@ -347,8 +333,8 @@ class Eyelink(DPT.DPObject):
                             u = 3 + (sessionFolder-1)*3
                             row = corrected_times.shape[0]
                             trialTimestamps[0:row, l-1:u] = corrected_times
-                            noOfTrials[0, sessionFolder-1] = corrected_times.shape[0] # wrong
-                            # missingData = vertcat(missingData, tempMissing)
+                            noOfTrials[0, sessionFolder-1] = corrected_times.shape[0]
+                            missingData = vstack((missingData, tempMissing))
                             sessionFolder = sessionFolder + 1
                         else:
                             print('Dummy Session skipped', i, '\n')
@@ -361,6 +347,14 @@ class Eyelink(DPT.DPObject):
                 # turn trialTimestamps into dataframe
                 trial_timestamps = pd.DataFrame({'Start': trialTimestamps[:, 0], 'Cue': trialTimestamps[:, 1], 'End': trialTimestamps[:, 2]})
                 trial_timestamps = trial_timestamps - expTime
+
+                # trial_codes
+                rpl = hkl.load('rplparallel_b6ee.hkl')
+                if rpl.get('markers').shape == trial_timestamps.shape:
+                    markers = rpl.get('markers')
+                    trial_codes = pd.DataFrame(data=markers)
+                else:
+                    error('markers not consistent')
 
                 # account for multiple sessions
                 # save into those directories
@@ -391,12 +385,6 @@ class Eyelink(DPT.DPObject):
     def append(self, df):
         # update fields in parent
         DPT.DPObject.append(self, df)
-
-        # update fields in child
-        # self.calib_trial_timestamps = pd.concat(self.calib_trial_timestamps, df.calib_trial_timestamps)
-        # self.calib_indices = pd.concat(self.calib_indices, df.calib_indices)
-        # self.calib_eye_pos = pd.concat(self.calib_eye_pos, df.calib_eye_pos)
-        # self.calib_numSets.append(df.numSets)
 
         self.trial_timestamps = pd.concat(self.trial_timestamps, df.trial_timestamps)
         self.eye_pos = pd.concat(self.eye_pos, df.eye_pos)
@@ -464,8 +452,6 @@ class Eyelink(DPT.DPObject):
             
             # plot x axis data
             ax.plot(timestamps, y[:][0], 'b-', LineWidth=0.5, Label='X position')
-            # create title
-            # ax.set_title('Eye Movements versus Time for Trial ' + str(i))
             dir = self.dirs[0]
             subject = DPT.levels.get_shortname("subject", dir)
             date = DPT.levels.get_shortname("day", dir)
@@ -490,7 +476,6 @@ class Eyelink(DPT.DPObject):
                 ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'r', LineWidth=0.5)
 
             ax.set_xlim([-100, trial_end_time + 100]) # set axis boundaries
-            # ax.set_ylim([0, 1800])
             ax.legend(loc='best')
 
         elif (plot_type == 'XY'):
