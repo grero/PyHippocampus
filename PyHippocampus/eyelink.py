@@ -209,8 +209,8 @@ class Eyelink(DPT.DPObject):
                 fix_times = pd.concat([events['start'], events['end'],
                                     duration], axis=1, sort=False)
                 fix_times = fix_times.loc[events['type'] == 'fixation'] # get fixations only
-                fix_times['start'] = fix_times['start'] - 2198659
-                fix_times['end'] = fix_times['end'] - 2198659
+                fix_times['start'] = fix_times['start']
+                fix_times['end'] = fix_times['end']
                 fix_times = fix_times.iloc[self.args['RowsToClear']:]
                 fix_times = fix_times.reset_index(drop=True)
 
