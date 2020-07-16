@@ -2,6 +2,7 @@ import DataProcessingTools as DPT
 from pylab import gcf, gca
 import matplotlib.patches as patches
 import numpy as np
+from scipy.stats import iqr
 import os
 import glob
 import networkx as nx
@@ -54,21 +55,19 @@ z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
 z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 
+pre = "trial"
+
 
 class Unity(DPT.DPObject):
     filename = "unity.hkl"
     argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
-                ('TriggerVal2', 20), ('TriggerVal3', 30)]
+                ('TriggerVal2', 20), ('TriggerVal3', 30), ('BinNumberLimit', 500)]
     level = "session"
 
     def __init__(self, *args, **kwargs):
-        current_level = DPT.levels.level(os.getcwd())
-        if current_level != "session":
-            rr = DPT.levels.resolve_level("session", current_level)
-            with DPT.misc.CWD(rr):
-                DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
-        else:
-            DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+        rr = DPT.levels.resolve_level("session", os.getcwd())
+        with DPT.misc.CWD(rr):
+            DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
         # set plot options
@@ -84,6 +83,7 @@ class Unity(DPT.DPObject):
         self.timePerformance = []
         self.routePerformance = []
         self.trialRouteRatio = []
+        self.durationDiff = []
 
         # load the rplparallel object to get the Ripple timestamps
         rl = rplparallel.RPLParallel()
@@ -228,6 +228,18 @@ class Unity(DPT.DPObject):
                 ratio_shortest_route = np.where(sumCost[:, 5] == 1)[0].size / totTrials
                 ratio_each_trial_route = np.divide(sumCost[:, 1], sumCost[:, 0])
 
+                # duration_diff
+                start_ind = unityTriggers[:, 0] + 1
+                end_ind = unityTriggers[:, 2] + 1
+                start_time = unityTime[start_ind]
+                end_time = unityTime[end_ind]
+                trial_durations = end_time - start_time
+
+                rp_trial_dur = rl.timeStamps[:, 2] - rl.timeStamps[:, 0]
+                # multiply by 1000 to convert to ms
+                duration_diff = (trial_durations - rp_trial_dur) * 1000
+
+                self.durationDiff = [duration_diff]
                 self.trialRouteRatio = [ratio_each_trial_route]
                 self.timePerformance = [ratio_within_time]
                 self.routePerformance = [ratio_shortest_route]
@@ -246,7 +258,7 @@ class Unity(DPT.DPObject):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
                                                                 "SumCost", "Proportion of trial", "Place Cells"], 0),
-                    "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}, "level": "trial"}
+                    "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
         if getPlotOpts:
             return plotopts
 
@@ -257,15 +269,30 @@ class Unity(DPT.DPObject):
         plot_type = plotopts["Plot Option"].selected()
 
         if getNumEvents:
-            # Return the number of events avilable
+            # Return the number of events available
+            global pre
             if plot_type == "Trial" or plot_type == "FrameIntervals":
-                return len(self.setidx), 0
+                if i is not None:
+                    if pre == "trial":
+                        return len(self.setidx), i
+                    else:
+                        pre = "trial"
+                        num_idx = 0
+                        for x in range(0, i):
+                            num_idx += self.unityTriggers[x].shape[0]
+                else:
+                    num_idx = 0
+                return len(self.setidx), num_idx
             elif plot_type == "DurationDiffs" or plot_type == "SumCost" or plot_type == "Place Cells":
                 if i is not None:
-                    nidx = self.setidx[i]
+                    if pre == "session":
+                        return np.max(self.setidx) + 1, i
+                    else:
+                        pre = "session"
+                        num_idx = self.setidx[i]
                 else:
-                    nidx = 0
-                return np.max(self.setidx) + 1, nidx
+                    num_idx = 0
+                return np.max(self.setidx) + 1, num_idx
             elif plot_type == "Proportion of trial":
                 return 1, 0
 
@@ -349,23 +376,19 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "DurationDiffs":
 
-            time_stamps = self.timeStamps[i]
-            u_triggers = self.unityTriggers[i]
-            u_time = self.unityTime[i]
+            if plotopts["Number of bins"] == 0:
+                # use The Freedman-Diaconis rule to get optimal bin-width
+                tot_num = self.durationDiff[i].shape[0]
+                num_range = np.amax(self.durationDiff[i]) - np.amin(self.durationDiff[i])
+                IQR = iqr(self.durationDiff[i])
+                bin_width = 2 * IQR / pow(tot_num, 1/3)
+                num_bin = num_range / bin_width
+                if num_bin > self.args["BinNumberLimit"]:
+                    num_bin = self.args["BinNumberLimit"]
+            else:
+                num_bin = plotopts["Number of bins"]
 
-            # add 1 to start index since we want the duration between triggers
-            start_ind = u_triggers[:, 0] + 1
-            end_ind = u_triggers[:, 2] + 1
-            start_time = u_time[start_ind]
-            end_time = u_time[end_ind]
-            trial_durations = end_time - start_time
-
-            rp_trial_dur = time_stamps[:, 2] - time_stamps[:, 0]
-            # multiply by 1000 to convert to ms
-            duration_diff = (trial_durations - rp_trial_dur) * 1000
-            num_bin = (np.amax(duration_diff) - np.amin(duration_diff)) / 200
-
-            ax.hist(x=duration_diff, bins=int(num_bin))
+            ax.hist(x=self.durationDiff[i], bins=int(num_bin))
             ax.set_xlabel('Time (ms)')
             ax.set_ylabel('Frequency')
             ax.set_yscale("log")
@@ -468,3 +491,4 @@ class Unity(DPT.DPObject):
         self.timePerformance += uf.timePerformance
         self.routePerformance += uf.routePerformance
         self.trialRouteRatio += uf.trialRouteRatio
+        self.durationDiff += uf.durationDiff
