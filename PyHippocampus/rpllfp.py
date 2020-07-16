@@ -1,8 +1,7 @@
 import numpy as np 
 from scipy import signal 
 import DataProcessingTools as DPT 
-from rplraw import RPLRaw
-import PanGUI
+from . import RPLRaw
 
 def resampleData(analogData, samplingRate, resampleRate):
 	numberOfPoints = int(resampleRate * (len(analogData) / samplingRate))
@@ -22,30 +21,28 @@ def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq
 
 class RPLLFP(DPT.DPObject):
 
-	filename = 'rpllfp.hkl'
-	argsList = [('sampleRate', 30000), ('resampleRate', 1000), ('LFPOrder', 6), ('lowPassFrequency', [1, 150])]
+	filename = "rpllfp.hkl"
+	argsList = [('SampleRate', 30000), ('ResampleRate', 1000), ('LFPOrder', 6), ('LowPassFrequency', [1, 150])]
+	level = 'channel'
 
 	def __init__(self, *args, **kwargs):
-		DPT.DPObject.__init__(self, normpath = False, *args, **kwargs)
+		DPT.DPObject.__init__(self, *args, **kwargs)
 
 	def create(self, *args, **kwargs):
 		self.data = []
 		self.analogInfo = {}
 		rw = RPLRaw()
-		analogData = rw.data 
-		LFPOrder = self.args['LFPOrder']
-		lfpData, resampleRate = lowPassFilter(analogData, samplingRate = self.args['sampleRate'], resampleRate = self.args['resampleRate'], LFPOrder = self.args['LFPOrder'], lowFreq = self.args['lowPassFrequency'][0], highFreq = self.args['lowPassFrequency'][1])
+		lfpData, resampleRate = lowPassFilter(rw.data, samplingRate = self.args['SampleRate'], resampleRate = self.args['ResampleRate'], LFPOrder = self.args['LFPOrder'], lowFreq = self.args['LowPassFrequency'][0], highFreq = self.args['LowPassFrequency'][1])
 		self.analogInfo['SampleRate'] = resampleRate
 		self.analogInfo['MinVal'] = np.amin(lfpData)
 		self.analogInfo['MaxVal'] = np.amax(lfpData)
-		self.analogInfo['HighFreqCorner'] = self.args['lowPassFrequency'][0] * resampleRate
-		self.analogInfo['LowFreqCorner'] = self.args['lowPassFrequency'][1] * resampleRate
+		self.analogInfo['HighFreqCorner'] = self.args['LowPassFrequency'][0] * resampleRate
+		self.analogInfo['LowFreqCorner'] = self.args['LowPassFrequency'][1] * resampleRate
 		self.analogInfo['NumberSamples'] = len(lfpData)
 		self.analogInfo['HighFreqOrder'] = self.args['LFPOrder']
 		self.analogInfo['LowFreqOrder'] = self.args['LFPOrder']
 		self.analogInfo['ProbeInfo'] = rw.analogInfo['ProbeInfo'].replace('raw', 'lfp')
-		if kwargs.get('saveLevel', 0) > 0:
-			self.save()
+		self.data = lfpData
 		return self 
 		
 	def plot(self, i = None, ax = None, overlay = False):
