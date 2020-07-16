@@ -342,13 +342,18 @@ class Eyelink(DPT.DPObject):
                 trial_timestamps = pd.DataFrame({'Start': trialTimestamps[:, 0], 'Cue': trialTimestamps[:, 1], 'End': trialTimestamps[:, 2]})
                 trial_timestamps = trial_timestamps - expTime
 
-                # trial_codes
-                rpl = RPLParallel()
+                os.chdir('session0' + str(current_Session))
+
+                rpl = hkl.load('rplparallel_b6ee.hkl')
+                # print(list(rpl))
+
                 if rpl.get('markers').shape == trial_timestamps.shape:
                     markers = rpl.get('markers')
                     trial_codes = pd.DataFrame(data=markers)
                 else:
                     error('markers not consistent')
+
+                os.chdir('..')
 
                 # account for multiple sessions
                 # save into those directories
