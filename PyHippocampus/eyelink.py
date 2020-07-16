@@ -190,7 +190,7 @@ class Eyelink(DPT.DPObject):
                 expTime = samples['time'].iloc[0] - 1
 
                 # timestamps
-                timestamps = samples['time'].replace(0, np.nan).dropna(axis=0, how='any').fillna(0) - 2198659
+                timestamps = samples['time'].replace(0, np.nan).dropna(axis=0, how='any').fillna(0)
 
                 # timeout
                 timeouts = messages['Timeout_time'].dropna()
@@ -328,7 +328,7 @@ class Eyelink(DPT.DPObject):
                             row = corrected_times.shape[0]
                             trialTimestamps[0:row, l-1:u] = corrected_times
                             noOfTrials[0, sessionFolder-1] = corrected_times.shape[0]
-                            missingData = vstack((missingData, tempMissing))
+                            missingData = missingData.append(tempMissing)
                             sessionFolder = sessionFolder + 1
                         else:
                             print('Dummy Session skipped', i, '\n')
@@ -343,7 +343,7 @@ class Eyelink(DPT.DPObject):
                 trial_timestamps = trial_timestamps - expTime
 
                 # trial_codes
-                rpl = hkl.load('rplparallel_b6ee.hkl')
+                rpl = RPLParallel()
                 if rpl.get('markers').shape == trial_timestamps.shape:
                     markers = rpl.get('markers')
                     trial_codes = pd.DataFrame(data=markers)
