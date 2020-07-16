@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import matplotlib.patches as patches
 import DataProcessingTools as DPT
-import rplparallel
+from . import rplparallel
 import time
 
 class Eyelink(DPT.DPObject):
@@ -120,12 +120,6 @@ class Eyelink(DPT.DPObject):
                 # numSets
                 numSets = 1
 
-                '''
-                self.calib_eye_pos = eye_pos
-                self.calib_indices = indices
-                self.calib_trial_timestamps = trial_timestamps
-                self.calib_numSets.append(numSets)
-                '''
                 self.eye_pos = eye_pos
                 self.indices = indices
                 self.trial_timestamps = trial_timestamps
@@ -623,12 +617,11 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
             df = rpl
             rpl_obj = rplparallel.RPLParallel(Data=True, markers=df.get('markers'), timeStamps=df.get('timeStamps'), rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime')) 
             
-            # i need this file later, how do i know what its called if its randomly generated? there's more than one rplparallel
+            # how do i know what its called if its randomly generated? there's more than one rplparallel
             
             markers = np.delete(markers, 0)
             rpltimeStamps = np.delete(rpltimeStamps, 0)
             rpltimeStamps = np.delete(rpltimeStamps, rpltimeStamps[np.nonzero(markers == 0)]) # rpltimeStamps(find(~markers)) = [];
-            # ^^ this line sketchy
             markers = np.delete(markers, np.nonzero(markers == 0))
             n = len(markers) / 3
 
