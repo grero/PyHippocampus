@@ -3,7 +3,6 @@ from neo.io import BlackrockIO
 import numpy as np 
 import glob 
 import DataProcessingTools as DPT 
-import PanGUI
 
 def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 	rawMarkers = markers 
