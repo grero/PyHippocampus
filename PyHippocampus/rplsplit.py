@@ -126,7 +126,3 @@ class RPLSplit(DPT.DPObject):
 
 	def plot(self, i = None, ax = None, overlay = False):
 		pass 
-
-os.chdir('/Users/anujpatel/intern/PyHippocampus/PyHippocampus/181105/session01/')
-rp = RPLSplit(saveLevel = 1, channel = [65, 85, 96], redoLevel = 1, SessionEye = False, SkipHPC = True)
-
