@@ -2,6 +2,7 @@ import DataProcessingTools as DPT
 from pylab import gcf, gca
 import matplotlib.patches as patches
 import numpy as np
+from scipy.stats import iqr
 import os
 import glob
 import networkx as nx
@@ -60,7 +61,7 @@ pre = "trial"
 class Unity(DPT.DPObject):
     filename = "unity.hkl"
     argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
-                ('TriggerVal2', 20), ('TriggerVal3', 30)]
+                ('TriggerVal2', 20), ('TriggerVal3', 30), ('BinNumberLimit', 500)]
     level = "session"
 
     def __init__(self, *args, **kwargs):
@@ -375,25 +376,15 @@ class Unity(DPT.DPObject):
 
         elif plot_type == "DurationDiffs":
 
-            # time_stamps = self.timeStamps[i]
-            # u_triggers = self.unityTriggers[i]
-            # u_time = self.unityTime[i]
-            #
-            # # add 1 to start index since we want the duration between triggers
-            # start_ind = u_triggers[:, 0] + 1
-            # end_ind = u_triggers[:, 2] + 1
-            # start_time = u_time[start_ind]
-            # end_time = u_time[end_ind]
-            # trial_durations = end_time - start_time
-            #
-            # rp_trial_dur = time_stamps[:, 2] - time_stamps[:, 0]
-            # # multiply by 1000 to convert to ms
-            # duration_diff = (trial_durations - rp_trial_dur) * 1000
-            # num_bin = (np.amax(duration_diff) - np.amin(duration_diff)) / 200
             if plotopts["Number of bins"] == 0:
-                num_bin = (np.amax(self.durationDiff[i]) - np.amin(self.durationDiff[i])) / 200
-                if num_bin < 1:
-                    num_bin = 1
+                # use The Freedman-Diaconis rule to get optimal bin-width
+                tot_num = self.durationDiff[i].shape[0]
+                num_range = np.amax(self.durationDiff[i]) - np.amin(self.durationDiff[i])
+                IQR = iqr(self.durationDiff[i])
+                bin_width = 2 * IQR / pow(tot_num, 1/3)
+                num_bin = num_range / bin_width
+                if num_bin > self.args["BinNumberLimit"]:
+                    num_bin = self.args["BinNumberLimit"]
             else:
                 num_bin = plotopts["Number of bins"]
 
