@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import matplotlib.patches as patches
 import DataProcessingTools as DPT
-from . import rplparallel
+from .rplparallel import RPLParallel
 import time
 
 class Eyelink(DPT.DPObject):
@@ -615,7 +615,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
         # Check if the rplparallel object is formatted correctly or is missing information
         if n == 1: # if the formatting is 1xSIZE
             df = rpl
-            rpl_obj = rplparallel.RPLParallel(Data=True, markers=df.get('markers'), timeStamps=df.get('timeStamps'), rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime')) 
+            rpl_obj = RPLParallel(Data=True, markers=df.get('markers'), timeStamps=df.get('timeStamps'), rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime')) 
             
             # how do i know what its called if its randomly generated? there's more than one rplparallel
             
@@ -635,7 +635,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
                 markers = markers.transpose()
                 rpltimeStamps = rpltimeStamps.transpose()
             n = markers.shape[0]
-            rpl_obj = rplparallel.RPLParallel(Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
+            rpl_obj = RPLParallel(Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
 
         elif n * 3 < m.shape[0]: # If rplparallel obj is missing data, use callEyelink
             if os.path.exists('rplparallel0.hdf5') == False: # use starts with and is file type hkl instead
@@ -643,7 +643,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
                 [markers, rpltimeStamps] = callEyelink(self, markers, m, eltimes-expTime, rpltimeStamps)
                 # save object and return
                 n = markers.shape[0]
-                rpl_obj = rplparallel.RPLParallel(Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
+                rpl_obj = RPLParallel(Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
                 
         os.chdir('..')
 
