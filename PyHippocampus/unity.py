@@ -250,10 +250,6 @@ class Unity(DPT.DPObject):
                 self.unityTime.append(unityTime)
                 self.setidx = ([0] * unityTriggers.shape[0])
 
-        # check if we need to save the object, with the default being 0
-        if kwargs.get("saveLevel", 0) > 0:
-            self.save()
-
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
