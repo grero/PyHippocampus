@@ -313,10 +313,10 @@ class Unity(DPT.DPObject):
                     i = i - self.unityTriggers[x].shape[0]
 
             ax.plot(xBound, zBound, color='k', linewidth=1.5)
-            ax.plot(x1Bound, z1Bound, 'k', LineWidth=1)
-            ax.plot(x2Bound, z2Bound, 'k', LineWidth=1)
-            ax.plot(x3Bound, z3Bound, 'k', LineWidth=1)
-            ax.plot(x4Bound, z4Bound, 'k', LineWidth=1)
+            ax.plot(x1Bound, z1Bound, 'y', LineWidth=1)
+            ax.plot(x2Bound, z2Bound, 'r', LineWidth=1)
+            ax.plot(x3Bound, z3Bound, 'b', LineWidth=1)
+            ax.plot(x4Bound, z4Bound, 'g', LineWidth=1)
             x_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
                                                  int(self.unityTriggers[session_idx][i, 2]), 2]
             y_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
