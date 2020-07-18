@@ -252,9 +252,9 @@ class Unity(DPT.DPObject):
 
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
         # set plot options
-        plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "FrameIntervals", "DurationDiffs",
-                                                                "SumCost", "Proportion of trial", "Place Cells"], 0),
-                    "FrameIntervalTriggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
+        plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
+                                                                "Route Ratio", "Proportion of trial", "Routes"], 0),
+                    "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
         if getPlotOpts:
             return plotopts
 
@@ -267,7 +267,7 @@ class Unity(DPT.DPObject):
         if getNumEvents:
             # Return the number of events available
             global pre
-            if plot_type == "Trial" or plot_type == "FrameIntervals":
+            if plot_type == "Trial" or plot_type == "Frame Intervals":
                 if i is not None:
                     if pre == "trial":
                         return len(self.setidx), i
@@ -279,7 +279,7 @@ class Unity(DPT.DPObject):
                 else:
                     num_idx = 0
                 return len(self.setidx), num_idx
-            elif plot_type == "DurationDiffs" or plot_type == "SumCost" or plot_type == "Place Cells":
+            elif plot_type == "Duration Diffs" or plot_type == "Route Ratio" or plot_type == "Routes":
                 if i is not None:
                     if pre == "session":
                         return np.max(self.setidx) + 1, i
@@ -344,7 +344,7 @@ class Unity(DPT.DPObject):
             title = subject + date + session + title
             ax.set_title(title)
 
-        elif plot_type == "FrameIntervals":
+        elif plot_type == "Frame Intervals":
 
             session_idx = self.setidx[i]
             if session_idx != 0:
@@ -352,8 +352,8 @@ class Unity(DPT.DPObject):
                     i = i - self.unityTriggers[x].shape[0]
 
             time_stamps = self.timeStamps[session_idx]
-            frame_interval_triggers = np.array([plotopts["FrameIntervalTriggers"]["from"],
-                                                plotopts["FrameIntervalTriggers"]["to"]], dtype=np.int)
+            frame_interval_triggers = np.array([plotopts["Frame Interval Triggers"]["from"],
+                                                plotopts["Frame Interval Triggers"]["to"]], dtype=np.int)
             indices = self.unityTriggers[session_idx][i, frame_interval_triggers]
             u_data = self.unityData[session_idx][(indices[0] + 1):(indices[1] + 1), 1]
             markerline, stemlines, baseline = ax.stem(u_data, basefmt=" ", use_line_collection=True)
@@ -376,7 +376,7 @@ class Unity(DPT.DPObject):
             title = subject + date + session + title
             ax.set_title(title)
 
-        elif plot_type == "DurationDiffs":
+        elif plot_type == "Duration Diffs":
 
             if plotopts["Number of bins"] == 0:
                 # use The Freedman-Diaconis rule to get optimal bin-width
@@ -402,7 +402,7 @@ class Unity(DPT.DPObject):
             session = DPT.levels.get_shortname("session", dir_name)
             ax.set_title('Unity trial duration - Ripple trial duration ' + subject + date + session)
 
-        elif plot_type == "SumCost":
+        elif plot_type == "Route Ratio":
             tot_trials = self.unityTriggers[i].shape[0]
             xind = np.arange(0, tot_trials)
             # Calculate optimal width
@@ -445,7 +445,7 @@ class Unity(DPT.DPObject):
             ax.legend(loc="lower center")
             ax.set_ylim(0, 1.2)
 
-        elif plot_type == "Place Cells":
+        elif plot_type == "Routes":
 
             # add grid
             for a in range(0, 2):
@@ -480,7 +480,7 @@ class Unity(DPT.DPObject):
             subject = DPT.levels.get_shortname("subject", dir_name)
             date = DPT.levels.get_shortname("day", dir_name)
             session = DPT.levels.get_shortname("session", dir_name)
-            title = "Place Cells: " + subject + date + session
+            title = "Routes: " + subject + date + session
             ax.set_title(title)
 
         return ax
