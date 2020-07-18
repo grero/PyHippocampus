@@ -317,6 +317,12 @@ class Unity(DPT.DPObject):
             ax.plot(x2Bound, z2Bound, 'r', LineWidth=1)
             ax.plot(x3Bound, z3Bound, 'b', LineWidth=1)
             ax.plot(x4Bound, z4Bound, 'g', LineWidth=1)
+            ax.text(poster_pos[0,0],poster_pos[0,1]-1,'1')
+            ax.text(poster_pos[1,0]-0.5,poster_pos[1,1],'2')
+            ax.text(poster_pos[2,0],poster_pos[2,1],'3')
+            ax.text(poster_pos[3,0],poster_pos[3,1],'4')
+            ax.text(poster_pos[4,0],poster_pos[4,1]-1,'5')
+            ax.text(poster_pos[5,0],poster_pos[5,1],'6')
             x_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
                                                  int(self.unityTriggers[session_idx][i, 2]), 2]
             y_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
@@ -458,7 +464,13 @@ class Unity(DPT.DPObject):
             ax.add_patch(rect3)
             ax.add_patch(rect4)
             # add poster
-            ax.plot(poster_pos[:, 0], poster_pos[:, 1], 'o', color='r')
+            # ax.plot(poster_pos[:, 0], poster_pos[:, 1], 'o', color='r')
+            ax.text(poster_pos[0,0],poster_pos[0,1]-1,'1')
+            ax.text(poster_pos[1,0]-0.5,poster_pos[1,1],'2')
+            ax.text(poster_pos[2,0],poster_pos[2,1],'3')
+            ax.text(poster_pos[3,0],poster_pos[3,1],'4')
+            ax.text(poster_pos[4,0],poster_pos[4,1]-1,'5')
+            ax.text(poster_pos[5,0],poster_pos[5,1],'6')
 
             x_data = self.unityData[i][:, 2]
             y_data = self.unityData[i][:, 3]
