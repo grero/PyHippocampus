@@ -21,7 +21,7 @@ class Eyelink(DPT.DPObject):
     argsList = [('ObjectLevel', 'Session'), ('FileName', '.edf'), ('CalibFileNameChar', 'P'), 
     ('NavDirName', 'session0'), ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), 
     ('ScreenX', 1920), ('ScreenY', 1080), ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), 
-    ('StartFromDay', False), ('RowsToClear', 3), ('TimestampOffset', 2198659)]
+    ('StartFromDay', False)]
     level = 'session'
 
     def __init__(self, *args, **kwargs):
@@ -79,6 +79,7 @@ class Eyelink(DPT.DPObject):
                     [messages['trialid_time'], time_split['time_0'], time_split['time_1']], axis=1, sort=False)
                 trial_timestamps = trial_timestamps.iloc[1:]
                 trial_timestamps = trial_timestamps.reset_index(drop=True)
+                trial_timestamps = trial_timestamps.fillna(0).astype(int)
 
                 # indices
                 index_1 = (messages['trialid_time'] - samples['time'].iloc[0]).iloc[1:]
@@ -88,9 +89,7 @@ class Eyelink(DPT.DPObject):
 
                 # eye_positions
                 eye_pos = samples[['gx_left', 'gy_left']].copy()
-                eye_pos['gx_left'][eye_pos['gx_left'] < 0] = np.nan
                 eye_pos['gx_left'][eye_pos['gx_left'] > self.args['ScreenX']] = np.nan
-                eye_pos['gy_left'][eye_pos['gy_left'] < 0] = np.nan
                 eye_pos['gy_left'][eye_pos['gy_left'] > self.args['ScreenY']] = np.nan
                 eye_pos = eye_pos[(eye_pos.T != 0).any()]
                 
@@ -125,8 +124,8 @@ class Eyelink(DPT.DPObject):
 
                 # eye_positions
                 eye_pos = samples[['gx_left', 'gy_left']].copy()
-                eye_pos['gx_left'][(eye_pos['gx_left'] < 0) | (eye_pos['gx_left'] > self.args['ScreenX'])] = np.nan
-                eye_pos['gy_left'][(eye_pos['gy_left'] < 0) | (eye_pos['gy_left'] > self.args['ScreenY'])] = np.nan
+                eye_pos['gx_left'][eye_pos['gx_left'] > self.args['ScreenX']] = np.nan
+                eye_pos['gy_left'][eye_pos['gy_left'] > self.args['ScreenY']] = np.nan
                 eye_pos = eye_pos[(eye_pos.T != 0).any()]
                     
                 # expTime
@@ -140,22 +139,6 @@ class Eyelink(DPT.DPObject):
 
                 # noOfTrials
                 noOfTrials = len(messages) - 1
-
-                # fix_event
-                duration = events['end'] - events['start']
-                fix_event = duration  # difference is duration
-                fix_event = fix_event.loc[events['type'] == 'fixation']  # get fixations only
-                fix_event = fix_event.iloc[self.args['RowsToClear']:]
-                fix_event = fix_event.reset_index(drop=True)
-
-                # fix_times
-                fix_times = pd.concat([events['start'], events['end'],
-                                    duration], axis=1, sort=False)
-                fix_times = fix_times.loc[events['type'] == 'fixation'] # get fixations only
-                fix_times['start'] = fix_times['start']
-                fix_times['end'] = fix_times['end']
-                fix_times = fix_times.iloc[self.args['RowsToClear']:]
-                fix_times = fix_times.reset_index(drop=True)
 
                 # numSets
                 numSets = 1
@@ -203,63 +186,54 @@ class Eyelink(DPT.DPObject):
                 # setup for m dataframe by fetching events messages
                 # the two parts below merges dataframe columns of start trial, cue offset and end trial
                 # by sorting trialid_time in ascending order
-                trigger_ver = messages[['Trigger_time', 'Trigger']]
-                trigger_split = trigger_ver['Trigger'].apply(pd.Series) # expand Cue column (a list) into columns of separate dataframe
+                messageEvent = messages[['Trigger', 'Trigger_time', 'trialid ', 'trialid_time', 'Cue', 'Cue_time', 'End', 'End_time', 'Timeout', 'Timeout_time']]
+
+                # trigger versions - reformat output from pyedfread
+                trigger_split = messageEvent['Trigger'].apply(pd.Series) # expand Cue column (a list) into columns of separate dataframe
                 trigger_split = trigger_split.rename(columns=lambda x: 'trigger_' + str(x)) # rename columns
-                trigger_split['trigger_1'] = 'Trigger Version ' + trigger_split['trigger_1'].astype(str) # append Cue Offset string to each value
-                trigger_ver = pd.concat([trigger_ver, trigger_split['trigger_1']], axis=1, sort=False)
-                trigger_ver = trigger_ver.drop('Trigger', 1)
-                trigger_ver = trigger_ver.rename(columns={'Trigger_time':'trialid_time', 'trigger_1':'trialid '}) # rename columns
-                
-                start_trial = messages[['trialid_time', 'trialid ']]
+                messageEvent['Trigger'].loc[~messageEvent['Trigger'].isnull()] = 'Trigger Version ' + trigger_split['trigger_1'].astype(str) # append Cue Offset string to each value
 
-                cue_offset = messages[['Cue_time', 'Cue']]
-                cue_split = cue_offset['Cue'].apply(pd.Series) 
+                # cue_offsets
+                cue_split = messageEvent['Cue'].apply(pd.Series) 
                 cue_split = cue_split.rename(columns=lambda x: 'cue_' + str(x)) 
-                cue_split['cue_1'] = 'Cue Offset ' + cue_split['cue_1'].astype(str) 
-                cue_offset = pd.concat([cue_offset, cue_split['cue_1']], axis=1, sort=False)
-                cue_offset = cue_offset.drop('Cue', 1)
-                cue_offset = cue_offset.rename(columns={'Cue_time':'trialid_time', 'cue_1':'trialid '}) 
+                messageEvent['Cue'].loc[~messageEvent['Cue'].isnull()] = 'Cue Offset ' + cue_split['cue_1'].astype(str) 
 
-                end_trial = messages[['End_time', 'End']]
-                end_split = end_trial['End'].apply(pd.Series)
+                # end_trials
+                end_split = messageEvent['End'].apply(pd.Series)
                 end_split = end_split.rename(columns=lambda x: 'end_' + str(x))
-                end_split['end_1'] = 'End Trial ' + end_split['end_1'].astype(str) 
-                end_trial = pd.concat([end_trial, end_split['end_1']], axis=1, sort=False)
-                end_trial = end_trial.drop('End', 1)
-                end_trial = end_trial.rename(columns={'End_time':'trialid_time', 'end_1':'trialid '})
+                messageEvent['End'].loc[~messageEvent['End'].isnull()] = 'End Trial ' + end_split['end_1'].astype(str)
 
-                timeout = messages[['Timeout_time', 'Timeout']].dropna()
-                timeout_split = timeout['Timeout'].apply(pd.Series)
+                # timeouts
+                timeout_split = messageEvent['Timeout'].apply(pd.Series)
                 timeout_split = timeout_split.rename(columns=lambda x: 'time_' + str(x))
-                timeout_split['time_0'] = 'Timeout ' + timeout_split['time_0'].astype(str)
-                timeout = pd.concat([timeout, timeout_split['time_0']], axis=1, sort=False)
-                timeout = timeout.drop('Timeout', 1)
-                timeout = timeout.rename(columns={'Timeout_time':'trialid_time', 'time_0':'trialid '})
+                messageEvent['Timeout'].loc[~messageEvent['Timeout'].isnull()] = 'Timeout ' + timeout_split['time_0'].astype(str)
 
-                messageEvent = pd.concat(
-                    [trigger_ver, start_trial, cue_offset, end_trial, timeout], axis=0)
-                messageEvent = messageEvent.sort_values(by=['trialid_time'], ascending=True) 
-                messageEvent = (messageEvent.dropna()).reset_index(drop=True) # drop nans
+                messageEvent = pd.concat([messageEvent[['Trigger', 'trialid ', 'Cue', 'End', 'Timeout']].melt(value_name='Event'),
+                                            messageEvent[['Trigger_time', 'trialid_time', 'Cue_time', 'End_time', 'Timeout_time']].melt(value_name='Time')], axis=1)
+                messageEvent = messageEvent[['Time', 'Event']]
+                messageEvent = messageEvent.dropna()
+                messageEvent = messageEvent.sort_values(by=['Time'], ascending=True) 
+                messageEvent = messageEvent.reset_index(drop=True)
 
-                m = messageEvent['trialid '].to_numpy()
+                m = messageEvent['Event'].to_numpy()
 
                 s = self.args['TriggerMessage']
 
                 if s != '':
                     sessionIndex = [i for i in range(len(m)) if m[i] == s] # return indices of trigger messages in m
                     noOfSessions = len(messages2.index) - 1 # find length of dataframe
+                    print('No. of Sessions ', noOfSessions, '\n')
 
                     extraSessions = 0
                     if noOfSessions > actualSessionNo:
                         print('EDF file has extra sessions!')
                         extraSessions = actualSessionNo - noOfSessions
-                    else:
+                    elif noOfSessions < actualSessionNo:
                         print('EDF file has fewer sessions!')
 
                     #preallocate variables
                     trialTimestamps = np.zeros((m.shape[0], 3*noOfSessions))
-                    noOfTrials = np.zeros((1,1))
+                    noOfTrials = np.zeros((1,noOfSessions))
                     missingData = []
                     sessionFolder = 1
 
@@ -270,7 +244,7 @@ class Eyelink(DPT.DPObject):
 
                     for i in range(0, noOfSessions):
                         idx = sessionIndex[i]
-                        session = 'session0' + str(i + 1)
+                        session = self.args['NavDirName'] + str(i + 1)
                         if i == noOfSessions-1:
                             [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:], messageEvent[idx:], session, extraSessions)
                         else:
@@ -282,11 +256,76 @@ class Eyelink(DPT.DPObject):
                             row = corrected_times.shape[0]
                             trialTimestamps[0:row, l-1:u] = corrected_times
                             noOfTrials[0, sessionFolder-1] = corrected_times.shape[0]
-                            missingData = missingData.append(tempMissing)
+                            missingData.append(tempMissing)
                             sessionFolder = sessionFolder + 1
                         else:
                             print('Dummy Session skipped', i, '\n')
 
+                else:
+                    # some of the early sessions did not have a message indicating the beginning
+				    # of the session, so we will have to do something different
+
+                    #preallocate variables
+                    noOfSessions = actualSessionNo
+                    trialTimestamps = np.zeros((m.shape[0], 3*noOfSessions))
+                    noOfTrials = np.zeros((1,1))
+                    missingData = []
+                    sessionFolder = 1
+                    sessionIndex = []
+                    extraSessions = 0
+
+                    # loop through each session
+                    for i in range(noOfSessions):
+                        session = self.args['NavDirName'] + str(i + 1)
+                        os.chdir(session)
+
+                        # initializing variables for session01
+                        if i == 1:
+                            sessionIndex = sessionIndex.append(1)
+                            nextSessionIndex = 0
+                        
+                        # load the rplparallel object to find out how many trials there were
+                        idx = nextSessionIndex
+                        err = 0
+
+                        rplObj = rplparallel.RPLParallel()
+                        TrialNum = rplObj.markers.shape
+                        TrialNum = TrialNum[0]
+                        nextSessionIndex = 3 * TrialNum + idx
+
+                        # look through the messages to figure out which to
+                        # skip (aborted sessions)
+                        k = nextSessionIndex
+                        while ('Start' in m[k] and 'Start' in m[k+1]):
+                            err = err + 1
+                            k = k + 1
+                        
+                        # save the session transitions in sessionIndex
+                        nextSessionIndex = nextSessionIndex + err
+
+                        if i != noOfSessions:
+                            sessionIndex = sessionIndex.append(nextSessionIndex)
+                        
+                        os.chdir('..')
+
+                        # Check if eyelink has missing data by calling completeData 
+                        if i == noOfSessions-1:
+                            [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:], messageEvent[idx:], session, extraSessions)
+                        else:
+                            idx2 = idx + 3 * TrialNum - 1
+                            [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:idx2], messageEvent[idx:idx2], session, extraSessions)
+                        if flag == 0:
+                            l = 1 + (i-1)*3
+                            u = 3 + (i-1)*3
+                            row = corrected_times.shape[0]
+                            trialTimestamps[0:row, l-1:u] = corrected_times
+                            noOfTrials[0, i-1] = corrected_times.shape[0]
+                            missingData = missingData.append(tempMissing)
+                        else:
+                            print('Dummy Session skipped', i, '\n')
+                        # increase i to go to next sessionFolder
+                        i = i + 1
+                        
                 # edit the size of the array and remove all zero rows and extra columns
                 trialTimestamps = trialTimestamps[~np.all(trialTimestamps == 0, axis=1), :]
                 trialTimestamps = trialTimestamps[:, ~np.all(trialTimestamps == 0, axis=0)]
