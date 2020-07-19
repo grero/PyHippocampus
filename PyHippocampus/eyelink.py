@@ -233,7 +233,6 @@ class Eyelink(DPT.DPObject):
                 # sacc_event 
                 sacc_event = pd.DataFrame()
                 trigger_m = messages2['trialid_time'].dropna().tolist()
-                # trigger_m = [x for x in trigger_m if str(x) != 'nan']
                 trigger_m.append(999999999.0)
 
                 for i in range(actualSessionNo):
