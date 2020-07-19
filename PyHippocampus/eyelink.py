@@ -288,7 +288,7 @@ class Eyelink(DPT.DPObject):
                         idx = nextSessionIndex
                         err = 0
 
-                        rplObj = rplparallel.RPLParallel()
+                        rplObj = RPLParallel()
                         TrialNum = rplObj.markers.shape
                         TrialNum = TrialNum[0]
                         nextSessionIndex = 3 * TrialNum + idx
@@ -327,52 +327,55 @@ class Eyelink(DPT.DPObject):
                         i = i + 1
                         
                 # edit the size of the array and remove all zero rows and extra columns
+                trialTimestamps = trialTimestamps.astype(int)
                 trialTimestamps = trialTimestamps[~np.all(trialTimestamps == 0, axis=1), :]
                 trialTimestamps = trialTimestamps[:, ~np.all(trialTimestamps == 0, axis=0)]
-                trialTimestamps = trialTimestamps.astype(int)
 
-                # turn trialTimestamps into dataframe
-                trial_timestamps = pd.DataFrame({'Start': trialTimestamps[:, 0], 'Cue': trialTimestamps[:, 1], 'End': trialTimestamps[:, 2]})
-                trial_timestamps = trial_timestamps - expTime
+                # modify number of sessions
+                noOfSessions = trialTimestamps.shape[1] // self.args['NumTrialMessages']
+                
+                # print('modified number of sessions: ', noOfSessions)
+                # create missingData csv file
 
-                os.chdir('session0' + str(current_Session))
+                # this loop splits the created matrics, containing timestamps from all sessions,
+                # into session objects
+                for idx in range(noOfSessions):
+                    session = self.args['NavDirName'] + str(idx + 1)
+                    os.chdir(session)
 
-                rpl = hkl.load('rplparallel_b6ee.hkl')
-                # print(list(rpl))
+                    # only need to account for trial_Timestamps to split up
+                    l = 1 + (idx) * self.args['NumTrialMessages']
+                    u = l + 2
 
-                if rpl.get('markers').shape == trial_timestamps.shape:
-                    markers = rpl.get('markers')
-                    trial_codes = pd.DataFrame(data=markers)
-                else:
-                    error('markers not consistent')
+                    trial_timestamps = trialTimestamps[:, l-1:u]
+                    trial_timestamps = trial_timestamps[~np.all(trial_timestamps == 0, axis=1), :] 
+                    trial_timestamps = trial_timestamps[:, ~np.all(trial_timestamps == 0, axis=0)] # remove zero rows
+                    trial_timestamps = trial_timestamps - expTime
 
-                os.chdir('..')
+                    rpl = RPLParallel()
+                    if rpl.markers.shape == trial_timestamps.shape:
+                        markers = rpl.markers
+                        trial_codes = pd.DataFrame(data=markers)
+                    else:
+                        raise Exception('markers not consistent')
 
-                # account for multiple sessions
-                # save into those directories
-                self.numSets.clear()
+                    self.expTime = expTime
+                    self.timestamps = timestamps
+                    self.eye_pos = eye_pos
+                    self.timeouts = timeouts
+                    self.noOfTrials = noOfTrials[0, idx]
+                    self.fix_event = fix_event
+                    self.fix_times = fix_times
+                    self.sacc_event = sacc_event
+                    self.numSets = numSets
+                    self.trial_timestamps = trial_timestamps
+                    self.trial_codes = trial_codes
+                    self.session_start = session_start
+                    self.session_start_index = session_start_index
+                    self.setidx = np.zeros((self.trial_timestamps.shape[0],), dtype=np.int)
 
-                self.expTime.append(expTime)
-                self.timestamps = timestamps
-                self.eye_pos = eye_pos
-                self.timeouts = timeouts
-                self.noOfTrials.append(noOfTrials)
-                self.fix_event = fix_event
-                self.fix_times = fix_times
-                self.sacc_event = sacc_event
-                self.numSets.append(numSets)
-                self.trial_timestamps = trial_timestamps
-                self.trial_codes = trial_codes
-                self.session_start.append(session_start)
-                self.session_start_index.append(session_start_index)
-                self.setidx = np.zeros((self.trial_timestamps.shape[0],), dtype=np.int)
-
-                session_dir = self.args['NavDirName'] + str(current_Session)
-                # rr = DPT.levels.resolve_level(session_dir, ll)
-                # with DPT.misc.CWD(rr):
-                os.chdir(session_dir)
-                self.save()
-                os.chdir('..')
+                    self.save()
+                    os.chdir('..')
 
     def append(self, df):
         # update fields in parent
@@ -599,8 +602,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
     # read ripple hdf5 file
     os.chdir(sessionName) 
 
-    rpl = hkl.load('rplparallel_b6ee.hkl')
-    # print(list(rpl))
+    rpl = RPLParallel()
 
     if (rpl.get('numSets') != 0 and (rpl.get('timeStamps')[()]).size != 1):  #no missing rplparallel.mat
         # markers will store all the event numbers in the trial, as taken from the ripple object. 
@@ -613,10 +615,9 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
         # Check if the rplparallel object is formatted correctly or is missing information
         if n == 1: # if the formatting is 1xSIZE
             df = rpl
-            rpl_obj = RPLParallel(Data=True, markers=df.get('markers'), timeStamps=df.get('timeStamps'), rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime')) 
-            
-            # how do i know what its called if its randomly generated? there's more than one rplparallel
-            
+            rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=df.markers, timeStamps=df.timeStamps, rawMarkers=df.rawMarkers, trialIndices=df.trialIndices, sessionStartTime=df.sessionStartTime) 
+            rpl_filename = rpl_obj.get_filename()
+
             markers = np.delete(markers, 0)
             rpltimeStamps = np.delete(rpltimeStamps, 0)
             rpltimeStamps = np.delete(rpltimeStamps, rpltimeStamps[np.nonzero(markers == 0)]) # rpltimeStamps(find(~markers)) = [];
@@ -633,15 +634,15 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
                 markers = markers.transpose()
                 rpltimeStamps = rpltimeStamps.transpose()
             n = markers.shape[0]
-            rpl_obj = RPLParallel(Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
+            rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
 
         elif n * 3 < m.shape[0]: # If rplparallel obj is missing data, use callEyelink
-            if os.path.exists('rplparallel0.hdf5') == False: # use starts with and is file type hkl instead
+            if os.path.exists(rpl_filename) == False:
                 df = rpl # extract all fields needed to go into rplparallel constructor
                 [markers, rpltimeStamps] = callEyelink(self, markers, m, eltimes-expTime, rpltimeStamps)
                 # save object and return
                 n = markers.shape[0]
-                rpl_obj = RPLParallel(Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
+                rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
                 
         os.chdir('..')
 
