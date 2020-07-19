@@ -174,6 +174,7 @@ class Eyelink(DPT.DPObject):
                 # sacc_event and fix_event
                 sacc_event = pd.DataFrame()
                 fix_event = pd.DataFrame()
+                fix_times = pd.DataFrame()
                 trigger_m = messages2['trialid_time'].dropna().tolist()
                 trigger_m.append(999999999.0)
 
@@ -186,8 +187,12 @@ class Eyelink(DPT.DPObject):
                     new_fix = events[(events['end'] >= trigger_m[i]) & (events['end'] <= trigger_m[i+1]) & (events['type'] == 'fixation')]
                     duration = (new_fix['end'] - new_fix['start']).reset_index(drop=True)
                     fix_event = pd.concat([fix_event, duration], axis=1)
+                    # get fixation times
+                    fix_times = pd.concat([fix_times, new_fix['start'].reset_index(drop=True), new_fix['end'].reset_index(drop=True), duration], axis=1)
+
                 sacc_event = sacc_event.fillna(0).astype(int)
                 fix_event = fix_event.fillna(0).astype(int)
+                fix_times = fix_times.fillna(0).astype(int)
 
                 # session_start
                 session_start = messages2['trialid_time'].iloc[1]
