@@ -372,7 +372,7 @@ class Eyelink(DPT.DPObject):
                     self.trial_codes = trial_codes
                     self.session_start = session_start
                     self.session_start_index = session_start_index
-                    self.setidx = np.zeros((self.trial_timestamps.shape[0],), dtype=np.int)
+                    self.setidx = [0 for i in range(trial_timestamps.shape[0])]
 
                     self.save()
                     os.chdir('..')
@@ -381,19 +381,19 @@ class Eyelink(DPT.DPObject):
         # update fields in parent
         DPT.DPObject.append(self, df)
 
-        self.trial_timestamps = pd.concat(self.trial_timestamps, df.trial_timestamps)
-        self.eye_pos = pd.concat(self.eye_pos, df.eye_pos)
-        self.numSets.append(df.numSets)
-        self.expTime.append(df.expTime)
-        self.timestamps = pd.concat(self.timestamps, df.timestamps)
-        self.timeouts = pd.concat(self.timeouts, df.timeouts)
-        self.noOfTrials.append(df.noOfTrials)
-        self.fix_event = pd.concat(self.fix_event, df.fix_event)
-        self.fix_times = pd.concat(self.fix_times, df.fix_times)
-        self.sacc_event = pd.concat(self.sacc_event, df.sacc_event)
-        self.trial_codes = pd.concat(self.trial_codes, df.trial_codes)
-        self.session_start.apppend(df.session_start)
-        self.session_start_index.append(df.session_start_index)
+        self.trial_timestamps = pd.concat([self.trial_timestamps, df.trial_timestamps])
+        self.eye_pos = pd.concat([self.eye_pos, df.eye_pos])
+        self.numSets += df.numSets
+        self.expTime += df.expTime
+        self.timestamps = pd.concat([self.timestamps, df.timestamps])
+        self.timeouts = pd.concat([self.timeouts, df.timeouts])
+        self.noOfTrials += df.noOfTrials
+        self.fix_event = pd.concat([self.fix_event, df.fix_event])
+        self.fix_times = pd.concat([self.fix_times, df.fix_times])
+        self.sacc_event = pd.concat([self.sacc_event, df.sacc_event])
+        self.trial_codes = pd.concat([self.trial_codes, df.trial_codes])
+        self.session_start += df.session_start
+        self.session_start_index += df.session_start_index
 
     def update_idx(self, i):
         return max(0, min(i, len(self.setidx)-1))
