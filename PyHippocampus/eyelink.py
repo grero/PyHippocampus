@@ -214,16 +214,6 @@ class Eyelink(DPT.DPObject):
                 fix_times = fix_times.iloc[self.args['RowsToClear']:]
                 fix_times = fix_times.reset_index(drop=True)
 
-                # sacc_event
-                sacc_event = events['end'] - events['start']  # difference is duration
-                sacc_event = sacc_event.loc[events['type'] == 'saccade']  # get fixations only
-                sacc_event = sacc_event.iloc[3:]
-                sacc_event = sacc_event.reset_index(drop=True)
-                sacc_event = sacc_event.to_numpy()
-                sacc_event = sacc_event[sacc_event != 0]
-                sacc_event = pd.DataFrame({0: sacc_event[:]})
-                sacc_event = sacc_event.reset_index(drop=True)
-
                 # numSets
                 numSets = 1
 
@@ -240,6 +230,18 @@ class Eyelink(DPT.DPObject):
                 # events2 = events2.drop(event_cols, 1)
                 # messages2 = messages2.drop(msg_cols, 1)
                 
+                # sacc_event 
+                sacc_event = pd.DataFrame()
+                trigger_m = messages2['trialid_time'].dropna().tolist()
+                # trigger_m = [x for x in trigger_m if str(x) != 'nan']
+                trigger_m.append(999999999.0)
+
+                for i in range(actualSessionNo):
+                    new_event = events[(events['start'] > trigger_m[i]) & (events['start'] < trigger_m[i+1]) & (events['type'] == 'saccade')]
+                    duration = (new_event['end'] - new_event['start']).reset_index(drop=True)
+                    sacc_event = pd.concat([sacc_event, duration], axis=1)
+                sacc_event = sacc_event.fillna(0).astype(int)
+
                 # session_start
                 session_start = messages2['trialid_time'].iloc[1]
                 
