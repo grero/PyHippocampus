@@ -67,29 +67,6 @@ class Eyelink(DPT.DPObject):
                 samples, events, messages = pread(
                         file, trial_marker=b'1  0  0  0  0  0  0  0')
 
-                '''
-                Used to filter out unneeded columns of dataframes returned by pread when viewing them in the terminal.
-
-                samp_cols2 = ['px_left', 'px_right', 'py_left', 'py_right',
-                            'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
-                            'pa_right', 'gx_right', 'gy_right',
-                            'rx', 'ry', 'gxvel_left', 'gxvel_right', 'gyvel_left',
-                            'gyvel_right', 'hxvel_left', 'hxvel_right', 'hyvel_left',
-                            'hyvel_right', 'rxvel_left', 'rxvel_right', 'ryvel_left',
-                            'ryvel_right', 'fgxvel', 'fgyvel', 'fhxyvel', 'fhyvel',
-                            'frxyvel', 'fryvel', 'buttons', 'flags', 'input',
-                            'errors']
-
-                msg_cols2 = ['DISPLAY_COORDS', 'DISPLAY_COORDS_time',
-                            '!CAL', '!CAL_time', 'VALIDATE', 'VALIDATE_time',
-                            'RECCFG', 'RECCFG_time', 'ELCLCFG', 'ELCLCFG_time',
-                            'GAZE_COORDS', 'GAZE_COORDS_time', 'THRESHOLDS',  'THRESHOLDS_time',
-                            'ELCL_PROC', 'ELCL_PROC_time', 'ELCL_PCR_PARAM']
-
-                samples2 = samples2.drop(samp_cols2, 1)
-                messages2 = messages2.drop(msg_cols2, 1)
-                '''
-
                 # trial_timestamps
                 time_split = (messages['0_time']).apply(pd.Series)
                 time_split = time_split.rename(columns=lambda x: 'time_' + str(x))
@@ -139,46 +116,12 @@ class Eyelink(DPT.DPObject):
                 samples, events, messages = pread(
                         file, trial_marker=b'Start Trial')
 
-                '''
-                # Used to filter out unneeded columns of dataframes returned by pread.
-                samp_cols = ['px_left', 'px_right', 'py_left', 'py_right',
-                            'hx_left', 'hx_right', 'hy_left', 'hy_right', 'pa_left',
-                            'pa_right', 'gx_right', 'gy_right',
-                            'rx', 'ry', 'gxvel_left', 'gxvel_right', 'gyvel_left',
-                            'gyvel_right', 'hxvel_left', 'hxvel_right', 'hyvel_left',
-                            'hyvel_right', 'rxvel_left', 'rxvel_right', 'ryvel_left',
-                            'ryvel_right', 'fgxvel', 'fgyvel', 'fhxyvel', 'fhyvel',
-                            'frxyvel', 'fryvel', 'buttons', 'htype',
-                            'errors']
-
-                event_cols = ['hstx', 'hsty', 'gstx', 'supd_x',
-                            'gsty', 'sta', 'henx', 'heny',
-                            'genx', 'geny', 'ena', 'havx',
-                            'havy', 'gavx', 'gavy', 'ava',
-                            'avel', 'pvel', 'svel', 'evel',
-                            'eupd_x', 'eye', 'buttons', 'trial', 'blink']
-
-                msg_cols = ['RECCFG', 'RECCFG_time', 'ELCLCFG', 'ELCLCFG_time',
-                            'GAZE_COORDS', 'GAZE_COORDS_time', 'THRESHOLDS',
-                            'THRESHOLDS_time', 'ELCL_PROC', 'ELCL_PROC_time',
-                            'ELCL_PCR_PARAM', 'ELCL_PCR_PARAM_time', '!MODE',
-                            '!MODE_time']
-
-                samples = samples.drop(samp_cols, 1)
-                events = events.drop(event_cols, 1)
-                messages = messages.drop(msg_cols, 1)
-                '''
-
                 sessionName = []
                 dirs = os.listdir()
                 for file_name in dirs:
                     if file_name.startswith(self.args['NavDirName']):
                         sessionName.append(file_name)
                 actualSessionNo = len(sessionName)
-
-                ###### will set up loop for current session ######
-
-                current_Session = 1
 
                 # eye_positions
                 eye_pos = samples[['gx_left', 'gy_left']].copy()
@@ -227,19 +170,24 @@ class Eyelink(DPT.DPObject):
 
                 samples2, events2, messages2 = pread(
                     file, trial_marker=b'Trigger Version 84')
-                # events2 = events2.drop(event_cols, 1)
-                # messages2 = messages2.drop(msg_cols, 1)
                 
-                # sacc_event 
+                # sacc_event and fix_event
                 sacc_event = pd.DataFrame()
+                fix_event = pd.DataFrame()
                 trigger_m = messages2['trialid_time'].dropna().tolist()
                 trigger_m.append(999999999.0)
 
                 for i in range(actualSessionNo):
-                    new_event = events[(events['start'] > trigger_m[i]) & (events['start'] < trigger_m[i+1]) & (events['type'] == 'saccade')]
-                    duration = (new_event['end'] - new_event['start']).reset_index(drop=True)
+                    # for saccades
+                    new_sacc = events[(events['end'] >= trigger_m[i]) & (events['start'] <= trigger_m[i+1]) & (events['type'] == 'saccade')]
+                    duration = (new_sacc['end'] - new_sacc['start']).reset_index(drop=True)
                     sacc_event = pd.concat([sacc_event, duration], axis=1)
+                    # for fixations
+                    new_fix = events[(events['end'] >= trigger_m[i]) & (events['end'] <= trigger_m[i+1]) & (events['type'] == 'fixation')]
+                    duration = (new_fix['end'] - new_fix['start']).reset_index(drop=True)
+                    fix_event = pd.concat([fix_event, duration], axis=1)
                 sacc_event = sacc_event.fillna(0).astype(int)
+                fix_event = fix_event.fillna(0).astype(int)
 
                 # session_start
                 session_start = messages2['trialid_time'].iloc[1]
