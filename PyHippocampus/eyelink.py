@@ -12,6 +12,7 @@ import matplotlib.patches as patches
 import DataProcessingTools as DPT
 from .rplparallel import RPLParallel
 import time
+import csv
 
 class Eyelink(DPT.DPObject):
     '''
@@ -334,8 +335,10 @@ class Eyelink(DPT.DPObject):
                 # modify number of sessions
                 noOfSessions = trialTimestamps.shape[1] // self.args['NumTrialMessages']
                 
-                # print('modified number of sessions: ', noOfSessions)
                 # create missingData csv file
+                if missingData.shape[0] != 0:
+                    with open('missingData.csv', 'w', newline='') as file_writer:
+                        missingData.to_csv(index=False)
 
                 # this loop splits the created matrics, containing timestamps from all sessions,
                 # into session objects
