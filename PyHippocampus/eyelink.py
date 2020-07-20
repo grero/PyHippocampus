@@ -235,7 +235,7 @@ class Eyelink(DPT.DPObject):
                     #preallocate variables
                     trialTimestamps = np.zeros((m.shape[0], 3*noOfSessions))
                     noOfTrials = np.zeros((1,noOfSessions))
-                    missingData = []
+                    missingData = pd.DataFrame()
                     sessionFolder = 1
 
                     # loop to go through all sessions found in edf file
@@ -270,7 +270,7 @@ class Eyelink(DPT.DPObject):
                     noOfSessions = actualSessionNo
                     trialTimestamps = np.zeros((m.shape[0], 3*noOfSessions))
                     noOfTrials = np.zeros((1,1))
-                    missingData = []
+                    missingData = pd.DataFrame()
                     sessionFolder = 1
                     sessionIndex = []
                     extraSessions = 0
@@ -336,7 +336,7 @@ class Eyelink(DPT.DPObject):
                 noOfSessions = trialTimestamps.shape[1] // self.args['NumTrialMessages']
                 
                 # create missingData csv file
-                if missingData.shape[0] != 0:
+                if ~missingData.empty:
                     with open('missingData.csv', 'w', newline='') as file_writer:
                         missingData.to_csv(index=False)
 
@@ -354,6 +354,7 @@ class Eyelink(DPT.DPObject):
                     trial_timestamps = trial_timestamps[~np.all(trial_timestamps == 0, axis=1), :] 
                     trial_timestamps = trial_timestamps[:, ~np.all(trial_timestamps == 0, axis=0)] # remove zero rows
                     trial_timestamps = trial_timestamps - expTime
+                    trial_timestamps = pd.DataFrame(data=trial_timestamps)
 
                     rpl = RPLParallel()
                     if rpl.markers.shape == trial_timestamps.shape:
@@ -600,19 +601,19 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
     messages = m
 
     # store starting times of all events
-    eltimes = messageEvent['trialid_time']
+    eltimes = messageEvent['Time']
 
     # read ripple hdf5 file
     os.chdir(sessionName) 
 
     rpl = RPLParallel()
 
-    if (rpl.get('numSets') != 0 and (rpl.get('timeStamps')[()]).size != 1):  #no missing rplparallel.mat
+    if (rpl.numSets != 0 and (rpl.timeStamps).size != 1):  #no missing rplparallel.mat
         # markers will store all the event numbers in the trial, as taken from the ripple object. 
         # This will be used to mark which events are missing in the eyelink object. 
         # (1-start, 2-cue, 3/4 - end/timeout)
-        markers = rpl.get('markers')[()] # get info from rplparallel hdf5
-        rpltimeStamps = rpl.get('timeStamps')[()]
+        markers = rpl.markers # get info from rplparallel hdf5
+        rpltimeStamps = rpl.timeStamps
         n = len(markers)
 
         # Check if the rplparallel object is formatted correctly or is missing information
@@ -628,8 +629,8 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
             n = len(markers) / 3
 
             if len(markers) % 3 != 0:
-                markers = pd.DataFrame(rpl.get('markers'))
-                rpltimeStamps = pd.DataFrame(rpl.get('timeStamps'))
+                markers = pd.DataFrame(rpl.markers)
+                rpltimeStamps = pd.DataFrame(rpl.timeStamps)
                 [markers, rpltimeStamps] = callEyelink(self, markers, m, eltimes - expTime, rpltimeStamps)
             else: 
                 markers = markers.reshape([3, n])
@@ -660,7 +661,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
             if (n * 3) - messageEvent.shape[0] - 2 >= 100: # use of len of messageEvent, check if the same
                 flag = 1
                 # create empty dataframes
-                elTrials = np.zeros((n, 3)) # pd.DataFrame(columns=range(0,3), index=range(0,n))
+                elTrials = np.zeros((n, 3))
                 missingData = pd.DataFrame(columns = ['Type', 'Timestamps', 'Messages'], index=range(0,n))
                 return
         
@@ -686,8 +687,8 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
 
         # get rid of extra zeros
         [row, _] = np.where(elTrials == 0)
-        elTrials = np.delete(elTrials, row, 1) # CHECK: 0 = delete row, 1 = delete column
-        n = len(missing.ravel().nonzero())
+        elTrials = np.delete(elTrials, row, 1)
+        n = np.count_nonzero(missing)
 
         if n != 0: # if there are missing messages in this session, make the missingData matrix to add to the .csv file 
             print('Missing messages')
@@ -764,9 +765,9 @@ def filleye(self, messages, eltimes, rpl):
         eyelink_raw[0, i] = float(full_text)
 
     eye_timestamps = eltimes.to_numpy().transpose()
-    truth_timestamps = rpl.get('timeStamps')[()]
+    truth_timestamps = rpl.timeStamps
     truth_timestamps = truth_timestamps * 1000
-    truth = rpl.get('markers')[()]
+    truth = rpl.markers
 
     # data transformed into format used by function
     split_by_ones = np.empty((2000,10))
@@ -802,7 +803,7 @@ def filleye(self, messages, eltimes, rpl):
             start = 0
 
     if np.sum(~np.isnan(split_by_ones[0,:])) != 0:
-        split_by_ones = split_by_ones[1:row+1, 1:max_col] # test out: do I need -1 ?
+        split_by_ones = split_by_ones[1:row+1, 1:max_col]
     else:
         split_by_ones = split_by_ones[2:row+1, 1:max_col]
     
@@ -822,7 +823,7 @@ def filleye(self, messages, eltimes, rpl):
 
     missing_rows = len(truth) - len(arranged_array)
 
-    slice_after = np.empty((missing_rows, 2)) # test - this section accounts for triples that look ok, but are made of two trials with the same posters
+    slice_after = np.empty((missing_rows, 2))
     slice_after[:] = np.nan
     slice_index = 1
 
@@ -931,11 +932,11 @@ def filleye(self, messages, eltimes, rpl):
             # locations).
             print(count)
 
-            eye_start_trials = np.empty((count+2, 0))
+            eye_start_trials = np.empty((count+2, 1))
             eye_start_trials[:] = np.nan
             eye_start_count = 1
 
-            esi = 0
+            esi = -1
             for r in range(arranged_array.shape[0]):
                 for c in range(3):
                     if ~np.isnan(arranged_array[r, c]):
@@ -951,6 +952,7 @@ def filleye(self, messages, eltimes, rpl):
                                 print('taking end trial and cutting 10seconds to estimate start trial timing')
                                 eye_start_trials[eye_start_count, 0] = eye_timestamps[esi+1]-10000
                             eye_start_count = eye_start_count + 1
+                
                 rpl_start_trials = truth_timestamps[error_index-count-1:error_index, 0]
                 diff_eye = diff[eye_start_trials]
                 diff_rpl = diff[rpl_start_trials]
@@ -1015,7 +1017,6 @@ def filleye(self, messages, eltimes, rpl):
                 print('shouldnt see nans here')
 
     elTrials = elTrials.reshape([len(elTrials[0])//3, 3]) # ready for output
-
     return elTrials, missing, newMessages
 
 def callEyelink(self, markersRaw, messages, eltimes, rpltimeStamps):
@@ -1033,8 +1034,8 @@ def callEyelink(self, markersRaw, messages, eltimes, rpltimeStamps):
     markers = np.delete(markers, np.nonzero(markers == 0))
     n = markersRaw.shape[1]
 
-    if (n < messages.shape[0]): # messages = m # should be len(messages)
-        m = messages.shape[0] # len(messages)
+    if (n < messages.shape[0]):
+        m = messages.shape[0] 
 
         # first check if edf file is missing something too
         remainder = m % 3
@@ -1043,8 +1044,7 @@ def callEyelink(self, markersRaw, messages, eltimes, rpltimeStamps):
         
         markersNew = np.zeros((m, 1))
         timesNew = np.zeros((m, 3))
-        print(markersNew)
-        print(timesNew)
+
         idx = 1
         idx2 = 1
         sz = m + n
