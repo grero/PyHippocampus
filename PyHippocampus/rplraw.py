@@ -9,7 +9,7 @@ class RPLRaw(DPT.DPObject):
 	argsList = []
 	level = 'channel'
 
-	def __init__(self, analogData = [], analogInfo = {} *args, **kwargs):
+	def __init__(self, *args, **kwargs):
 		DPT.DPObject.__init__(self, *args, **kwargs)
 
 	def create(self, *args, **kwargs):
