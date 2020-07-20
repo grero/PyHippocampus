@@ -7,5 +7,5 @@ numpy
 pandas
 scipy
 networkx
-hickle
+hickle == 4.0.0
 hdf5storage
