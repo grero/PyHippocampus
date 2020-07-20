@@ -6,11 +6,11 @@ import DataProcessingTools as DPT
 class RPLRaw(DPT.DPObject):
 
 	filename = 'rplraw.hkl'
-	argsList = [('analogInfo', {}), ('analogData', [])]
+	argsList = []
 	level = 'channel'
 
 	def __init__(self, *args, **kwargs):
-		DPT.DPObject.__init__(self, *args, **kwargs)
+		DPT.DPObject.__init__(self, analogData = [], analogInfo = {}, *args, **kwargs)
 
 	def create(self, *args, **kwargs):
 		self.data = np.array([])

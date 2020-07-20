@@ -8,21 +8,21 @@ def resampleData(analogData, samplingRate, resampleRate):
 	analogData = signal.resample(analogData, numberOfPoints)
 	return analogData
 
-def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 8, padlen = 0):
+def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 4, padlen = 0):
 	analogData = analogData.flatten()
 	lfpsData = resampleData(analogData, samplingRate, resampleRate)
 	fn = resampleRate / 2
 	lowFreq = lowFreq / fn 
 	highFreq = highFreq / fn 
-	sos = signal.butter(LFPOrder, [lowFreq, highFreq], 'bandpass', fs = resampleRate, output = "sos")
+	[b, a] = signal.butter(LFPOrder, [lowFreq, highFreq], 'bandpass')
 	print("Applying low-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
-	lfps = signal.sosfiltfilt(sos, lfpsData, padlen = padlen)
+	lfps = signal.filtfilt(b, a, lfpsData, padlen = padlen)
 	return lfps, resampleRate
 
 class RPLLFP(DPT.DPObject):
 
 	filename = "rpllfp.hkl"
-	argsList = [('SampleRate', 30000), ('ResampleRate', 1000), ('LFPOrder', 6), ('LowPassFrequency', [1, 150])]
+	argsList = [('SampleRate', 30000), ('ResampleRate', 1000), ('LFPOrder', 4), ('LowPassFrequency', [1, 150])]
 	level = 'channel'
 
 	def __init__(self, *args, **kwargs):
@@ -31,6 +31,7 @@ class RPLLFP(DPT.DPObject):
 	def create(self, *args, **kwargs):
 		self.data = []
 		self.analogInfo = {}
+		self.numSets = 0 
 		rw = RPLRaw()
 		lfpData, resampleRate = lowPassFilter(rw.data, samplingRate = self.args['SampleRate'], resampleRate = self.args['ResampleRate'], LFPOrder = self.args['LFPOrder'], lowFreq = self.args['LowPassFrequency'][0], highFreq = self.args['LowPassFrequency'][1])
 		self.analogInfo['SampleRate'] = resampleRate
@@ -43,6 +44,7 @@ class RPLLFP(DPT.DPObject):
 		self.analogInfo['LowFreqOrder'] = self.args['LFPOrder']
 		self.analogInfo['ProbeInfo'] = rw.analogInfo['ProbeInfo'].replace('raw', 'lfp')
 		self.data = lfpData
+		self.numSets = 1 
 		return self 
 		
 	def plot(self, i = None, ax = None, overlay = False):
