@@ -11,10 +11,13 @@ def resampleData(analogData, samplingRate, resampleRate):
 def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 4, padlen = 0):
 	analogData = analogData.flatten()
 	lfpsData = resampleData(analogData, samplingRate, resampleRate)
+	print(lfpsData[:20])
 	fn = resampleRate / 2
 	lowFreq = lowFreq / fn 
 	highFreq = highFreq / fn 
 	[b, a] = signal.butter(LFPOrder, [lowFreq, highFreq], 'bandpass')
+	print('b', b)
+	print('a', a)
 	print("Applying low-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
 	lfps = signal.filtfilt(b, a, lfpsData, padlen = padlen)
 	return lfps, resampleRate
