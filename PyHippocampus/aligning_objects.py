@@ -2,47 +2,47 @@ import h5py
 import time
 import numpy as np
 import numpy.matlib
+import hickle as hkl
+#import DataProcessingTools as DPT
+from .rplparallel import RPLParallel
+from .eyelink import Eyelink
+from .unity import Unity
 
 
-def aligning_objects():
+
+def Aligning_Objects():
     threshold = 0.02
 
-    uf = h5py.File('unity.hdf5', 'r+')
-    #el = h5py.File('eyelink.hdf5', 'r+')
-    el = h5py.File('eyelink.mat', 'r+')
-    rp = h5py.File('rplparallel.hdf5', 'r')
-    
-    #print(uf.keys())
-    #print(el.get('el').get('data').keys())
-    #print(np.array(el.get('el').get('data').get('session_start')))
-    #print(rp.keys())
-    
+    #uf = hkl.load('unity_5878.hkl')
+    #el = hkl.load('eyelink_b6b0.hkl')
+    #rp = hkl.load('rplparallel_469e.hkl')
+    uf = Unity()
+    rp = RPLParallel()
+    el = Eyelink()
     
     true_timestamps = np.array(rp.get('timeStamps')) * 1000
     a = np.shape(true_timestamps)
     true_timestamps = np.reshape(true_timestamps,a[0]*a[1],order='C')
     
+    return
     
-    
-    el_trial_timestamps_flat = np.array(el.get('el').get('data').get('trial_timestamps'))
+    el_trial_timestamps_flat = np.array(el.get('trial_timestamps'))
     b = np.shape(el_trial_timestamps_flat)
-    el_trial_timestamps_flat = np.reshape(el_trial_timestamps_flat,b[0]*b[1],order='F')
+    el_trial_timestamps_flat = np.reshape(el_trial_timestamps_flat,b[0]*b[1],order='C')
     
-    
-    uf_unityTriggers_flat = uf.get('unityTriggers')
+    uf_unityTriggers_flat = uf.get('unityTriggers')[0]
     c = np.shape(uf_unityTriggers_flat)
-    uf_unityTriggers_flat = np.reshape( uf_unityTriggers_flat,c[0]*c[1],order='C')
+    uf_unityTriggers_flat = np.reshape(uf_unityTriggers_flat,c[0]*c[1],order='C')
     
     dubious_counter = 0
     dubious_collector = []  
     
-    saving_closest_fix_times = el.get('el').get('data').get('fix_times')[0:2,:]
+    saving_closest_fix_times = np.array(el.get('fix_times'))
+    saving_closest_fix_times = saving_closest_fix_times[:,0:2]
+    saving_closest_fix_times = np.transpose(saving_closest_fix_times)
     saving_closest_fix_times = np.reshape(saving_closest_fix_times,(np.shape(saving_closest_fix_times)[0]*np.shape(saving_closest_fix_times)[1]),order='F')
-
     
-    
-    ts = np.array(el.get('el').get('data').get('timestamps'))
-    ts = np.transpose(ts)
+    ts = np.array(el.get('timestamps'))
     t = time.time()
     
     difference = float('NaN')
@@ -75,13 +75,10 @@ def aligning_objects():
 
         current_start = el_trial_timestamps_flat[j]
         current_end = el_trial_timestamps_flat[j+1]
-        current_chunk = np.array(el.get('el').get('data').get('timestamps'))
-        d = np.shape(current_chunk)
-        current_chunk = np.reshape(current_chunk,d[0]*d[1],order='F')
-        
+        current_chunk = np.array(el.get('timestamps'))
         current_chunk = current_chunk[int(current_start)-1:int(current_end)]
         current_chunk = current_chunk.astype(float)
-        current_diff = current_chunk[np.shape(current_chunk)[0]-1] - current_chunk[0]
+        current_diff = current_chunk[np.shape(np.array(current_chunk))[0]-1] - current_chunk[0]
         
         
         current_start_time = current_chunk[0]
@@ -89,17 +86,15 @@ def aligning_objects():
         current_chunk = (current_chunk - current_start_time)* true_diff/current_diff 
         current_chunk = current_chunk + current_start_time
         shifting_needed = current_chunk[np.shape(current_chunk)[0]-1] - current_end_time
-        
-        
-        el.get('el').get('data').get('timestamps')[int(current_start)-1:int(current_end)] = np.uint32(current_chunk)
-        el.get('el').get('data').get('timestamps')[0][int(current_end):np.shape(el.get('el').get('data').get('timestamps'))[1]] = el.get('el').get('data').get('timestamps')[0][int(current_end):np.shape(el.get('el').get('data').get('timestamps'))[1]]+shifting_needed       
-        
-        
+    
+        el.get('timestamps')[int(current_start)-1:int(current_end)] = np.uint32(current_chunk)
+        el.get('timestamps')[int(current_end):np.shape(el.get('timestamps'))[0]] = el.get('timestamps')[int(current_end):np.shape(el.get('timestamps'))[0]]+shifting_needed      
+    
         true_diff = true_diff/1000
         
         current_start = uf_unityTriggers_flat[j]+2
         current_end = uf_unityTriggers_flat[j+1]+2
-        current_chunk = uf.get('unityTime')[current_start-1:current_end]
+        current_chunk = uf.get('unityTime')[0][current_start-1:current_end]
         current_diff = current_chunk[np.shape(current_chunk)[0]-1] - current_chunk[0]
         current_start_time = current_chunk[0]
         current_end_time = current_chunk[np.shape(current_chunk)[0]-1]
@@ -122,14 +117,14 @@ def aligning_objects():
         shifting_needed = current_chunk[np.shape(current_chunk)[0]-1] - current_end_time
         
     
-        uf.get('unityTime')[int(current_start)-1:int(current_end)] = current_chunk
-        uf.get('unityTime')[int(current_end):np.shape(uf.get('unityTime'))[0]] = uf.get('unityTime')[int(current_end):np.shape(uf.get('unityTime'))[0]] + shifting_needed        
+        uf.get('unityTime')[0][int(current_start)-1:int(current_end)] = current_chunk
+        uf.get('unityTime')[0][int(current_end):np.shape(uf.get('unityTime')[0])[0]] = uf.get('unityTime')[0][int(current_end):np.shape(uf.get('unityTime')[0])[0]] + shifting_needed        
         
         
         if dubious == 1:
             prev_prev_start = uf_unityTriggers_flat[j-2]+1
-            chunk_size = np.shape(uf.get('unityTime')[prev_prev_start:current_start])[0]
-            uf.get('unityTime')[prev_prev_start:current_start] = numpy.matlib.repmat(uf.get('unityTime')[prev_prev_start],1,chunk_size)
+            chunk_size = np.shape(uf.get('unityTime')[0][prev_prev_start:current_start])[0]
+            uf.get('unityTime')[0][prev_prev_start:current_start] = numpy.matlib.repmat(uf.get('unityTime')[0][prev_prev_start],1,chunk_size)
             
             dubious_counter = dubious_counter + 1
             dubious_collector.append(j)
@@ -141,87 +136,92 @@ def aligning_objects():
     print('dubious location(s): ' + str(dubious_collector))
     
     markers = np.array(rp.get('rawMarkers'))
+    
     if markers[0] == 84: 
-        true_session_start = np.array(rp.get('session_start_sec'))
+        true_session_start = np.array(rp.get('sessionStartTime'))
+        print(true_session_start)
         session_trial_duration = rp.get('timeStamps')[0][0] - true_session_start
         session_trial_duration = session_trial_duration * 1000
-        
-    
-        finding_index  = 0
-        print(np.shape(np.array(el.get('el').get('data').get('timestamps')))[1])
-        for i in range(np.shape(np.array(el.get('el').get('data').get('timestamps')))[1]):
-            if el.get('el').get('data').get('timestamps')[0][i] != el.get('el').get('data').get('session_start'):
+        print(session_trial_duration)
+        finding_index = 0
+        for i in range(np.shape(el.get('timestamps'))[0]):
+            if el.get('timestamps')[i] != el.get('session_start')[0]:
                 finding_index += 1
             else:
                 break
-        
-        el_session_trial_chunk = el.get('el').get('data').get('timestamps')[0][finding_index:int(el.get('el').get('data').get('trial_timestamps')[0][0])]
+        print(finding_index)
+        el_session_trial_chunk = np.array(el.get('timestamps'))[finding_index:int(np.array(el.get('trial_timestamps'))[0][0])]
         el_session_trial_chunk.astype(float)
         last_point = el_session_trial_chunk[np.shape(el_session_trial_chunk)[0]-1]
         first_point = el_session_trial_chunk[0]   
         scaled_chunk = ((el_session_trial_chunk - el_session_trial_chunk[0]) / float(last_point - first_point)) * session_trial_duration
         scaled_chunk = scaled_chunk + first_point
         shifting_needed = scaled_chunk[np.shape(scaled_chunk)[0]-1] - last_point
-
-        el.get('el').get('data').get('timestamps')[0][el.get('el').get('data').get('timestamps')[0][0]:np.shape(el.get('el').get('data').get('timestamps'))[1]] = el.get('el').get('data').get('timestamps')[0][el.get('el').get('data').get('timestamps')[0][0]:np.shape(el.get('el').get('data').get('timestamps'))[1]] + shifting_needed
-        el.get('el').get('data').get('timestamps')[0][finding_index:int(el.get('el').get('data').get('trial_timestamps')[0][0])] = scaled_chunk
+        start = int(np.array(el.get('trial_timestamps'))[0][0])
+        end = np.shape(el.get('timestamps'))[0]
+        el.get('timestamps')[start:end] = el.get('timestamps')[start:end] + shifting_needed
+        el.get('timestamps')[finding_index:start] = scaled_chunk     
         
         target = true_session_start * 1000
-        full_shift = np.array(el.get('el').get('data').get('session_start')) - target
-        el.get('el').get('data').get('timestamps')[:] = np.uint32(el.get('el').get('data').get('timestamps')[:]-full_shift)
-       
+        full_shift = np.array(el.get('session_start')) - target
+        el.get('timestamps')[:] = np.uint32(el.get('timestamps')[:] - full_shift)
+    
         
-        working_copy = el.get('el').get('data').get('fix_times')[0:2,:]
-        working_copy = np.uint32(np.transpose(working_copy))
+        working_copy = np.array(el.get('fix_times'))[:,0:2]
+        working_copy = np.uint32(working_copy)
         
-        TS = np.array(el.get('el').get('data').get('timestamps'))
-        TS = np.transpose(TS)
-        for row in range(np.shape(working_copy)[0]):
+        TS = np.array(el.get('timestamps'))
+        #TS = np.transpose(TS)
+        for row in range(np.shape(el.get('fix_times'))[0]):
             for col in range(0,2):
-                working_copy[row][col] = TS[int(saving_closest_fix_times[row][col])]          
-        working_copy = np.transpose(working_copy)
-        el.get('el').get('data').get('fix_times')[0:2,:] = working_copy
-
+                working_copy[row, col] = TS[int(saving_closest_fix_times[row, col])]
+                if col == 0:
+                    
+                    el.get('fix_times')['start'][row] = working_copy[row, col]
+                else:
+                    el.get('fix_times')['end'][row] = working_copy[row, col]
+        
+        
         session_trial_duration = rp.get('timeStamps')[0][0] - true_session_start
-        uf_session_trial_chunk = uf.get('unityTime')[0:uf.get('unityTriggers')[0][0]+2]
+        uf_session_trial_chunk = uf.get('unityTime')[0][0:uf.get('unityTriggers')[0][0][0]+2]
         last_point = uf_session_trial_chunk[np.shape(uf_session_trial_chunk)[0]-1]
         scaled_chunk = (uf_session_trial_chunk/last_point) * session_trial_duration
         shifting_needed = scaled_chunk[np.shape(scaled_chunk)[0]-1] - last_point
-        uf.get('unityTime')[uf.get('unityTriggers')[0][0]+1:np.shape(uf.get('unityTime'))[0]] += shifting_needed
-        uf.get('unityTime')[0:uf.get('unityTriggers')[0][0]+2] = scaled_chunk
         
-        uf.get('unityTime')[:] += true_session_start  
+        uf.get('unityTime')[0][uf.get('unityTriggers')[0][0][0]+1:np.shape(uf.get('unityTime')[0])[0]] += shifting_needed
+        uf.get('unityTime')[0][0:uf.get('unityTriggers')[0][0][0]+2] = scaled_chunk
+        
+        uf.get('unityTime')[0][:] += true_session_start  
        
     else:
         print('session start marker not recognised')
         print('unable to align timings accurately for now')        
         
-    
-    new_deltas = np.diff(uf.get('unityTime'))
-    for i in range(np.shape(uf.get('unityData'))[0]):
-        uf.get('unityData')[i][1] = new_deltas[i]
-    
+    new_deltas = np.diff(uf.get('unityTime')[0])
+    for i in range(np.shape(uf.get('unityData')[0])[0]):
+        uf.get('unityData')[0][i][1] = new_deltas[i]
     
     
-    for col in range(np.shape(uf.get('unityTrialTime'))[1]):
+    for col in range(np.shape(uf.get('unityTrialTime')[0])[1]):
         
-        arr = uf.get('unityTime')[uf.get('unityTriggers')[col][1]-1:uf.get('unityTriggers')[col][2]]
+        arr = uf.get('unityTime')[0][uf.get('unityTriggers')[0][col][1]-1:uf.get('unityTriggers')[0][col][2]]
         arr = arr - arr[0]
-        a = np.empty((np.shape(uf.get('unityTrialTime'))[0],1))
+        a = np.empty((np.shape(uf.get('unityTrialTime')[0])[0],1))
         a [:] = np.nan
-        for i in range(np.shape(uf.get('unityTrialTime'))[0]):
-            uf.get('unityTrialTime')[i,col] = a[i]
+        for i in range(np.shape(uf.get('unityTrialTime')[0])[0]):
+            uf.get('unityTrialTime')[0][i,col] = a[i]
         for j in range(np.shape(arr)[0]):
-            uf.get('unityTrialTime')[j,col] = arr[j]      
+            uf.get('unityTrialTime')[0][j,col] = arr[j]      
     
     
-    uf.close()
-    el.close()
-    rp.close()
+    #hkl.dump(uf,'uf_new1.hkl','w')
+    #hkl.dump(el,'el_new1.hkl','w')
+    uf.save()
+    el.save()
             
 
 
-#print(aligning_objects())
+print(aligning_objects())
 
         
         
