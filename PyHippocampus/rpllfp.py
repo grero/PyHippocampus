@@ -4,11 +4,12 @@ import DataProcessingTools as DPT
 from .rplraw import RPLRaw
 
 def resampleData(analogData, samplingRate, resampleRate):
-	numberOfPoints = int(resampleRate * (len(analogData) / samplingRate))
-	analogData = signal.resample(analogData, numberOfPoints)
+	# numberOfPoints = int(resampleRate * (len(analogData) / samplingRate))
+	# analogData = signal.resample(analogData, numberOfPoints)
+	analogData = signal.resample_poly(analogData, samplingRate, resampleRate)
 	return analogData
 
-def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 4, padlen = 0):
+def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 4):
 	analogData = analogData.flatten()
 	lfpsData = resampleData(analogData, samplingRate, resampleRate)
 	print(lfpsData[:20])
@@ -16,16 +17,14 @@ def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq
 	lowFreq = lowFreq / fn 
 	highFreq = highFreq / fn 
 	[b, a] = signal.butter(LFPOrder, [lowFreq, highFreq], 'bandpass')
-	print('b', b)
-	print('a', a)
 	print("Applying low-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
-	lfps = signal.filtfilt(b, a, lfpsData, padlen = padlen)
+	lfps = signal.filtfilt(b, a, lfpsData, 3 * max(len(a), len(b) - 1))
 	return lfps, resampleRate
 
 class RPLLFP(DPT.DPObject):
 
 	filename = "rpllfp.hkl"
-	argsList = [('SampleRate', 30000), ('ResampleRate', 1000), ('LFPOrder', 4), ('LowPassFrequency', [1, 150])]
+	argsList = [('SampleRate', 30000), ('ResampleRate', 1000), ('LFPOrder', 8), ('LowPassFrequency', [1, 150])]
 	level = 'channel'
 
 	def __init__(self, *args, **kwargs):
@@ -36,7 +35,7 @@ class RPLLFP(DPT.DPObject):
 		self.analogInfo = {}
 		self.numSets = 0 
 		rw = RPLRaw()
-		lfpData, resampleRate = lowPassFilter(rw.data, samplingRate = self.args['SampleRate'], resampleRate = self.args['ResampleRate'], LFPOrder = self.args['LFPOrder'], lowFreq = self.args['LowPassFrequency'][0], highFreq = self.args['LowPassFrequency'][1])
+		lfpData, resampleRate = lowPassFilter(rw.data, samplingRate = self.args['SampleRate'], resampleRate = self.args['ResampleRate'], LFPOrder = self.args['LFPOrder'] / 2, lowFreq = self.args['LowPassFrequency'][0], highFreq = self.args['LowPassFrequency'][1])
 		self.analogInfo['SampleRate'] = resampleRate
 		self.analogInfo['MinVal'] = np.amin(lfpData)
 		self.analogInfo['MaxVal'] = np.amax(lfpData)
