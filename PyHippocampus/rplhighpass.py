@@ -2,6 +2,7 @@ from .rplraw import RPLRaw
 from scipy import signal 
 import numpy as np 
 import DataProcessingTools as DPT 
+from .helperfunctions import plotFFT
 
 def highPassFilter(analogData, samplingRate = 30000, lowFreq = 500, highFreq = 7500, HPOrder = 4):
 	analogData = analogData.flatten()
@@ -27,19 +28,39 @@ class RPLHighPass(DPT.DPObject):
 		self.analogInfo = {}
 		self.numSets = 0
 		rw = RPLRaw()
-		hpData, samplingRate = highPassFilter(rw.data, samplingRate = rw.analogInfo['SampleRate'], HPOrder = int(self.args['HighOrder'] / 2), lowFreq = self.args['HighPassFrequency'][0], highFreq = self.args['HighPassFrequency'][1])
-		self.analogInfo['SampleRate'] = samplingRate
-		self.analogInfo['MinVal'] = np.amin(hpData)
-		self.analogInfo['MaxVal'] = np.amax(hpData)
-		self.analogInfo['HighFreqCorner'] = self.args['HighPassFrequency'][0] * samplingRate
-		self.analogInfo['LowFreqCorner'] = self.args['HighPassFrequency'][1] * samplingRate
-		self.analogInfo['NumberSamples'] = len(hpData)
-		self.analogInfo['HighFreqOrder'] = self.args['HighOrder']
-		self.analogInfo['LowFreqOrder'] = self.args['HighOrder']
-		self.analogInfo['ProbeInfo'] = rw.analogInfo['ProbeInfo'].replace('raw', 'hp')
-		self.data = hpData
-		self.numSets = 1 
+		if len(rw.data) > 0: 
+			hpData, samplingRate = highPassFilter(rw.data, samplingRate = rw.analogInfo['SampleRate'], HPOrder = int(self.args['HighOrder'] / 2), lowFreq = self.args['HighPassFrequency'][0], highFreq = self.args['HighPassFrequency'][1])
+			self.analogInfo['SampleRate'] = samplingRate
+			self.analogInfo['MinVal'] = np.amin(hpData)
+			self.analogInfo['MaxVal'] = np.amax(hpData)
+			self.analogInfo['HighFreqCorner'] = self.args['HighPassFrequency'][0] * samplingRate
+			self.analogInfo['LowFreqCorner'] = self.args['HighPassFrequency'][1] * samplingRate
+			self.analogInfo['NumberSamples'] = len(hpData)
+			self.analogInfo['HighFreqOrder'] = self.args['HighOrder']
+			self.analogInfo['LowFreqOrder'] = self.args['HighOrder']
+			self.analogInfo['ProbeInfo'] = rw.analogInfo['ProbeInfo'].replace('raw', 'hp')
+			self.data = hpData
+			self.numSets = 1 
 		return self
 
-		def plot(self):
-			pass 
+		def plot(self, i = None, ax = None, overlay = False):
+			self.current_idx = i 
+			if ax is None: 
+				ax = plt.gca()
+			if not overlay:
+				ax.clear()
+			self.plotopts = {'LabelsOff': False, 'GroupPlots': 1, 'GroupPlotIndex': 1, 'Color': 'b', 'FFT': False, 'XLims': [0, 150], 'LoadSort': False}
+			plot_type_FFT = self.plotopts['FFT']
+			if plot_type_FFT: 
+				ax = plotFFT(self.data, self.analogInfo['SampleRate'])
+				if not self.plotopts['LabelsOff']:
+					ax.set_xlabel('Freq (Hz)')
+					ax.set_ylabel('Magnitude')
+				ax.xlim(self.plotopts['XLims'])
+			else:
+				ax.plot(self.data)
+				if self.plotopts['LoadSort']:
+					pass  
+			return 
+
+

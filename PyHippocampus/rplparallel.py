@@ -47,10 +47,14 @@ def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 class RPLParallel(DPT.DPObject):
 
 	filename = 'rplparallel.hkl'
-	argsList = [('Data', False), ('markers', []), ('timeStamps', []), ('rawMarkers', []), ('trialIndices', []), ('sessionStartTime', []), ('sampleRate', 30000)]
+	argsList = [('data', False), ('markers', []), ('timeStamps', []), ('rawMarkers', []), ('trialIndices', []), ('sessionStartTime', []), ('sampleRate', 30000)]
 
 	def __init__(self, *args, **kwargs):
-		DPT.DPObject.__init__(self, *args, **kwargs) 
+		curr = os.getcwd()
+		rr = DPT.levels.resolve_level(self.level, os.getcwd())
+		with DPT.misc.CWD(rr):
+			DPT.DPObject.__init__(self, *args, **kwargs)
+		os.chdir(curr)
 
 	def create(self, *args, **kwargs):
 		self.markers = []
@@ -61,7 +65,7 @@ class RPLParallel(DPT.DPObject):
 		self.samplingRate = None 
 		self.numSets = 0 
 
-		if self.args['Data']:
+		if self.args['data']:
 			self.markers = self.args['markers'] 
 			self.timeStamps = self.args['timeStamps']
 			self.trialIndices = self.args['trialIndices']
