@@ -3,22 +3,16 @@ from scipy import signal
 import DataProcessingTools as DPT 
 from .rplraw import RPLRaw
 
-def resampleData(analogData, samplingRate, resampleRate):
-	# numberOfPoints = int(resampleRate * (len(analogData) / samplingRate))
-	# analogData = signal.resample(analogData, numberOfPoints)
-	analogData = signal.resample_poly(analogData, samplingRate, resampleRate)
-	return analogData
-
 def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 4):
 	analogData = analogData.flatten()
-	lfpsData = resampleData(analogData, samplingRate, resampleRate)
-	print(lfpsData[:20])
+	lfpsData = signal.resample_poly(analogData, resampleRate, samplingRate)
+	print(lfsData[:30])
 	fn = resampleRate / 2
 	lowFreq = lowFreq / fn 
 	highFreq = highFreq / fn 
 	[b, a] = signal.butter(LFPOrder, [lowFreq, highFreq], 'bandpass')
 	print("Applying low-pass filter with frequencies {} and {} Hz".format(lowFreq * fn, highFreq * fn))
-	lfps = signal.filtfilt(b, a, lfpsData, 3 * max(len(a), len(b) - 1))
+	lfps = signal.filtfilt(b, a, lfpsData, padtype = 'odd', padlen = 3*(max(len(b),len(a))-1))
 	return lfps, resampleRate
 
 class RPLLFP(DPT.DPObject):
@@ -35,7 +29,7 @@ class RPLLFP(DPT.DPObject):
 		self.analogInfo = {}
 		self.numSets = 0 
 		rw = RPLRaw()
-		lfpData, resampleRate = lowPassFilter(rw.data, samplingRate = self.args['SampleRate'], resampleRate = self.args['ResampleRate'], LFPOrder = self.args['LFPOrder'] / 2, lowFreq = self.args['LowPassFrequency'][0], highFreq = self.args['LowPassFrequency'][1])
+		lfpData, resampleRate = lowPassFilter(rw.data, samplingRate = self.args['SampleRate'], resampleRate = self.args['ResampleRate'], LFPOrder = int(self.args['LFPOrder'] / 2), lowFreq = self.args['LowPassFrequency'][0], highFreq = self.args['LowPassFrequency'][1])
 		self.analogInfo['SampleRate'] = resampleRate
 		self.analogInfo['MinVal'] = np.amin(lfpData)
 		self.analogInfo['MaxVal'] = np.amax(lfpData)
