@@ -7,3 +7,4 @@ from .rpllfp import RPLLFP
 from .rplhighpass import RPLHighPass 
 from .rplsplit import RPLSplit
 from .rplparallel import RPLParallel
+from .helperfunctions import plotFFT
