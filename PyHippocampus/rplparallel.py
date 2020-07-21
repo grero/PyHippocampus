@@ -2,7 +2,8 @@ import neo
 from neo.io import BlackrockIO 
 import numpy as np 
 import glob 
-import DataProcessingTools as DPT 
+import DataProcessingTools as DPT
+import os
 
 def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 	rawMarkers = markers 
@@ -48,13 +49,12 @@ class RPLParallel(DPT.DPObject):
 
 	filename = 'rplparallel.hkl'
 	argsList = [('data', False), ('markers', []), ('timeStamps', []), ('rawMarkers', []), ('trialIndices', []), ('sessionStartTime', []), ('sampleRate', 30000)]
+	level = "session"
 
 	def __init__(self, *args, **kwargs):
-		curr = os.getcwd()
 		rr = DPT.levels.resolve_level(self.level, os.getcwd())
 		with DPT.misc.CWD(rr):
 			DPT.DPObject.__init__(self, *args, **kwargs)
-		os.chdir(curr)
 
 	def create(self, *args, **kwargs):
 		self.markers = []
