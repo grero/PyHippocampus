@@ -2,11 +2,7 @@ import neo
 from neo.io import BlackrockIO 
 import numpy as np 
 import glob 
-<<<<<<< HEAD
 import DataProcessingTools as DPT 
-=======
-import DataProcessingTools as DPT
->>>>>>> c4c61b016ef27cedc1494bdbd8617f93a373b28b
 import os
 
 def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
