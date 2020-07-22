@@ -2,7 +2,11 @@ import neo
 from neo.io import BlackrockIO 
 import numpy as np 
 import glob 
+<<<<<<< HEAD
+import DataProcessingTools as DPT 
+=======
 import DataProcessingTools as DPT
+>>>>>>> c4c61b016ef27cedc1494bdbd8617f93a373b28b
 import os
 
 def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
@@ -48,8 +52,8 @@ def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 class RPLParallel(DPT.DPObject):
 
 	filename = 'rplparallel.hkl'
-	argsList = [('data', False), ('markers', []), ('timeStamps', []), ('rawMarkers', []), ('trialIndices', []), ('sessionStartTime', []), ('sampleRate', 30000)]
-	level = "session"
+	argsList = []
+	level = 'session'
 
 	def __init__(self, *args, **kwargs):
 		rr = DPT.levels.resolve_level(self.level, os.getcwd())
@@ -62,18 +66,19 @@ class RPLParallel(DPT.DPObject):
 		self.timeStamps = []
 		self.trialIndices = []
 		self.sessionStartTime = None 
-		self.samplingRate = None 
+		self.samplingRate = 30000 
 		self.numSets = 0 
 
-		if self.args['data']:
-			self.markers = self.args['markers'] 
-			self.timeStamps = self.args['timeStamps']
-			self.trialIndices = self.args['trialIndices']
-			self.rawMarkers = self.args['rawMarkers']
-			self.sessionStartTime = self.args['sessionStartTime']
-			self.sampleRate = self.args['sampleRate']
-			self.numSets = 1
-			return self 
+		if 'data' in kwargs.keys():
+			if kwargs['data']:
+				self.markers = kwargs['markers'] 
+				self.timeStamps = kwargs['timeStamps']
+				self.trialIndices = kwargs['trialIndices']
+				self.rawMarkers = kwargs['rawMarkers']
+				self.sessionStartTime = kwargs['sessionStartTime']
+				self.samplingRate = kwargs['sampleRate']
+				self.numSets = 1
+				return self 
 
 		nevFile = glob.glob("*.nev")
 		if len(nevFile) == 0:
