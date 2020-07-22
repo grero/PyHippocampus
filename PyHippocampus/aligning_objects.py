@@ -143,7 +143,7 @@ def Aligning_Objects():
         #print(session_trial_duration)
         finding_index = 0
         for i in range(np.shape(el.timestamps)[0]):
-            if el.timestamps[i] != el.session_start[0]:
+            if el.timestamps[i] != el.session_start:
                 finding_index += 1
             else:
                 break
@@ -216,6 +216,7 @@ def Aligning_Objects():
     #hkl.dump(el,'el_new1.hkl','w')
     uf.save()
     el.save()
+    print('finish aligning objects')
             
 
 
