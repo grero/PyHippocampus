@@ -3,7 +3,7 @@ hdf5storage
 hickle == 4.0.0
 h5py
 matplotlib
-python-neo
+neo
 networkx
 numpy
 pandas
