@@ -1,11 +1,10 @@
 Cython
-hickle
+hdf5storage
+hickle == 4.0.0
 h5py
 matplotlib
 python-neo
+networkx
 numpy
 pandas
 scipy
-networkx
-hickle == 4.0.0
-hdf5storage
