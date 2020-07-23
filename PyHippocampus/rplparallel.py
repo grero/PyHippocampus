@@ -80,10 +80,11 @@ class RPLParallel(DPT.DPObject):
 
 		nevFile = glob.glob("*.nev")
 		if len(nevFile) == 0:
-			print("No .nev files in directory. Returning empty object..")
+			print("No .nev files in directory. Returning empty object...")
 			return self 
 		else: 
 			reader = BlackrockIO(nevFile[0])
+			print('Opening .nev file, creating RPLParallel object...')
 			ev_rawtimes, _, ev_markers = reader.get_event_timestamps()
 			ev_times = reader.rescale_event_timestamp(ev_rawtimes, dtype = "float64")
 			if self.args['sessionEye']:
