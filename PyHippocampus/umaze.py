@@ -31,26 +31,25 @@ class Umaze(DPT.DPObject):
         unityTrialTime = uf.unityTrialTime[0]
         unityTime = uf.unityTime[0]
 	sumCost = uf.sumCost[0]
-        totTrials = np.shape(unityTriggers)[0]        
+	totTrials = np.shape(unityTriggers)[0]       
         # GridSteps: g should be capital letter
-        GridSteps = args.GridSteps
+	GridSteps = args.GridSteps
 	OverallGridSize = args.OverallGridSize
-        gridBins = GridSteps * GridSteps
-        oGS2 = OverallGridSize/2
-        gridSize = OverallGridSize/GridSteps
+	gridBins = GridSteps * GridSteps
+	oGS2 = OverallGridSize/2
+	gridSize = OverallGridSize/GridSteps
 	gpEdges = np.arange(0,(gridBins+1))
-        horGridBound = np.arange(-oGS2, oGS2, gridSize)
-        vertGridBound = horGridBound
+	horGridBound = np.arange(-oGS2, oGS2, gridSize)
+	vertGridBound = horGridBound
 	
         gridPosition, binH, binV = np.histogram2d(unityData[:, 2],unityData[:, 3],bins = (horGridBound, vertGridBound))
-        gridPosition = binH + ((binV - 1) * GridSteps) 
+        gridPosition = binH + ((binV - 1) * GridSteps)
 	gpDurations = np.zeros(gridBins,totTrials)
         
         #line 151-354
         trialCounter = 0
         gpreseti = 0
         sessionTime = np.zeros((np.shape(gridPosition)[0], 3))
-        
         sTi = 1
         for a in range(totTrials):
             trialCounter = trialCounter + 1
@@ -136,7 +135,7 @@ class Umaze(DPT.DPObject):
                 gpDurations[tempgp, a] = np.sum(unityData[utgpidx+1, 1])                    
                                           
             gridPosition[gpreseti:uDidx[0]] = 0
-            gpreseti = unityTriggers(a,2)+1               
+            gpreseti = unityTriggers(a,2)+1           
         
         #print('speed thresholding portion')
 	
@@ -146,23 +145,22 @@ class Umaze(DPT.DPObject):
         sTP, sTPi = np.sort(sTime[:,1])
         sTPsi = np.where(np.diff(sTP) != 0) + 1
         if sTP[0] == -1:
-            sTPsi = sTPsi[1:]  
+            sTPsi = sTPsi[1:]
         sTPind = np.array(sTPsi[[sTPsi[1:]-1], [np.shape(sTP)[0]]])
-        sTPin = np.diff(sTPind,1,1) + 1
+	sTPin = np.diff(sTPind,1,1) + 1
         sortedGPindinfo = np.array([sTP(sTPsi)] [sTPind] [sTPin])
-        _, gp2ind = np.in1d(np.arange(0,gridBins), sortedGPindinfo[:,0])
-        sTPinm = np.where(sTPin>(self.args['MinObs']-1))
+	_, gp2ind = np.in1d(np.arange(0,gridBins), sortedGPindinfo[:,0])
+	sTPinm = np.where(sTPin>(self.args['MinObs']-1))
         
         sTPsi2 = sTPsi[sTPinm]
         sTPin2 = sTPin[sTPinm]
         sTPu = sTP[sTPsi2]
         nsTPu = np.shape(sTPu)[0]
         sTPind2 = sTPind[sTPinm,:]
-        ou_i = np.zeros(nsTPu,1)
+	ou_i = np.zeros(nsTPu,1)
         
         for pi in range(nsTPu):
-            ou_i[pi] = np.sum(sTime[sTPi[sTPind2[pi,0]:sTPind2[pi,1]],3])
-        
+	    ou_i[pi] = np.sum(sTime[sTPi[sTPind2[pi,0]:sTPind2[pi,1]],3])
 	self.GridSteps = GridSteps
 	self.OverallGridSize = OverallGridSize
 	self.oGS2 = oGS2
