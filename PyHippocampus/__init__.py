@@ -9,3 +9,4 @@ from .rplsplit import RPLSplit
 from .rplparallel import RPLParallel
 from .helperfunctions import plotFFT
 from .aligning_objects import Aligning_Objects
+from .umaze import Umaze

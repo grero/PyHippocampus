@@ -3,16 +3,15 @@ from pylab import gcf, gca
 import numpy as np
 import os
 import glob
-from . import unity
+from .unity import Unity
 import scipy
 import networkx as nx
 
 
 class Umaze(DPT.DPObject):
     filename = "unity.hkl"
-    argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
-                ('TriggerVal2', 20), ('TriggerVal3', 30)]
-    level = "session"    
+    argsList = [('GridSteps', 40), ('OverallGridSize', 25)]
+    level = "session" 
 
     def __init__(self, *args, **kwargs):
 	rr = DPT.levels.resolve_level("session", os.getcwd())
@@ -20,12 +19,11 @@ class Umaze(DPT.DPObject):
 	    DPT.DPObject.__init__(self, *args, **kwargs)
 	    
     def create(self, *args, **kwargs):
-        # set plot options
-        self.indexer = self.getindex("trial")
+        #self.indexer = self.getindex("trial")
 
         # load the unity object to get the data
-        uf = unity.Unity()
-	if uf.unityData == None:
+        uf = Unity()
+	if uf.unityData[0] == None:
 	    print('Unity file is empty.')
 	    return
         unityData = uf.unityData[0]
@@ -36,10 +34,10 @@ class Umaze(DPT.DPObject):
         totTrials = np.shape(unityTriggers)[0]        
         # GridSteps: g should be capital letter
         GridSteps = args.GridSteps
-	overallGridSize = args.overallGridSize
+	OverallGridSize = args.OverallGridSize
         gridBins = GridSteps * GridSteps
-        oGS2 = overallGridSize/2
-        gridSize = overallGridSize/GridSteps
+        oGS2 = OverallGridSize/2
+        gridSize = OverallGridSize/GridSteps
 	gpEdges = np.arange(0,(gridBins+1))
         horGridBound = np.arange(-oGS2, oGS2, gridSize)
         vertGridBound = horGridBound
@@ -153,7 +151,7 @@ class Umaze(DPT.DPObject):
         sTPin = np.diff(sTPind,1,1) + 1
         sortedGPindinfo = np.array([sTP(sTPsi)] [sTPind] [sTPin])
         _, gp2ind = np.in1d(np.arange(0,gridBins), sortedGPindinfo[:,0])
-        sTPinm = np.where(sTPin>(self.arges['MinObs']-1))
+        sTPinm = np.where(sTPin>(self.args['MinObs']-1))
         
         sTPsi2 = sTPsi[sTPinm]
         sTPin2 = sTPin[sTPinm]
@@ -166,7 +164,7 @@ class Umaze(DPT.DPObject):
             ou_i[pi] = np.sum(sTime[sTPi[sTPind2[pi,0]:sTPind2[pi,1]],3])
         
 	self.GridSteps = GridSteps
-	self.overallGridSize = overallGridSize
+	self.OverallGridSize = OverallGridSize
 	self.oGS2 = oGS2
 	self.gridSize = gridSize
 	self.horGridBound = horGridBound
@@ -176,6 +174,7 @@ class Umaze(DPT.DPObject):
 	self.gpDurations = gpDurations
 	self.setIndex = np.array([0], [totTrials])        
         #data.processTrials = find(ufdata.data.sumCost(:,6)==1)
+	self.processTrials = np.where(sumCost[:,5] == 1)
 	self.processTrials = np.arange(0,totTrials)
 	self.sessionTime = sTime
 	self.sortedGPindices = sTPi
