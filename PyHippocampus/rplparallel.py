@@ -48,7 +48,7 @@ def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 class RPLParallel(DPT.DPObject):
 
 	filename = 'rplparallel.hkl'
-	argsList = []
+	argsList = [('sessionEye', False)]
 	level = 'session'
 
 	def __init__(self, *args, **kwargs):
@@ -58,12 +58,14 @@ class RPLParallel(DPT.DPObject):
 
 	def create(self, *args, **kwargs):
 		self.markers = []
-		self.rawMarkers = []
 		self.timeStamps = []
-		self.trialIndices = []
-		self.sessionStartTime = None 
-		self.samplingRate = 30000 
-		self.numSets = 0 
+
+		if not self.args['sessionEye']:
+			self.rawMarkers = []
+			self.trialIndices = []
+			self.sessionStartTime = None 
+			self.samplingRate = 30000 
+			self.numSets = 0 
 
 		if 'data' in kwargs.keys():
 			if kwargs['data']:
@@ -84,6 +86,10 @@ class RPLParallel(DPT.DPObject):
 			reader = BlackrockIO(nevFile[0])
 			ev_rawtimes, _, ev_markers = reader.get_event_timestamps()
 			ev_times = reader.rescale_event_timestamp(ev_rawtimes, dtype = "float64")
+			if self.args['sessionEye']:
+				self.markers = ev_markers
+				self.timeStamps = ev_times 
+				return self 
 			self.rawMarkers = ev_markers
 			self.sessionStartTime = ev_times[0]
 			self.numSets = 1
