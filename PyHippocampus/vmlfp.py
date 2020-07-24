@@ -50,7 +50,7 @@ class VMLFP(DPT.DPObject):
 		if getNumEvents:
 			if plotOpts['PlotAllData']: # to avoid replotting the same data. 
 				return 1, 0 
-			if plot_type == 'FreqPlot' or 'Signal' or 'TFfft':
+			if plot_type == 'FreqPlot' or plot_type == 'Signal' or plot_type == 'TFfft':
 				if i is not None:
 					nidx = i 
 				else:
