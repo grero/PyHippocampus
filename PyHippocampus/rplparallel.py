@@ -48,7 +48,7 @@ def arrangeMarkers(markers, timeStamps, samplingRate = 30000):
 class RPLParallel(DPT.DPObject):
 
 	filename = 'rplparallel.hkl'
-	argsList = [('sessionEye', False)]
+	argsList = []
 	level = 'session'
 
 	def __init__(self, *args, **kwargs):
@@ -59,13 +59,6 @@ class RPLParallel(DPT.DPObject):
 	def create(self, *args, **kwargs):
 		self.markers = []
 		self.timeStamps = []
-
-		if not self.args['sessionEye']:
-			self.rawMarkers = []
-			self.trialIndices = []
-			self.sessionStartTime = None 
-			self.samplingRate = 30000 
-			self.numSets = 0 
 
 		if 'data' in kwargs.keys():
 			if kwargs['data']:
@@ -81,16 +74,22 @@ class RPLParallel(DPT.DPObject):
 		nevFile = glob.glob("*.nev")
 		if len(nevFile) == 0:
 			print("No .nev files in directory. Returning empty object...")
-			return self 
+			self.rawMarkers = []
+			self.trialIndices = []
+			self.sessionStartTime = None 
+			self.samplingRate = 30000 
+			self.numSets = 0 
+			return self 		
 		else: 
 			reader = BlackrockIO(nevFile[0])
-			print('Opening .nev file, creating RPLParallel object...')
+			print('Opening .nev file, creating new RPLParallel object...')
 			ev_rawtimes, _, ev_markers = reader.get_event_timestamps()
 			ev_times = reader.rescale_event_timestamp(ev_rawtimes, dtype = "float64")
-			if self.args['sessionEye']:
-				self.markers = ev_markers
-				self.timeStamps = ev_times 
+			if ev_markers[0] == 128:
+				self.markers = ev_markers[::2]
+				self.timeStamps = ev_times[::2]
 				return self 
+			self.samplingRate = 30000
 			self.rawMarkers = ev_markers
 			self.sessionStartTime = ev_times[0]
 			self.numSets = 1
@@ -100,18 +99,35 @@ class RPLParallel(DPT.DPObject):
 				print('problem with arrange markers.')
 			return self 
 
-	def plot(self, i = None, ax = None, overlay = False):
+	def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 		self.current_idx = i 
+
+		plotopts = {"labelsOff": False, 'M1':20, "M2":30}
+
+		for (k, v) in self.plotopts.items():
+			plotopts[k] = kwargs.get(k, v)
+
+		if getPlotOpts:
+			return plotopts
+
+		if getNumEvents:
+			# Return the number of events avilable
+			return 0, 1
+
+		if getLevels:        
+			# Return the possible levels for this object
+			return ["session"]
+
 		if ax is None: 
 			ax = plt.gca()
 		if not overlay:
 			ax.clear()
-		self.plotopts = {"labelsOff": False, 'M1':20, "M2":30}
-		markers = list(np.transpose(self.markers).flatten())[2::2]
+
+		markers = self.rawMarkers[2::2]
 		ax.stem(markers)
-		ax.hlines(self.plotopts['M1'], 0, len(markers), color = 'blue')
-		ax.hlines(self.plotopts['M2'], 0, len(markers), color = 'red')
-		if not self.plotopts['labelsOff']: 
+		ax.hlines(plotopts['M1'], 0, len(markers), color = 'blue')
+		ax.hlines(plotopts['M2'], 0, len(markers), color = 'red')
+		if not plotopts['labelsOff']: 
 			ax.set_xlabel("Marker Number")
 			ax.set_ylabel('Marker Value')
 		return ax 
