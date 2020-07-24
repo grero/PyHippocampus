@@ -8,4 +8,5 @@ from .rplhighpass import RPLHighPass
 from .rplsplit import RPLSplit
 from .rplparallel import RPLParallel
 from .helperfunctions import plotFFT
-from .aligning_objects import Aligning_Objects
+from .aligning_objects import aligning_objects
+from .umaze import Umaze
