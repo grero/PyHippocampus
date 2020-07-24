@@ -24,6 +24,8 @@ class RPLHighPass(DPT.DPObject):
 		DPT.DPObject.__init__(self, *args, **kwargs)
 
 	def create(self, *args, **kwargs):
+		if type(self.args['HighPassFrequency']) == str:
+			self.args['HighPassFrequency'] = list(map(int, self.args['HighPassFrequency'].split(",")))
 		self.data = []
 		self.analogInfo = {}
 		self.numSets = 0
@@ -43,24 +45,64 @@ class RPLHighPass(DPT.DPObject):
 			self.numSets = 1 
 		return self
 
-		def plot(self, i = None, ax = None, overlay = False):
-			self.current_idx = i 
-			if ax is None: 
-				ax = plt.gca()
-			if not overlay:
-				ax.clear()
-			self.plotopts = {'LabelsOff': False, 'GroupPlots': 1, 'GroupPlotIndex': 1, 'Color': 'b', 'FFT': False, 'XLims': [0, 150], 'LoadSort': False}
-			plot_type_FFT = self.plotopts['FFT']
-			if plot_type_FFT: 
-				ax = plotFFT(self.data, self.analogInfo['SampleRate'])
-				if not self.plotopts['LabelsOff']:
-					ax.set_xlabel('Freq (Hz)')
-					ax.set_ylabel('Magnitude')
-				ax.xlim(self.plotopts['XLims'])
-			else:
-				ax.plot(self.data)
-				if self.plotopts['LoadSort']:
-					pass  
-			return 
+	def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
+		if ax is None: 
+			ax = plt.gca()
+		if not overlay:
+			ax.clear()
+
+		plotOpts = {'LabelsOff': False, 'FFT': False, 'XLims': [0, 150], 'TimeSplit': 10, 'PlotAllData': False}
+
+		for (k, v) in plotOpts.items():
+			plotOpts[k] = kwargs.get(k, v)
+
+		if getPlotOpts:
+			return plotOpts
+
+		if getNumEvents:
+			# Return the number of events avilable
+			if plotOpts['FFT'] or plotOpts['PlotAllData']:
+				return 1, 0 
+			else:
+				if i is not None:
+					idx = i 
+				else:
+					idx = 0 
+				totalEvents = len(self.data) / (self.analogInfo['SampleRate'] * plotOpts['TimeSplit'])
+				return totalEvents, i
+
+		if getLevels:        
+			# Return the possible levels for this object
+			return ["channel", 'trial']
+
+		self.analogTime = [(i * 1000) / self.analogInfo["SampleRate"] for i in range(len(self.data))]
+	
+		plot_type_FFT = plotOpts['FFT']
+		if plot_type_FFT: 
+			fftProcessed, f = plotFFT(self.data, self.analogInfo['SampleRate'])
+			ax.plot(f, fftProcessed)
+			if not plotOpts['LabelsOff']:
+				ax.set_xlabel('Freq (Hz)')
+				ax.set_ylabel('Magnitude')
+			ax.set_xlim(plotOpts['XLims'])
+		else:
+			if plotOpts['PlotAllData']:
+				ax.plot(self.analogTime, self.data)
+			else: 
+				idx = [self.analogInfo['SampleRate'] * plotOpts['TimeSplit'] * i, self.analogInfo['SampleRate'] * plotOpts['TimeSplit'] * (i + 1) + 1] 
+				data = self.data[idx[0]:idx[1]]
+				time = self.analogTime[idx[0]:idx[1]] 
+				ax.plot(time, data)
+			if not plotOpts['LabelsOff']:
+				ax.set_ylabel('Voltage (uV)')
+				ax.set_xlabel('Time (ms)')
+		direct = os.getcwd()
+		day = DPT.levels.get_shortname('day', direct)
+		session = DPT.levels.get_shortname("session", direct)
+		array = DPT.levels.get_shortname("array", direct)
+		channel = DPT.levels.get_shortname("channel", direct)
+		title = 'D' + day + session + array + channel
+		ax.set_title(title)
+		return ax 
 

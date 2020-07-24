@@ -27,6 +27,8 @@ class RPLLFP(DPT.DPObject):
 		DPT.DPObject.__init__(self, *args, **kwargs)
 
 	def create(self, *args, **kwargs):
+		if type(self.args['LowPassFrequency']) == str:
+			self.args['LowPassFrequency'] = list(map(int, self.args['LowPassFrequency'].split(",")))
 		self.data = []
 		self.analogInfo = {}
 		self.numSets = 0 
@@ -47,38 +49,55 @@ class RPLLFP(DPT.DPObject):
 		return self 
 		
 	def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
-		self.current_idx = i 
+
 		if ax is None: 
 			ax = plt.gca()
 		if not overlay:
 			ax.clear()
 
-		self.plotopts = {'LabelsOff': False, 'Color': 'b', 'FFT': False, 'XLims': [0, 150], 'level': 'channel'}
+		plotOpts = {'LabelsOff': False, 'FFT': False, 'XLims': [0, 150], 'TimeSplit': 10, 'PlotAllData': False}
 
-		for (k, v) in self.plotopts.items():
-			self.plotopts[k] = kwargs.get(k, v)
+		for (k, v) in plotOpts.items():
+			plotOpts[k] = kwargs.get(k, v)
 
 		if getPlotOpts:
-			return self.plotopts
+			return plotOpts
 
 		if getNumEvents:
 			# Return the number of events avilable
-			return i, 1 
+			if plotOpts['FFT'] or plotOpts['PlotAllData']:
+				return 1, 0 
+			else:
+				if i is not None:
+					idx = i 
+				else:
+					idx = 0 
+				totalEvents = len(self.data) / (self.analogInfo['SampleRate'] * plotOpts['TimeSplit'])
+				return totalEvents, i
+
 		if getLevels:        
 			# Return the possible levels for this object
-			return ["channel"]
+			return ["channel", 'trial']
+
+		self.analogTime = [(i * 1000) / self.analogInfo["SampleRate"] for i in range(len(self.data))]
 	
-		plot_type_FFT = self.plotopts['FFT']
+		plot_type_FFT = plotOpts['FFT']
 		if plot_type_FFT: 
 			fftProcessed, f = plotFFT(self.data, self.analogInfo['SampleRate'])
 			ax.plot(f, fftProcessed)
-			if not self.plotopts['LabelsOff']:
+			if not plotOpts['LabelsOff']:
 				ax.set_xlabel('Freq (Hz)')
 				ax.set_ylabel('Magnitude')
-			ax.set_xlim(self.plotopts['XLims'])
+			ax.set_xlim(plotOpts['XLims'])
 		else:
-			ax.plot(self.data)
-			if not self.plotopts['LabelsOff']:
+			if plotOpts['PlotAllData']:
+				ax.plot(self.analogTime, self.data)
+			else: 
+				idx = [self.analogInfo['SampleRate'] * plotOpts['TimeSplit'] * i, self.analogInfo['SampleRate'] * plotOpts['TimeSplit'] * (i + 1) + 1] 
+				data = self.data[idx[0]:idx[1]]
+				time = self.analogTime[idx[0]:idx[1]] 
+				ax.plot(time, data)
+			if not plotOpts['LabelsOff']:
 				ax.set_ylabel('Voltage (uV)')
 				ax.set_xlabel('Time (ms)')
 		direct = os.getcwd()
