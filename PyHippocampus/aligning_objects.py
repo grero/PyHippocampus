@@ -10,7 +10,7 @@ from .unity import Unity
 
 
 
-def Aligning_Objects():
+def aligning_objects():
     threshold = 0.02
 
     #uf = hkl.load('unity_5878.hkl')
