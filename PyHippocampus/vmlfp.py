@@ -3,6 +3,7 @@ import DataProcessingTools as DPT
 from .rplparallel import RPLParallel
 from .rpllfp import RPLLFP
 from .helperfunctions import plotFFT
+import os 
 
 class VMLFP(DPT.DPObject):
 
@@ -34,50 +35,82 @@ class VMLFP(DPT.DPObject):
 
 	def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
-		self.current_idx = i
+		plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'NormalizeTrial': False, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'RemoveLineNoise': [], 'LogPlot': False, 'FreqLims': [], 'TFfttWindow': 200, 'TFfttOverlap': 150, 'TFfftPoints': 256, 'TFfftStart': 500, 'TFfftFreq': 150, 'TimeWindow': [], 'FilterWindow': [], "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
+		# 'CorrCoeff', 'TFfft', 'TFWavelets', 'Filter', 'OverlapLFP'
+		# Add flag for removelinenoise and a specific value. 
+
+		plot_type = plotOpts['Type'].selected()
+
+		if getPlotOpts:
+			return plotOpts 
+
+		if getLevels:
+			return ['trial', 'all']
+
+		if getNumEvents:
+			if plotOpts['PlotAllData']: # to avoid replotting the same data. 
+				return 1, 0 
+			if plot_type == 'FreqPlot' or 'Signal' or 'TFfft':
+				if i is not None:
+					nidx = i 
+				else:
+					nidx = 0
+				return self.numSets, nidx 
+
 		if ax is None:
 			ax = plt.gca()
+
 		if not overlay:
 			ax.clear()
+		
+		# Magintude of the complex number and square it -> power density. 
 
-		plotops = {'LabelsOff': False, 'PreTrial': 500, 'NormalizeTrial': False, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'RemoveLineNoise': [], 'LogPlot': False, 'FreqLims': [], 'TFfttWindow': 200, 'TFfttOverlap': 150, 'TFfftPoints': 256, 'TFfftStart': 500, 'TFfftFreq': 150, 'TimeWindow': [], 'FilterWindow': [], "Type": DPT.objects.ExclusiveOptions(['CorrCoeff', "FreqPlot", 'TFfft', 'TFWavelets', 'Filter', 'OverlapLFP'], 0)} 
-		plot_type = self.plotops['Type'].selected()
+		sRate = self.samplingRate
+		trialIndicesForN = self.trialIndices[i, :] 
+		idx = [int(trialIndicesForN[0] - ((plotOpts['PreTrial'] / 1000) * sRate))] + list(trialIndicesForN[1:])
 
-		trialIndicesForN = self.trialIndices[n, :] 
-		sRate = self.analogInfo['SampleRate'] 
-		idx = trialIndicesForN[0] - (preTrial / 1000 * sRate) + trialIndicesForN[1:]
+		self.analogTime = [i / sRate for i in range(len(self.data))]
 
-		if plot_type == "FreqPlot":
-			if self.plotopts['plotAllData']:
-				data = data
-			else:
-				data = data[idx]
-			if len(removeLineNoise) > 0: 
-				data = nptRemoveLineNoise(data, RemoveLineNoise, sRate)
+		if plot_type == 'Signal':
+			data = self.data[idx[0]:idx[-1]]
+			if len(plotOpts['RemoveLineNoise']) > 0:
+				data = removeLineNoise(data, plotOpts['removeLineNoise'], sRate)
+			x = np.linspace(-plotOpts['PreTrial'], 0, num = plotOpts['PreTrial'])
+			x = np.concatenate((x, np.linspace(0, len(data) - plotOpts['PreTrial'], num = len(data) - plotOpts['PreTrial'])))
+			# x = np.array(self.analogTime[idx[0]:idx[-1]])
+			# print(len(x), len(data))
+			# print(type(x), type(data))
+			ax.plot(x, data)
+			ax.axvline(0, color = 'g') # Start of trial. 
+			ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * 30000, color = 'm')
+			ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 30000, color = 'r')
+
+		elif plot_type == 'FreqPlot':
+			if plotOpts['PlotAllData']:
+				data = self.data 
+			else: 
+				data = self.data[idx[0]:idx[-1]]
+			if len(plotOpts['RemoveLineNoise']) > 0:
+				data = removeLineNoise(data, plotOpts['removeLineNoise'], sRate)
 			datam = np.mean(data)
-			ax = plotFFT(data - datam, sRate)
-			if self.plotopts['logPlot']:
+			fftProcessed, f = plotFFT(data - datam, sRate)
+			ax.plot(f, fftProcessed)
+			if plotOpts['LogPlot']:
 				ax.set_yscale('log')
 
 		elif plot_type == 'TFftt': 
-			if self.plotopts['plotAllData']:
-				dIdx = self.trialIndices[:, -1] - self.trialIndices[:, 0]
-				mIdx = np.amax(dIdx)
-				spTimeStep = self.plotopts['TFfttWindow'] - self.plotopts['TFfttOverlap'] 
-				spTimeBins = np.floor(mIdx/spTimeStep) - self.plotopts['TFfttOverlap']/spTimeStep
-				nFreqs = (self.plotopts['TFfttPoints']/2) + 1 
-				ops = np.zeroes([nFreqs, spTimeBins])
-				opsCount = ops
-				for i in range(numSets):
-					tftIdx = self.trialIndices[i, :]
-					tfidx = tftIdx[0:]
-					data = data[tfidx]
-					if len(removeLineNoise) > 0: 
-						data = nptremoveLineNoise(data, removeLineNoise, sRate)
-					datam = np.mean(data)
-					pass 
-			else: 	
-				pass 
+			tIdx = self.trialIndices[i,:]
+			idx = [tIdx[0] - ((plotOpts['TFfftStart']+500)/1000*sRate), tIdx[0] - ((plotOpts['TFfftStart']+1)/1000*sRate)]
+			data = self.data[idx[0]:idx[-1]]
+			datam = np.mean(data)
+			pass 
+            # data = obj.data.analogData(idx);
+            # datam = mean(data);
+            # [~,~,~,P]=spectrogram(data-datam,Args.TFfftWindow,Args.TFfftOverlap,Args.TFfftPoints,sRate,'yaxis');
+            
+            # %     Normalization parameters of the NP
+            # Pmean=mean(P,2); %mean power density of each frequency bin
+            # Pstd=std(P,0,2); %standard deviation of each frequency bin
 
 		elif plot_type == 'CorrCoeff':
 			pass 
@@ -91,10 +124,7 @@ class VMLFP(DPT.DPObject):
 		elif plot_type == 'OverlapLFP':
 			pass 
 
-		else:
-			pass 
-
-		if not self.plotopts['LabelsOff']:
+		if not plotOpts['LabelsOff']:
 			if plot_type == 'FreqPlot':
 				ax.set_xlabel('Frequency (Hz)')
 				ax.set_ylabel('Magnitude')
@@ -105,14 +135,15 @@ class VMLFP(DPT.DPObject):
 				ax.set_xlabel('Time (ms)')
 				ax.set_ylabel('Voltage (uV)')
 
-		if not self.plotopts['TitleOff']:
-			ax.set_title('hehe') # Fix this. 
+		if not plotOpts['TitleOff']:
+			channel = DPT.levels.get_shortname("channel", os.getcwd())[1:]
+			ax.set_title('channel' + str(channel))
 
-		if len(self.plotopts['FreqLims']) > 0:
+		if len(plotOpts['FreqLims']) > 0:
 			if plot_type == 'FreqPlot':
-				ax.xlim(self.plotopts['FreqLims'])
+				ax.xlim(plotOpts['FreqLims'])
 			elif plot_type == 'TFfft':
-				ax.ylim(self.plotopts['FreqLims'])
+				ax.ylim(plotOpts['FreqLims'])
 		return ax 
 
 
