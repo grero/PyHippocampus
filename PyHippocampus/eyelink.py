@@ -52,6 +52,7 @@ class Eyelink(DPT.DPObject):
         self.trial_codes = pd.DataFrame()
         self.session_start = []
         self.session_start_index = []
+        self.discrepancies = []
 
         # cd into day level directory
         ll = DPT.levels.level(os.getcwd())
@@ -67,6 +68,9 @@ class Eyelink(DPT.DPObject):
 
                 samples, events, messages = pread(
                         file, trial_marker=b'1  0  0  0  0  0  0  0')
+
+                # sampling rate
+                esr = int(messages['RECCFG'][0][1])
 
                 # trial_timestamps
                 time_split = (messages['0_time']).apply(pd.Series)
@@ -90,26 +94,64 @@ class Eyelink(DPT.DPObject):
 
                 # eye_positions
                 eye_pos = samples[['gx_left', 'gy_left']].copy()
-                eye_pos['gx_left'][eye_pos['gx_left'] > self.args['ScreenX']] = np.nan
-                eye_pos['gy_left'][eye_pos['gy_left'] > self.args['ScreenY']] = np.nan
+                eye_pos['gx_left'][(eye_pos['gx_left'] < 0) | (eye_pos['gx_left'] > self.args['ScreenX'])] = np.nan
+                eye_pos['gy_left'][(eye_pos['gy_left'] < 0) | (eye_pos['gy_left'] > self.args['ScreenY'])] = np.nan
                 eye_pos = eye_pos[(eye_pos.T != 0).any()]
                 
                 # numSets
                 numSets = 1
 
-                # sampling rate
-                sampling_rate = messages['RECCFG'].dropna().apply(pd.Series)
-                sampling_rate = int(sampling_rate.loc[0,1])
+                sacc_event = pd.DataFrame()
+                fix_event = pd.DataFrame()
+                fix_times = pd.DataFrame()
+                # sacc_event
+                new_sacc = events[events['type'] == 'saccade']
+                duration = (new_sacc['end'] - new_sacc['start']).reset_index(drop=True)
+                sacc_event = pd.concat([sacc_event, duration], axis=1)
+                # fix_event
+                new_fix = events[events['type'] == 'fixation']
+                duration = (new_fix['end'] - new_fix['start']).reset_index(drop=True)
+                fix_event = pd.concat([fix_event, duration], axis=1)
+                # fix_times
+                fix_times = pd.concat([fix_times, new_fix['start'].reset_index(drop=True), new_fix['end'].reset_index(drop=True), duration], axis=1)
+                
+                # expTime
+                expTime = samples['time'].iloc[0]
+                
+                # noOfTrials
+                noOfTrials = len(messages) - 1
+
+                # timestamps
+                time_stamps = samples['time']
+                time_stamps = time_stamps[time_stamps > 0.0]
+
+                # session_start
+                #messages2.trialid_time = messages2['trialid_time'] / esr
+                session_start = messages['trialid_time'].iloc[1]
+                # session_start_index
+                session_start_index = session_start - expTime
 
                 #self.eye_pos = eye_pos
                 self.calib_eye_pos = eye_pos
                 self.indices = indices
-                self.trial_timestamps = trial_timestamps
+                self.trial_timestamps = trial_timestamps / esr
                 self.numSets = numSets
-                self.samplingRate = sampling_rate
+                self.samplingRate = esr
+                self.sacc_event = sacc_event
+                self.fix_event = fix_event
+                self.fix_times = fix_times / esr
+                self.expTime = [expTime]
+                self.noOfTrials = [noOfTrials]
                 self.currentSession = 0
+                self.timestamps = time_stamps / esr
+                self.session_start = [session_start / esr]
+                self.session_start_index = [session_start_index]
+                # self.setidx = [0 for i in range(trial_timestamps.shape[0])]
+                # self.timeouts = timeouts
+                # self.trial_codes = trial_codes
 
-                os.chdir(self.args['CalibDirName'])    
+                os.chdir(self.args['CalibDirName'])   
+                print('Saving object\n') 
                 self.save()
                 os.chdir('..')
 
@@ -127,8 +169,11 @@ class Eyelink(DPT.DPObject):
                         sessionName.append(file_name)
                 actualSessionNo = len(sessionName)
                     
+                # sampling rate
+                esr = int(messages['RECCFG'][0][1])
+
                 # expTime
-                expTime = samples['time'].iloc[0] - 1
+                expTime = samples['time'].iloc[0]
 
                 # timeout
                 timeouts = messages['Timeout_time'].dropna()
@@ -149,11 +194,7 @@ class Eyelink(DPT.DPObject):
 
                 samples2, events2, messages2 = pread(
                     file, trial_marker=b'Trigger Version 84')
-                
-                # sampling rate
-                sampling_rate = messages2['RECCFG'].dropna().apply(pd.Series)
-                sampling_rate = int(sampling_rate.loc[0,1])
-                
+
                 # sacc_event, fix_event, fix_times
                 sacc_event = pd.DataFrame()
                 fix_event = pd.DataFrame()
@@ -163,42 +204,36 @@ class Eyelink(DPT.DPObject):
                 trigger_m = messages2['trialid_time'].dropna().tolist()
                 trigger_m.append(999999999.0)
 
+                samples['gx_left'][samples['gx_left'] > self.args['ScreenX']] = np.nan
+                samples['gx_left'][samples['gx_left'] < 0] = np.nan
+                samples['gy_left'][samples['gy_left'] < 0] = np.nan
+                samples['gy_left'][samples['gy_left'] > self.args['ScreenY']] = np.nan
+
                 for i in range(actualSessionNo):
                     # for saccades
-                    new_sacc = events[(events['end'] >= trigger_m[i]) & (events['start'] <= trigger_m[i+1]) & (events['type'] == 'saccade')]
+                    new_sacc = events[(events['end'] >= trigger_m[i]) & (events['start'] < trigger_m[i+1]) & (events['type'] == 'saccade')]
                     duration = (new_sacc['end'] - new_sacc['start']).reset_index(drop=True)
                     sacc_event = pd.concat([sacc_event, duration], axis=1)
                     # for fixations
-                    new_fix = events[(events['end'] >= trigger_m[i]) & (events['end'] <= trigger_m[i+1]) & (events['type'] == 'fixation')]
+                    new_fix = events[(events['end'] >= trigger_m[i]) & (events['end'] < trigger_m[i+1]) & (events['type'] == 'fixation')]
                     duration = (new_fix['end'] - new_fix['start']).reset_index(drop=True)
                     fix_event = pd.concat([fix_event, duration], axis=1)
                     # get fixation times
                     fix_times = pd.concat([fix_times, new_fix['start'].reset_index(drop=True), new_fix['end'].reset_index(drop=True), duration], axis=1)
                     # for timestamps
-                    new_times = samples[(samples['time'] >= trigger_m[i]) & (samples['time'] <= trigger_m[i+1])]
-                    new_times = new_times['time'].reset_index(drop=True)
-                    time_stamps = pd.concat([time_stamps, new_times], axis=1)
+                    new_times = samples[samples['time'] >= trigger_m[i]]
+                    new_times = new_times[new_times['time'] < trigger_m[i+1]]
+                    time_stamps = pd.concat([time_stamps, new_times['time'].reset_index(drop=True)], axis=1)
                     # for eye positions
-                    samples['gx_left'][samples['gx_left'] > self.args['ScreenX']] = np.nan
-                    samples['gy_left'][samples['gy_left'] > self.args['ScreenY']] = np.nan
+                    eyepos = samples[samples['time'] >= trigger_m[i]] 
+                    eyepos = eyepos[eyepos['time'] < trigger_m[i+1]]
+                    eye_pos = pd.concat([eye_pos, eyepos[['gx_left', 'gy_left']].reset_index(drop=True)], axis=1)
 
-                    eyepos = samples[(samples['time'] >= trigger_m[i]) & (samples['time'] <= trigger_m[i+1])]
-                    eyepos = eyepos[['gx_left', 'gy_left']].reset_index(drop=True)
-                    #eye_pos = samples[['gx_left', 'gy_left']].copy()
-                    eyepos = eyepos[(eyepos.T != 0).any()]
-                    eye_pos = pd.concat([eye_pos, eyepos], axis=1)
-                    
                 saccEvent = sacc_event.fillna(0).astype(int)
                 fixEvent = fix_event.fillna(0).astype(int)
-                fixTimes = fix_times.fillna(0).astype(int)
-                eyePos = eye_pos.fillna(0).astype(int)
-                timeStamps = time_stamps.fillna(0).astype(int)
-
-                # session_start
-                session_start = messages2['trialid_time'].iloc[1]
-                
-                # session_start_index
-                session_start_index = session_start - expTime
+                fixTimes = fix_times.fillna(0)
+                eyePos = eye_pos.fillna(0)
+                timeStamps = time_stamps.fillna(0)
 
                 # setup for m dataframe by fetching events messages
                 # the two parts below merges dataframe columns of start trial, cue offset and end trial
@@ -379,33 +414,40 @@ class Eyelink(DPT.DPObject):
                     else:
                         raise Exception('markers not consistent')
 
-                    m = 1 + (idx) * self.args['NumTrialMessages']
+                    m = 1 + (idx) * 2
                     n = m + 1
                     
                     sacc_event = saccEvent.iloc[:, idx] 
                     fix_event = fixEvent.iloc[:, idx]
                     fix_times = fixTimes.iloc[:, l-1:u]
-                    time_stamps = timeStamps.iloc[:, idx]
                     eye_pos = eyePos.iloc[:, m-1:n]
+                    time_stamps = timeStamps.iloc[:, idx]
 
-                    self.expTime = [expTime]
-                    self.timestamps = time_stamps
+                    # session_start
+                    session_start = time_stamps.iloc[1]
+                    
+                    # session_start_index
+                    session_start_index = session_start - expTime
+
+                    self.expTime = [expTime / esr]
+                    self.timestamps = time_stamps / esr
                     self.eye_pos = eye_pos
-                    self.timeouts = timeouts
+                    self.timeouts = timeouts / esr
                     self.noOfTrials = [noOfTrials[0, idx]]
                     self.sacc_event = sacc_event
                     self.fix_event = fix_event
-                    self.fix_times = fix_times
+                    self.fix_times = fix_times / esr
                     self.numSets = [numSets]
-                    self.trial_timestamps = trial_timestamps
+                    self.trial_timestamps = trial_timestamps / esr
                     self.trial_codes = trial_codes
-                    self.session_start = [session_start]
+                    self.session_start = [session_start / esr]
                     self.session_start_index = [session_start_index]
                     self.setidx = [0 for i in range(trial_timestamps.shape[0])]
                     self.noOfSessions = actualSessionNo
-                    self.samplingRate = sampling_rate
+                    self.samplingRate = esr
                     self.currentSession = idx
 
+                    print('Saving object\n')
                     self.save()
                     os.chdir('..')
 
@@ -453,8 +495,7 @@ class Eyelink(DPT.DPObject):
                     nidx = 0
                 return len(self.setidx), nidx
 
-        # get the current session directory
-        sidx = self.currentSession
+        sidx = 0 # sessidx = int(self.dirs[0][-1]) - 1
 
         if getLevels:        
             # Return the possible levels for this object
@@ -476,62 +517,92 @@ class Eyelink(DPT.DPObject):
         
         # Trial - Plot x vs t and y vs t positions per trial
         if plot_type == 'XT':
-            index = 1+(sidx)*3
-            x = self.trial_timestamps.to_numpy()[:, index-1:index+2]
-            x = x[~np.isnan(x).any(axis=1)]
-            obj_timestamps = self.timestamps
-            obj_timestamps = obj_timestamps.to_numpy()[:, 0]
+            if self.dirs[0].endswith('eye'):
+                # Fixation of x vs t
+                obj_eye_pos = self.calib_eye_pos.to_numpy()
+                indices = self.indices.to_numpy()
+                y = obj_eye_pos[indices[i][0].astype(int) : indices[i][2].astype(int), :]
+                ax.plot(y, 'o-', fillstyle='none')
+                lines.Line2D(np.matlib.repmat(obj_eye_pos[indices[i][1].astype(int)], 1, 2), ax.set_ylim())
+                
+                dir = self.dirs[0]
+                subject = DPT.levels.get_shortname("subject", dir)
+                date = DPT.levels.get_shortname("day", dir)
+                session = DPT.levels.get_shortname("session", dir)
+                ax.set_title(subject + date + session)
+            else:
+                index = 1+(sidx)*3
+                x = self.trial_timestamps.to_numpy()[:, index-1:index+2] * self.samplingRate
+                x = x[~np.isnan(x).any(axis=1)]
 
-            trial_start_time = obj_timestamps[x[i][0].astype(int)]
-            trial_cue_time = obj_timestamps[x[i][1].astype(int)] - trial_start_time - 1
-            trial_end_time = obj_timestamps[x[i][2].astype(int)] - 1
+                obj_timestamps = self.timestamps
+                if len(self.sacc_event.shape) > 1:
+                    obj_timestamps = obj_timestamps.to_numpy()[:, sidx]
+                else:
+                    obj_timestamps = obj_timestamps.to_numpy()
 
-            # timestamps is the x axis to be plotted
-            timestamps = obj_timestamps[x[i][0].astype(int) - 500: x[i][2].astype(int)]
-            timestamps = timestamps - trial_start_time
+                trial_start_time = obj_timestamps[x[i][0].astype(int)]
+                trial_cue_time = (obj_timestamps[x[i][1].astype(int)] - trial_start_time - 1) * self.samplingRate
+                trial_end_time = obj_timestamps[x[i][2].astype(int)] - 1
 
-            obj_eye_pos = self.eye_pos.dropna().to_numpy()[:, 0:2]
-            y = obj_eye_pos[x[i][0].astype(int) - 500: x[i][2].astype(int)].transpose()
+                # timestamps is the x axis to be plotted
+                timestamps = obj_timestamps[x[i][0].astype(int) - 500: x[i][2].astype(int)]
+                timestamps = timestamps - trial_start_time
 
-            # plot x axis data
-            ax.plot(timestamps, y[:][0], 'b-', LineWidth=0.5, Label='X position')
-            dir = self.dirs[0]
-            subject = DPT.levels.get_shortname("subject", dir)
-            date = DPT.levels.get_shortname("day", dir)
-            session = DPT.levels.get_shortname("session", dir)
-            ax.set_title('Eye Movements versus Time - ' + subject + date + session)
-            # label axis
-            ax.set_xlabel('Time (ms)')
-            ax.set_ylabel('Position (screen pixels)')
-            # plot y axis
-            ax.plot(timestamps, y[:][1], 'g-', LineWidth=0.5, Label='Y position')
-            
-            # Plotting lines to mark the start, cue offset, and end/timeout for the trial
-            ax.plot([0, 0], ax.set_ylim(), 'g', LineWidth=0.5)
-            ax.plot([trial_cue_time, trial_cue_time], ax.set_ylim(), 'm', LineWidth=0.5)
-            timedOut = self.timeouts == trial_end_time
-            trial_end_time = trial_end_time - trial_start_time
-            timedOut = np.nonzero(timedOut.to_numpy)
+                obj_eye_pos = self.eye_pos.dropna().to_numpy()
+                y = obj_eye_pos[x[i][0].astype(int) - 500: x[i][2].astype(int)].transpose()
 
-            if not timedOut: # trial did not timeout
-                ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'b', LineWidth=0.5)
-            else: # trial did timeout
-                ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'r', LineWidth=0.5)
+                # plot x axis data
+                ax.plot(timestamps, y[:][0], 'b-', LineWidth=0.5, Label='X position')
+                dir = self.dirs[0]
+                subject = DPT.levels.get_shortname("subject", dir)
+                date = DPT.levels.get_shortname("day", dir)
+                session = DPT.levels.get_shortname("session", dir)
+                ax.set_title('Eye Movements versus Time - ' + subject + date + session)
+                # label axis
+                ax.set_xlabel('Time (s)')
+                ax.set_ylabel('Position (screen pixels)')
+                # plot y axis
+                ax.plot(timestamps, y[:][1], 'g-', LineWidth=0.5, Label='Y position')
+                
+                # Plotting lines to mark the start, cue offset, and end/timeout for the trial
+                ax.plot([0, 0], ax.set_ylim(), 'g', LineWidth=0.5)
+                ax.plot([trial_cue_time, trial_cue_time], ax.set_ylim(), 'm', LineWidth=0.5)
+                timedOut = self.timeouts == trial_end_time
+                trial_end_time = trial_end_time - trial_start_time
+                timedOut = np.nonzero(timedOut.to_numpy)
 
-            ax.set_xlim([-50, trial_end_time + 100]) # set axis boundaries
-            ax.legend(loc='best')
+                if not timedOut: # trial did not timeout
+                    ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'b', LineWidth=0.5)
+                else: # trial did timeout
+                    ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'r', LineWidth=0.5)
+
+                ax.set_xlim([-1, trial_end_time + 1]) # set axis boundaries
+                ax.legend(loc='best')
 
         elif plot_type == 'XY':
-            # XY - Plots the x and y movement of the eye per trial extract all the trials from one session 
-            x = self.trial_timestamps.to_numpy()
-            obj_eye_pos = self.eye_pos.to_numpy()[:, 0:2]
-            y = obj_eye_pos[x[i][0].astype(int) : x[i][2].astype(int), :].transpose()
-            ax = plotGazeXY(self, i, ax, y[0], y[1], 'b') # plot blue circles
+            if self.dirs[0].endswith('eye'):
+                # Calibration - Plot of calibration eye movements
+                obj_eye_pos = self.calib_eye_pos.to_numpy()
+                indices = self.indices.to_numpy()
+                y = obj_eye_pos[indices[i][0].astype(int) : indices[i][2].astype(int), :]
+                y = y.transpose()
+                ax = plotGazeXY(self, i, ax, y[0], y[1], 'b')
+            else:
+                # XY - Plots the x and y movement of the eye per trial extract all the trials from one session 
+                x = self.trial_timestamps.to_numpy() * self.samplingRate
+                obj_eye_pos = self.eye_pos.to_numpy()[:, 0:2]
+                y = obj_eye_pos[x[i][0].astype(int) : x[i][2].astype(int), :].transpose()
+                ax = plotGazeXY(self, i, ax, y[0], y[1], 'b') # plot blue circles
 
         elif plot_type == 'SaccFix':
             # SaccFix - Histogram of fixations and saccades per session
-            sacc_durations = self.sacc_event.to_numpy()[:, sidx]
-            fix_durations = self.fix_event.to_numpy()[:, sidx]
+            if len(self.sacc_event.shape) > 1:
+                sacc_durations = self.sacc_event.to_numpy()[:, sidx]
+                fix_durations = self.fix_event.to_numpy()[:, sidx]
+            else:
+                sacc_durations = self.sacc_event.to_numpy()
+                fix_durations = self.fix_event.to_numpy()
 
             sacc_durations = sacc_durations[sacc_durations != 0]
             fix_durations = fix_durations[fix_durations != 0]
@@ -544,22 +615,41 @@ class Eyelink(DPT.DPObject):
 
             ax.hist(sacc_durations, density=False, alpha=0.5, color='#31b4e8', bins=edges, label='Saccades', edgecolor='black', linewidth=0.3)
             ax.hist(fix_durations, density=False, alpha=0.5, color='#ed7f18', bins=edges, label='Fixations', edgecolor='black', linewidth=0.3)
-            
+            ax.hist(self.calib_sacc_event.to_numpy(), density=False, alpha=0.5, color='#a569bd', label='F Saccades', edgecolor='black', linewidth=0.3)
+            ax.hist(self.calib_fix_event.to_numpy(), density=False, alpha=0.5, color='#16a085', label='F Fixations', edgecolor='black', linewidth=0.3)
+
             dir = self.dirs[0]
             subject = DPT.levels.get_shortname("subject", dir)
             date = DPT.levels.get_shortname("day", dir)
             session = DPT.levels.get_shortname("session", dir)
             ax.set_title('Distribution of Saccades and Fixations - ' + subject + date + session)
-            ax.set_xlabel ('Duration (ms)')
+            ax.set_xlabel ('Duration (s)')
             ax.set_ylabel ('# of events')
             ax.legend(loc='best')
 
         elif plot_type == 'SaccFixSession':
             sacc_durations = self.sacc_event[self.sacc_event < 200]
             fix_durations = self.fix_event[self.fix_event < 200]
+            calib_sacc = self.calib_sacc_event[self.calib_sacc_event < 200]
+            calib_fix = self.calib_fix_event[self.calib_fix_event < 200]
 
-            data = [sacc_durations.iloc[:,0].dropna(), fix_durations.iloc[:,0].dropna(), sacc_durations.iloc[:,1].dropna(), fix_durations.iloc[:,1].dropna(), sacc_durations.iloc[:,2].dropna(), fix_durations.iloc[:,2].dropna(), sacc_durations.iloc[:,3].dropna(), fix_durations.iloc[:,3].dropna()]
-            labels = ['S1', 'F1', 'S2', 'F2', 'S3', 'F3', 'S4', 'F4'] # S = saccade, F = fixation
+            # for loop for column numbers in sacc_ and fix_
+            data = [calib_sacc.dropna(), calib_fix.dropna()]
+            labels = ['FS', 'FF']
+            
+            if len(sacc_durations.shape) > 1:
+                for i in range(sacc_durations.shape[1]):
+                    data.append(sacc_durations.iloc[:, i].dropna())
+                    data.append(fix_durations.iloc[:, i].dropna())
+
+                    labels.append('NS' + str(i + 1))
+                    labels.append('NF' + str(i + 1))
+            else:
+                data.append(sacc_durations.dropna())
+                data.append(fix_durations.dropna())
+                labels.append('NS1')
+                labels.append('NF1')
+
             box = ax.boxplot(data, notch=True, labels=labels)
             
             dir = self.dirs[0]
@@ -567,17 +657,24 @@ class Eyelink(DPT.DPObject):
             date = DPT.levels.get_shortname("day", dir)
             ax.set_title('Saccades and Fixations Over All Sessions - ' + subject + date)
             ax.set_ylabel ('# of events')
+        
+        elif plot_type == 'Discrepancies':
+            # plot the distributions of the durations in ms
+            discrepancies = self.discrepancies.reshape((self.discrepancies.shape[0]*3, 1))
+            ax.hist(discrepancies, bins=50, density=False, alpha=0.5, color='#31b4e8', edgecolor='black', linewidth=0.3)
+            ax.set_title('Histogram for rplparallel and eyelink durations')
+            ax.set_xlabel('s')
+            ax.set_ylabel('occurence')
 
         return ax
 
-        
 # plotGazeXY helper method to plot gaze position. Uses matlab's plot function
 def plotGazeXY(self, i, ax, gx, gy, lineType):
     ax.scatter(gx, gy, color='none', edgecolor=lineType)
     ax.invert_yaxis() # reverse current y axis
 
     #currentAxis = ax.gca() # draw rect to represent the screen
-    ax.add_patch(patches.Rectangle((0, 0), 1920, 1080, fill=None, alpha=1, lw=0.5))
+    ax.add_patch(patches.Rectangle((0, 0), self.args['ScreenX'], self.args['ScreenY'], fill=None, alpha=1, lw=0.5))
 
     dir = self.dirs[0]
     subject = DPT.levels.get_shortname("subject", dir)
@@ -586,8 +683,8 @@ def plotGazeXY(self, i, ax, gx, gy, lineType):
     ax.set_title('Eye movements - ' + subject + date + session)
     ax.set_xlabel('Gaze Position X (screen pixels)')
     ax.set_ylabel(('Gaze Position Y (screen pixels)'))
-    ax.set_xlim([0, 2000]) # set axis boundaries, use max
-    ax.set_ylim([1300, 0])
+    #ax.set_xlim([0, 2000]) # set axis boundaries, use max
+    #ax.set_ylim([1300, 0])
 
     return ax
 
@@ -739,11 +836,11 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
         else: #if there are not any missing messages, make the missingData matrix empty 
             print('No missing messages')
             missingData = pd.DataFrame(columns = ['Type', 'Timestamps', 'Messages'], index=range(0,n))
-        '''
         # To ensure that the correction of the eyelink object went correctly, 
         # we now plot a histogram of the discrepancies in the start-cue,
         # cue-end and end-start durations for ripple and eyelink objects for
         # the same session to ensure that the data recorded is consistent 
+        eldurations = np.empty((elTrials.shape[0], 3))
         elTrials = elTrials - expTime
         eldurations[:, 0] = np.insert(elTrials[1:, 0] - elTrials[0:len(elTrials)-1,2], 0, 0, axis=0)
         eldurations[:, 1] = elTrials[:, 1] - elTrials[:, 0] # cue time - start time
@@ -751,14 +848,8 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
         eldurations = eldurations / 1000 #conversion to seconds
         discrepancies = abs(rpldurations - eldurations) # stores the discrepancy between the two times in seconds
         discrepancies[0, 0] = 0
-
-        # plot the distributions of the durations in ms
-        plt.hist(discrepancies, bins=50)
-        plt.title('Histogram for rplparallel and eyelink durations')
-        plt.xlabel('s')
-        plt.ylabel('occurence')
-        plt.show()
-        '''
+        self.discrepancies = discrepancies
+        
     else: #missing rplparallel  
         # assume that there are no missing messages
         os.chdir('..')
@@ -990,8 +1081,8 @@ def filleye(self, messages, eltimes, rpl):
                             eye_start_count = eye_start_count + 1
                 
                 rpl_start_trials = truth_timestamps[error_index-count-1:error_index, 0]
-                diff_eye = diff[eye_start_trials]
-                diff_rpl = diff[rpl_start_trials]
+                diff_eye = np.diff(eye_start_trials)
+                diff_rpl = np.diff(rpl_start_trials)
                 discrepancy = diff_eye - diff_rpl
                 [_,row_to_insert] = max(discrepancy)
 
@@ -1097,8 +1188,8 @@ def callEyelink(self, markersRaw, messages, eltimes, rpltimeStamps):
 
             if (idx2 <= m): #prevent accessing more than the array size 
                 # Convert the string to a number for easier manipulation
-                # message = ''.join(str(e) for e in messages[idx2][0]) # convert list to number
-                message = int(messages[idx2, 0])
+                message = ''.join(str(e) for e in messages[idx2, 0]) # convert to string
+                message = int(message[len(message)-5:len(message)-2])
             
             if ((math.floor(message / 10) == c) or (math.floor(message / 10) == 4) and c == 3): #ensures that messages itself isn't missing a trial
                 if (idx <= n and message == markersRaw[0, idx]): # if the marker exists in rplparallel
@@ -1150,7 +1241,8 @@ def callEyelink(self, markersRaw, messages, eltimes, rpltimeStamps):
                 c = 3
 
             if (idx2 <= m): 
-                message = int(messages[idx2, 0])
+                message = ''.join(str(e) for e in messages[idx2, 0]) # convert to string
+                message = int(message[len(message)-5:len(message)-2])
             
             if (math.floor(markersRaw[0, idx] / 10) == c): #if it is going in the correct column
                 if (idx2 <= m and message == markersRaw[0, idx]): #if messages has it we can move ahead
