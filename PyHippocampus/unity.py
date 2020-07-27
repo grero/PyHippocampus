@@ -253,7 +253,8 @@ class Unity(DPT.DPObject):
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
-                                                                "Route Ratio", "Proportion of trial", "Routes"], 0),
+                                                                "Route Ratio", "Proportion of trial", "Routes",
+                                                                 "Trial Position"], 0),
                     "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
         if getPlotOpts:
             return plotopts
@@ -267,7 +268,7 @@ class Unity(DPT.DPObject):
         if getNumEvents:
             # Return the number of events available
             global pre
-            if plot_type == "Trial" or plot_type == "Frame Intervals":
+            if plot_type == "Trial" or plot_type == "Frame Intervals" or plot_type == "Trial Position":
                 if i is not None:
                     if pre == "trial":
                         return len(self.setidx), i
@@ -483,6 +484,28 @@ class Unity(DPT.DPObject):
             title = "Routes: " + subject + date + session
             ax.set_title(title)
 
+        elif plot_type == "Trial Position":
+            session_idx = self.setidx[i]
+            if session_idx != 0:
+                for x in range(0, session_idx):
+                    i = i - self.unityTriggers[x].shape[0]
+            if i == 0:
+                trial_trigger = [0, self.unityTriggers[session_idx][i+1, 0]-1]
+            elif i == self.unityTriggers[session_idx].shape[0]-1:
+                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityData[session_idx].shape[0]-1]
+            else:
+                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityTriggers[session_idx][i+1, 0]-1]
+            time = self.unityTime[session_idx][trial_trigger[0]+1:trial_trigger[1]+2]
+            x_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 2]
+            y_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 3]
+            orientation = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 4]
+            ax.plot(time, orientation, LineWidth=1)
+            t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
+            t_2 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]
+            t_3 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 2]+1]
+            ax.axvline(t_1, color='purple')
+            ax.axvline(t_2, color='g')
+            ax.axvline(t_3, color='r')
         return ax
 
     def append(self, uf):
