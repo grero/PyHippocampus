@@ -19,7 +19,7 @@ class Eyelink(DPT.DPObject):
     Eyelink(redoLevel=0, saveLevel=0)
     '''
     filename = 'eyelink.hkl'
-    argsList = [('ObjectLevel', 'Session'), ('FileName', '.edf'), ('CalibFileNameChar', 'P'), 
+    argsList = [('FileName', '.edf'), ('CalibFileNameChar', 'P'), 
     ('NavDirName', 'session0'), ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), 
     ('ScreenX', 1920), ('ScreenY', 1080), ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), 
     ('StartFromDay', False)]
