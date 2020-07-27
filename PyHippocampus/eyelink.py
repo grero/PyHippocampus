@@ -479,6 +479,10 @@ class Eyelink(DPT.DPObject):
         if getPlotOpts:
             return plotopts
 
+        # Extract the recognized plot options from kwargs
+        for (k, v) in plotopts.items():
+            plotopts[k] = kwargs.get(k, v)
+
         plot_type = plotopts['Plot Options'].selected()
         
         if getNumEvents:
