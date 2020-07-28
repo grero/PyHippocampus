@@ -138,7 +138,6 @@ class Eyelink(DPT.DPObject):
                 time_stamps = time_stamps[time_stamps > 0.0]
 
                 # session_start
-                #messages2.trialid_time = messages2['trialid_time'] / esr
                 session_start = messages['trialid_time'].iloc[1]
                 # session_start_index
                 session_start_index = session_start - expTime
@@ -146,17 +145,17 @@ class Eyelink(DPT.DPObject):
                 #self.eye_pos = eye_pos
                 self.calib_eye_pos = eye_pos
                 self.indices = indices
-                self.trial_timestamps = trial_timestamps
+                self.trial_timestamps = trial_timestamps / esr
                 self.numSets = numSets
                 self.samplingRate = esr
                 self.calib_sacc_event = sacc_event
                 self.calib_fix_event = fix_event
-                self.fix_times = fix_times
-                self.expTime = [expTime]
+                self.fix_times = fix_times / esr
+                self.expTime = [expTime / esr]
                 self.noOfTrials = [noOfTrials]
                 self.noOfSessions = actualSessionNo
-                self.timestamps = time_stamps
-                self.session_start = [session_start]
+                self.timestamps = time_stamps / esr
+                self.session_start = [session_start / esr]
                 self.session_start_index = [session_start_index]
                 # self.setidx = [0 for i in range(trial_timestamps.shape[0])]
                 # self.timeouts = timeouts
@@ -497,7 +496,7 @@ class Eyelink(DPT.DPObject):
         plot_type = plotopts['Plot Options'].selected()
         
         session = []
-        for index in range(0, self.noOfSessions): # index: 0-4
+        for index in range(0, self.noOfSessions):
             session.append([index] * int(self.noOfTrials[index]))
         session = np.array(session).flatten()
         
@@ -556,7 +555,7 @@ class Eyelink(DPT.DPObject):
                     obj_timestamps = obj_timestamps.to_numpy()
 
                 trial_start_time = obj_timestamps[x[i][0].astype(int)]
-                trial_cue_time = (obj_timestamps[x[i][1].astype(int)] - trial_start_time - 0.001)
+                trial_cue_time = obj_timestamps[x[i][1].astype(int)] - trial_start_time - 0.001
                 trial_end_time = obj_timestamps[x[i][2].astype(int)] - 1
 
                 # timestamps is the x axis to be plotted
