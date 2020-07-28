@@ -16,8 +16,8 @@ class RPLRaw(DPT.DPObject):
 		self.data = np.array([])
 		self.analogInfo = {}
 		if 'analogData' in kwargs.keys() and 'analogInfo' in kwargs.keys():
-			self.data = self.args['analogData']
-			self.analogInfo = self.args['analogInfo']
+			self.data = kwargs['analogData']
+			self.analogInfo = kwargs['analogInfo']
 			self.numSets = 1
 		return self
 	

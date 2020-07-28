@@ -86,6 +86,7 @@ class RPLParallel(DPT.DPObject):
 			ev_rawtimes, _, ev_markers = reader.get_event_timestamps()
 			ev_times = reader.rescale_event_timestamp(ev_rawtimes, dtype = "float64")
 			if ev_markers[0] == 128:
+				self.rawMarkers = ev_markers
 				self.markers = ev_markers[::2]
 				self.timeStamps = ev_times[::2]
 				return self 
@@ -100,34 +101,53 @@ class RPLParallel(DPT.DPObject):
 			return self 
 
 	def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
-		self.current_idx = i 
 
-		plotopts = {"labelsOff": False, 'M1':20, "M2":30}
+		plotOpts = {"LabelsOff": False, 'M1':20, "M2":30, 'PlotAllData': False, 'TrialSplit': 10}
 
-		for (k, v) in self.plotopts.items():
-			plotopts[k] = kwargs.get(k, v)
+		markers = self.rawMarkers[2::2]
+
+		for (k, v) in plotOpts.items():
+			plotOpts[k] = kwargs.get(k, v)
 
 		if getPlotOpts:
-			return plotopts
+			return plotOpts
 
 		if getNumEvents:
-			# Return the number of events avilable
-			return 0, 1
+			if plotOpts['PlotAllData']:
+				return 1, 0 
+			else:
+				if i is not None:
+					idx = i 
+				else:
+					idx = 0 
+				totalEvents = np.ceil(len(markers) / 3 / plotOpts['TrialSplit'])
+				return int(totalEvents), idx 
 
 		if getLevels:        
-			# Return the possible levels for this object
 			return ["session"]
 
 		if ax is None: 
 			ax = plt.gca()
+
 		if not overlay:
 			ax.clear()
 
-		markers = self.rawMarkers[2::2]
-		ax.stem(markers)
-		ax.hlines(plotopts['M1'], 0, len(markers), color = 'blue')
-		ax.hlines(plotopts['M2'], 0, len(markers), color = 'red')
-		if not plotopts['labelsOff']: 
+		if plotOpts['PlotAllData']:
+			ax.stem(markers)
+			ax.hlines(plotOpts['M1'], 0, len(markers), color = 'blue')
+			ax.hlines(plotOpts['M2'], 0, len(markers), color = 'red')
+		else: 
+			totalEvents = np.floor(len(markers) / 3 / plotOpts['TrialSplit'])
+			perEvent = np.floor(len(markers) / totalEvents)
+			idx = [int(perEvent * i), int(perEvent * (i + 1))]
+			x = [i for i in range(idx[0], idx[-1])]
+			print(x[0], x[-1])
+			markers = markers[idx[0]:idx[-1]]
+			ax.stem(x, markers)
+			ax.set_xlim(x[0] - 1, x[-1] + 1)
+			ax.hlines(plotOpts['M1'], x[0], x[-1], color = 'blue')
+			ax.hlines(plotOpts['M2'], x[0], x[-1], color = 'red')
+		if not plotOpts['LabelsOff']: 
 			ax.set_xlabel("Marker Number")
 			ax.set_ylabel('Marker Value')
 		return ax 
