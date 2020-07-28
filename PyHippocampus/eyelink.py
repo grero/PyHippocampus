@@ -431,6 +431,7 @@ class Eyelink(DPT.DPObject):
                     fix_event = fixEvent.iloc[:, idx]
                     fix_times = fixTimes.iloc[:, l-1:u]
                     eye_pos = eyePos.iloc[:, m-1:n]
+                    eye_pos = eye_pos[(eye_pos.T != 0).any()]
                     time_stamps = timeStamps.iloc[:, idx]
 
                     # session_start
@@ -455,7 +456,6 @@ class Eyelink(DPT.DPObject):
                     self.setidx = [0 for i in range(trial_timestamps.shape[0])]
                     self.noOfSessions = actualSessionNo
                     self.samplingRate = esr
-                    self.currentSession = idx
 
                     print('Saving object\n')
                     self.save()
@@ -586,9 +586,9 @@ class Eyelink(DPT.DPObject):
                 timedOut = np.nonzero(timedOut.to_numpy)
 
                 if not timedOut: # trial did not timeout
-                    ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'b', LineWidth=0.5)
-                else: # trial did timeout
                     ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'r', LineWidth=0.5)
+                else: # trial did timeout
+                    ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'b', LineWidth=0.5)
 
                 ax.set_xlim([-0.3, trial_end_time + 1]) # set axis boundaries
                 ax.legend(loc='best')
