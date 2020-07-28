@@ -137,8 +137,8 @@ class RPLParallel(DPT.DPObject):
 			ax.hlines(plotOpts['M1'], 0, len(markers), color = 'blue')
 			ax.hlines(plotOpts['M2'], 0, len(markers), color = 'red')
 		else: 
-			totalEvents = np.floor(len(markers) / 3 / plotOpts['TrialSplit'])
-			perEvent = np.floor(len(markers) / totalEvents)
+			totalEvents = np.ceil(len(markers) / 3 / plotOpts['TrialSplit'])
+			perEvent = np.ceil(len(markers) / totalEvents)
 			idx = [int(perEvent * i), int(perEvent * (i + 1))]
 			x = [i for i in range(idx[0], idx[-1])]
 			print(x[0], x[-1])
