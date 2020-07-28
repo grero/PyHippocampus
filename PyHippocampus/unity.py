@@ -255,7 +255,8 @@ class Unity(DPT.DPObject):
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
                                                                 "Route Ratio", "Proportion of trial", "Routes",
                                                                  "Trial Position"], 0),
-                    "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
+                    "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0,
+                    "Trial Position Type": DPT.objects.ExclusiveOptions(["X-Pos", "Y-Pos", "Orientation"], 0)}
         if getPlotOpts:
             return plotopts
 
@@ -485,6 +486,9 @@ class Unity(DPT.DPObject):
             ax.set_title(title)
 
         elif plot_type == "Trial Position":
+
+            pos_type = plotopts["Trial Position Type"].selected()
+
             session_idx = self.setidx[i]
             if session_idx != 0:
                 for x in range(0, session_idx):
@@ -499,13 +503,24 @@ class Unity(DPT.DPObject):
             x_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 2]
             y_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 3]
             orientation = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 4]
-            ax.plot(time, orientation, LineWidth=1)
+            if pos_type == "X-Pos":
+                ax.plot(time, x_position, LineWidth=1)
+            elif pos_type == "Y-Pos":
+                ax.plot(time, y_position, LineWidth=1)
+            elif pos_type == "Orientation":
+                ax.plot(time, orientation, LineWidth=1)
+
             t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
             t_2 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]
             t_3 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 2]+1]
-            ax.axvline(t_1, color='purple')
-            ax.axvline(t_2, color='g')
-            ax.axvline(t_3, color='r')
+            result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
+            if result_t3 > 40:
+                ax.axvline(t_3, color='r')
+            else:
+                ax.axvline(t_3, color='b')
+            ax.axvline(t_1, color='g')
+            ax.axvline(t_2, color='m')
+
         return ax
 
     def append(self, uf):
