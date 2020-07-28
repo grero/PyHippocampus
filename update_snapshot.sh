@@ -6,14 +6,15 @@
 
 # pass unique description to identify all your snapshots as first argument
 # pass the total number of snapshots (backups and current) to keep
+# cluster identifier as optional 3rd argument
 
-if [ "$#" -ne 2 ]
+if [ "$#" -lt 2 ]
 then
 	echo "insufficient arguments - description and number of snapshots to keep needed"
 	exit 1
 fi
 
-vol=$(aws ec2 describe-volumes --filter Name=attachment.device,Values=/dev/sdb --query "Volumes[].VolumeId" --output text)
+vol=$(aws ec2 describe-volumes --filter Name=attachment.device,Values=/dev/sdb Name=tag:aws:cloudformation:stack-name,Values=*$3* --query "Volumes[].VolumeId" --output text)
 
 temp=($(aws ec2 create-snapshot --volume-id $vol --description "$1" --output text))
 snap_in_prog=${temp[3]}
