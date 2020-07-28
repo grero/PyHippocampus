@@ -511,7 +511,7 @@ class Eyelink(DPT.DPObject):
                     nidx = i
                 else:
                     nidx = 0
-                return self.noOfSessions, 1 #session[nidx]
+                return self.noOfSessions, session[nidx]
             else: 
                 if i is not None:
                     nidx = i
