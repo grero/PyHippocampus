@@ -503,12 +503,17 @@ class Unity(DPT.DPObject):
             x_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 2]
             y_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 3]
             orientation = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 4]
+
             if pos_type == "X-Pos":
                 ax.plot(time, x_position, LineWidth=1)
+                ax.set_ylabel('X-Pos')
             elif pos_type == "Y-Pos":
                 ax.plot(time, y_position, LineWidth=1)
+                ax.set_ylabel('Y-Pos')
             elif pos_type == "Orientation":
                 ax.plot(time, orientation, LineWidth=1)
+                ax.set_ylabel('Orientation')
+            ax.set_xlabel('Time (s)')
 
             t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
             t_2 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]
@@ -520,6 +525,13 @@ class Unity(DPT.DPObject):
                 ax.axvline(t_3, color='b')
             ax.axvline(t_1, color='g')
             ax.axvline(t_2, color='m')
+
+            dir_name = self.dirs[session_idx]
+            subject = DPT.levels.get_shortname("subject", dir_name)
+            date = DPT.levels.get_shortname("day", dir_name)
+            session = DPT.levels.get_shortname("session", dir_name)
+            title = subject + date + session + " Trial " + str(i)
+            ax.set_title(title)
 
         return ax
 
