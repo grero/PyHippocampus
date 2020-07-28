@@ -68,6 +68,7 @@ class Unity(DPT.DPObject):
         rr = DPT.levels.resolve_level("session", os.getcwd())
         with DPT.misc.CWD(rr):
             DPT.DPObject.__init__(self, *args, **kwargs)
+        print(os.getcwd())
 
     def create(self, *args, **kwargs):
         # set plot options
