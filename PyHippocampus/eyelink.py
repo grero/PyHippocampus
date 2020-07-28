@@ -603,8 +603,9 @@ class Eyelink(DPT.DPObject):
                 ax = plotGazeXY(self, i, ax, y[0], y[1], 'b')
             else:
                 # XY - Plots the x and y movement of the eye per trial extract all the trials from one session 
-                x = self.trial_timestamps.to_numpy()
-                obj_eye_pos = self.eye_pos.to_numpy()[:, 0:2]
+                index = 1+(sidx)*3
+                x = self.trial_timestamps.to_numpy()[:, index-1:index+2] * self.samplingRate
+                obj_eye_pos = self.eye_pos.to_numpy()
                 y = obj_eye_pos[x[i][0].astype(int) : x[i][2].astype(int), :].transpose()
                 ax = plotGazeXY(self, i, ax, y[0], y[1], 'b') # plot blue circles
 
