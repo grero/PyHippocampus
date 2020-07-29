@@ -236,9 +236,12 @@ class Unity(DPT.DPObject):
                 end_time = unityTime[end_ind]
                 trial_durations = end_time - start_time
 
-                rp_trial_dur = rl.timeStamps[:, 2] - rl.timeStamps[:, 0]
-                # multiply by 1000 to convert to ms
-                duration_diff = (trial_durations - rp_trial_dur) * 1000
+                if rl.timeStamps.shape[1] == 3:
+                    rp_trial_dur = rl.timeStamps[:, 2] - rl.timeStamps[:, 0]
+                    # multiply by 1000 to convert to ms
+                    duration_diff = (trial_durations - rp_trial_dur) * 1000
+                else:
+                    duration_diff = None
 
                 self.durationDiff = [duration_diff]
                 self.trialRouteRatio = [ratio_each_trial_route]
