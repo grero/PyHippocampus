@@ -59,6 +59,7 @@ def mountain_batch(target='',Overwrite='No'):
                 if splits[k] == channel_no:
                     mountain_channel(full_cell,i)
                     break
+    os.chdir(c_p)
     
 def comb_channels_ms():
     origin = os.getcwd()

@@ -2,7 +2,7 @@ import os
 from mountainlab_pytools import mdaio
 import scipy.io
 import csv
-
+from .spiketrain import Spiketrain
 
 def export_mountain_cells():
     
@@ -134,19 +134,16 @@ def split_into_cells_intra_session(channel, two_layer_chunk, start_ind):
         cell_path = channel_path + '/' + cell_name
         os.mkdir(cell_path)
         os.chdir(cell_path)
-        spiketrain = {}
         times = []
         for j in range(len(assignment_layer)):
             if assignment_layer[j] == unique_cells[i]:
                 times.append(time_list[j])
-        spiketrain['timestamps'] = times
-        spiketrain['components'] = unique_cells[i]
-        spiketrain['reference'] = 'from firings.mda'
-        
         try:
             with open('spiketrain.csv', 'w') as f:
-                for key in spiketrain.keys():
-                    f.write("%s,%s\n"%(key,spiketrain.get(key)))
+                writer = csv.writer(f)
+                writer.writerow(times)
+            Spiketrain(saveLevel=1)
+
         except IOError:
             print("I/O error")         
                 
