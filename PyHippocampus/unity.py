@@ -236,9 +236,13 @@ class Unity(DPT.DPObject):
                 end_time = unityTime[end_ind]
                 trial_durations = end_time - start_time
 
-                rp_trial_dur = rl.timeStamps[:, 2] - rl.timeStamps[:, 0]
-                # multiply by 1000 to convert to ms
-                duration_diff = (trial_durations - rp_trial_dur) * 1000
+                duration_diff = None
+                try:
+                    rp_trial_dur = rl.timeStamps[:, 2] - rl.timeStamps[:, 0]
+                    # multiply by 1000 to convert to ms
+                    duration_diff = (trial_durations - rp_trial_dur) * 1000
+                except:
+                    print('problem with timeStamps')
 
                 self.durationDiff = [duration_diff]
                 self.trialRouteRatio = [ratio_each_trial_route]
