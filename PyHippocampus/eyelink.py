@@ -34,8 +34,8 @@ class Eyelink(DPT.DPObject):
         else:
             rr = DPT.levels.resolve_level('session', ll)
         
-            with DPT.misc.CWD(rr):
-                DPT.DPObject.__init__(self, *args, **kwargs)
+        with DPT.misc.CWD(rr):
+            DPT.DPObject.__init__(self, *args, **kwargs)
         
     def create(self, *args, **kwargs):
         # initialize fields in eyelink object
