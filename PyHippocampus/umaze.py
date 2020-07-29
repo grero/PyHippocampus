@@ -6,11 +6,15 @@ import glob
 from .unity import Unity
 import scipy
 import networkx as nx
+from scipy import stats
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 class Umaze(DPT.DPObject):
     filename = "unity.hkl"
-    argsList = [('GridSteps', 40), ('OverallGridSize', 25)]
+    argsList = [('GridSteps', 40), ('OverallGridSize', 25), ('MinObs', 5)]
     level = "session"
 
     def __init__(self, *args, **kwargs):
@@ -21,146 +25,139 @@ class Umaze(DPT.DPObject):
     def create(self, *args, **kwargs):
         # load the unity object to get the data
         uf = Unity()
-        if uf.unityData[0] == None:
-            print('Unity file is empty.')
-            return
         unityData = uf.unityData[0]
         unityTriggers = uf.unityTriggers[0]
         unityTrialTime = uf.unityTrialTime[0]
         unityTime = uf.unityTime[0]
         sumCost = uf.sumCost[0]
         totTrials = np.shape(unityTriggers)[0]
-        GridSteps = args.GridSteps
-        OverallGridSize = args.OverallGridSize
+        GridSteps = self.args['GridSteps']
+        OverallGridSize = self.args['OverallGridSize']
         gridBins = GridSteps * GridSteps
         oGS2 = OverallGridSize/2
         gridSize = OverallGridSize/GridSteps
         gpEdges = np.arange(0, (gridBins+1))
-        horGridBound = np.arange(-oGS2, oGS2, gridSize)
+        horGridBound = np.arange(-oGS2, oGS2+gridSize, gridSize)
         vertGridBound = horGridBound
-
-        gridPosition, binH, binV = np.histogram2d(
-            unityData[:, 2], unityData[:, 3], bins=(horGridBound, vertGridBound))
+        ret = stats.binned_statistic_2d(unityData[:, 2], unityData[:, 3], np.zeros(
+            (np.shape(unityData[:, 2]))), bins=(horGridBound, vertGridBound), expand_binnumbers=True)
+        binH = ret.binnumber[0]
+        binV = ret.binnumber[1]
         gridPosition = binH + ((binV - 1) * GridSteps)
-        gpDurations = np.zeros(gridBins, totTrials)
+        gpDurations = np.zeros((gridBins, totTrials))
 
         # line 151-354
         trialCounter = 0
         gpreseti = 0
         sessionTime = np.zeros((np.shape(gridPosition)[0], 3))
         sTi = 1
+        count = 0
         for a in range(totTrials):
             trialCounter = trialCounter + 1
-            # indeces minus 1 in python
-            #target = unityData[unityTriggers[a,2],0] % 10
-            #S = scipy.spatial.distance.cdist(vertices, unityData[unityTriggers[a,1],2:4], 'euclidean')
-            #M1 = np.amin(S)
-            #I1 = np.argmin(S)
-            #startPos = I1
-            #D = scipy.spatial.distance.cdist(vertices, posterpos[target-1,:], 'euclidean')
-            #M2 = np.amin(D)
-            #I2 = np.argmin(D)
-            #destPos = I2
-            #idealCost, idealroute = nx.bidirectional_dijkstra(A, startPos, destPos)
-
-            #mpath = np.empty(0)
-            # get actual route taken(match to vertices)
-            # for b in range(0, (unityTriggers[a, 2] - unityTriggers[a, 1] + 1)):
-            #curr_pos = unityData[unityTriggers[a, 1] + b, 2:4]
-            # (current position)
-            #cp = cdist(vertices, curr_pos.reshape(1, -1))
-            #I3 = cp.argmin()
-            #mpath = np.append(mpath, I3)
-
-            #path_diff = np.diff(mpath)
-            #change = np.array([1])
-            #change = np.append(change, path_diff)
-            #index = np.where(np.abs(change) > 0)
-            #actual_route = mpath[index]
-            #actual_cost = (actual_route.shape[0] - 1) * 5
-            #actualTime = np.array(index)
-            #actualTime = np.append(np.array(np.shape(mpath)[0]))
-            #actualTime = np.diff(actualTime)+1
-
-            # Store summary
-            #sumCost[a, 0] = ideal_cost
-            #sumCost[a, 1] = actual_cost
-            #sumCost[a, 2] = actual_cost - ideal_cost
-            #sumCost[a, 3] = target
-            #sumCost[a, 4] = unityData[unityTriggers[a, 2], 0] - target
-            # sumRoute(a,1:size(idealroute,2)) = idealroute
-            # sumActualRoute(a,1:size(actualRoute,1)) = actualRoute
-            # sumActualTime(a,1:size(actualTime,1)) = actualTime
-
-            uDidx = np.array(
-                range(int(unityTriggers[a, 1] + 1), int(unityTriggers[a, 2] + 1)))
-            numUnityFrames = np.shape(uDidx)[1]
-            tindices = arange(0, (numUnityFrames+1))
-            tempTrialTime = np.array([0], [np.cumsum(unityData[uDidx, 1])])
-            tstart = unityTime[uDidx[0, 0]]
-            tend = unityTime[uDidx[0, np.shape(uDix)[1]-1]]
-
+            uDidx = np.arange(
+                int(unityTriggers[a, 1]) + 1, int(unityTriggers[a, 2]) + 1)
+            numUnityFrames = np.shape(uDidx)[0]
+            tindices = np.arange(0, (numUnityFrames+1))
+            arr = unityData[uDidx[0]:uDidx[numUnityFrames-1], 1]
+            tempTrialTime = np.array([0, np.cumsum(arr)])
+            tstart = unityTime[uDidx[0]]
+            tend = unityTime[uDidx[numUnityFrames-1]]
             # get grid positions for this trial
-            tgp = gridPosition[uDidx]
-            #binHt = binH[uDidx]
-            #binVt = binV[uDidx]
-            if tempTrialTime[np.shape(tempTrialTime)[0]-1] - tempTrialTime[0] != 0:
+            tgp = []
+            for i in range(numUnityFrames):
+                tgp.append(gridPosition[uDidx[i]])
+            tgp = np.array(tgp)
+
+            if tempTrialTime[1][np.shape(tempTrialTime[1])[0]-1] - tempTrialTime[0] != 0:
                 sessionTime[sTi, 0] = np.array([tstart])
                 sessionTime[sTi, 1] = np.array([tgp[0]])
                 sessionTime[sTi, 2] = np.array([0])
                 sTi += 1
-                gpc = np.where(np.diff[tgp] != 0)
-                ngpc = np.shape(gpc)[0]
-                sessionTime[sTi:(sTi+ngpc-1),
-                            0] = np.array([unityTrialTime[gpc+2, a]+tstart])
-                sessionTime[sTi:(sTi+ngpc-1), 1] = np.array([tgp[gpc+1]])
+                gpc = np.where(np.diff(tgp) != 0)
+
+                ngpc = np.shape(gpc)[1]
+                temp_0 = []
+                temp_1 = []
+                for i in gpc[0][:]:
+                    temp_0.append(unityTrialTime[i+2, a])
+                    temp_1.append(tgp[i+1])
+                temp_0 += tstart
+                temp_0 = np.array(temp_0)
+                temp_1 = np.array(temp_1)
+
+                sessionTime[sTi:(sTi+ngpc), 0] = temp_0
+                sessionTime[sTi:(sTi+ngpc), 1] = temp_1
+
                 sTi += ngpc
-                if (gpc.size != 0) and (gpc[np.shape(gpc)[0]-1] == (numUnityFrames-1)):
-                    sTi -= 1
+                count += np.shape(gpc)[1]
+                if np.shape(gpc)[1] != 0:
+                    if gpc and (gpc[0][ngpc-1] == (numUnityFrames-1)):
+                        sTi -= 1
             else:
                 sessionTime[sTi, 0] = tstart
                 sTi += 1
 
-            sessionTimesTi[sTi, 0] = np.array([tend])
-            sessionTimesTi[sTi, 1] = np.array([0])
+            sessionTime[sTi, 0] = np.array([tend])
+            sessionTime[sTi, 1] = np.array([0])
             sTi += 1
             utgp = np.unique(tgp)
-
             for pidx in range(np.shape(utgp)[0]):
                 tempgp = utgp[pidx]
-                if tempgp == 58:
-                    print('test')
                 utgpidx = np.where(tgp == tempgp)
                 utgpidx = uDidx[utgpidx]
                 gpDurations[tempgp, a] = np.sum(unityData[utgpidx+1, 1])
-
             gridPosition[gpreseti:uDidx[0]] = 0
-            gpreseti = unityTriggers(a, 2)+1
-
-        #print('speed thresholding portion')
+            gpreseti = unityTriggers[a, 2]+1
 
         snum = sTi - 1
-        sTime = sessionTime[0:snum, :]
-        sTime[1:(snum-1), 2] = np.diff(sTime[:, 0])
-        sTP, sTPi = np.sort(sTime[:, 1])
-        sTPsi = np.where(np.diff(sTP) != 0) + 1
+        sTime = sessionTime[0:snum+1, :]
+        sTime[0:snum, 2] = np.diff(sTime[:, 0])
+        sTP = np.sort(sTime[:, 1], axis=0)
+        sTPi = np.argsort(sTime[:, 1], axis=0)
+        sTPsi = np.where(np.diff(sTP) != 0)
+        temp = sTPsi[0]
+        temp += 1
+        sTPsi = np.array(temp)
+
         if sTP[0] == -1:
             sTPsi = sTPsi[1:]
-        sTPind = np.array(sTPsi[[sTPsi[1:]-1], [np.shape(sTP)[0]]])
-        sTPin = np.diff(sTPind, 1, 1) + 1
-        sortedGPindinfo = np.array([sTP(sTPsi)][sTPind][sTPin])
-        _, gp2ind = np.in1d(np.arange(0, gridBins), sortedGPindinfo[:, 0])
-        sTPinm = np.where(sTPin > (self.args['MinObs']-1))
+        temp = []
+        for i in range(1, np.shape(sTPsi)[0]):
+            temp.append(sTPsi[i]-1)
+
+        temp.append(np.shape(sTP)[0]-1)
+        temp = np.array(temp)
+
+        sTPind = np.concatenate((sTPsi, temp))
+        sTPind = np.reshape(sTPind, (int(np.shape(sTPind)[0]/2), 2), order='F')
+
+        sTPin = np.diff(sTPind, 1, 1)
+        temp = []
+        for i in range(np.shape(sTPin)[0]):
+            temp.append(sTPin[i][0])
+        sTPin = np.array(temp)
+
+        sortedGPindinfo = np.concatenate((sTP[sTPsi], sTPind[:, 0]))
+        sortedGPindinfo = np.concatenate((sortedGPindinfo, sTPind[:, 1]))
+        sortedGPindinfo = np.concatenate((sortedGPindinfo, sTPin))
+        sortedGPindinfo = np.reshape(sortedGPindinfo, (int(
+            np.shape(sortedGPindinfo)[0]/4), 4), order='F')
+
+        gp2ind = np.nonzero(
+            np.in1d(np.arange(0, gridBins), sortedGPindinfo[:, 0]))[0]
+        sTPinm = np.where(sTPin > (self.args['MinObs']-2))
 
         sTPsi2 = sTPsi[sTPinm]
         sTPin2 = sTPin[sTPinm]
         sTPu = sTP[sTPsi2]
         nsTPu = np.shape(sTPu)[0]
         sTPind2 = sTPind[sTPinm, :]
-        ou_i = np.zeros(nsTPu, 1)
+        ou_i = np.zeros((nsTPu, 1))
 
         for pi in range(nsTPu):
-            ou_i[pi] = np.sum(sTime[sTPi[sTPind2[pi, 0]:sTPind2[pi, 1]], 3])
+            ou_i[pi] = np.sum(
+                sTime[sTPi[sTPind2[0][pi, 0]:sTPind2[0][pi, 1]], 2])
+
         self.GridSteps = GridSteps
         self.OverallGridSize = OverallGridSize
         self.oGS2 = oGS2
@@ -170,10 +167,8 @@ class Umaze(DPT.DPObject):
         self.gpEdges = gpEdges
         self.gridPosition = gridPosition
         self.gpDurations = gpDurations
-        self.setIndex = np.array([0], [totTrials])
-        # data.processTrials = find(ufdata.data.sumCost(:,6)==1)
+        self.setIndex = np.array([[0], [totTrials]])
         self.processTrials = np.where(sumCost[:, 5] == 1)
-        self.processTrials = np.arange(0, totTrials)
         self.sessionTime = sTime
         self.sortedGPindices = sTPi
         self.sortedGPindinfo = sortedGPindinfo
@@ -187,6 +182,37 @@ class Umaze(DPT.DPObject):
         self.unityTrialTime = uf.unityTrialTime
         self.unityData = unityData
         self.unityTime = unityTime
+
+        # plot heatmap
+        arr = []
+        for i in range(gridBins+1):
+            lst = []
+            for j in range(np.shape(self.sessionTime)[0]):
+                if self.sessionTime[j, 1] == i:
+                    lst.append(self.sessionTime[j, 2])
+            lst = np.array(lst)
+            arr.append(lst)
+        arr = np.array(arr)
+        for k in range(np.shape(arr)[0]):
+            arr[k] = np.cumsum(arr[k])
+        lst = []
+        for i in range(1, gridBins+1):
+            temp = []
+            if arr[i].size == 0:
+                temp.append(0)
+            else:
+                temp.append(arr[i][np.shape(arr[i])[0]-1])
+            #temp = np.array(temp)
+            lst.append(temp)
+        lst = np.array(lst)
+        matrix = np.reshape(lst, (self.GridSteps, self.GridSteps), order='C')
+        df = pd.DataFrame(matrix)
+        fig, ax = plt.subplots(figsize=(120, 70))
+        title = 'Umaze Bins Heat Map'
+        plt.title(title, fontsize=18)
+        ttl = ax.title
+        sns.heatmap(df, fmt='.1f', cmap='Reds', linewidths=.8, ax=ax)
+        plt.show()
 
         # check if we need to save the object, with the default being 0
         if kwargs.get("saveLevel", 0) > 0:
@@ -212,4 +238,3 @@ class Umaze(DPT.DPObject):
         # update fields in parent
         DPT.DPObject.append(self, uf)
         # update fields in child
-        #
