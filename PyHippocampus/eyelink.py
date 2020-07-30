@@ -15,7 +15,7 @@ class EDFSplit(DPT.DPObject):
 
     filename = 'edfsplit.hkl'
     argsList = [('FileName', '.edf'), ('CalibFileNameChar', 'P'), ('NavDirName', 'session0'), 
-    ('CalibDirName', 'sessioneye'), ('TriggerMessage', 'Trigger Version 84'),  ('sessionType', None)]
+    ('CalibDirName', 'sessioneye'), ('TriggerMessage', 'Trigger Version 84')]
     level = 'day'
 
     def __init__(self, *args, **kwargs):
@@ -59,11 +59,13 @@ class EDFSplit(DPT.DPObject):
         # if edf_split is called from Eyelink
         # if self.args['fromEyelink']:
         if kwargs.get('fromEyelink'):
-            if not self.args['sessionType']:
+            # if not self.args['sessionType']:
+            if not kwargs.get('sessionType'):
                 file_type = calib_files
             else:
                 file_type = nav_files
-            process_session(self, file_type, int(self.args['sessionType']))
+            # process_session(self, file_type, int(self.args['sessionType']))
+            process_session(self, file_type, int(kwargs.get('sessionType')))
         else:
             edf_raw = process_session(self, calib_files, 0) # sessioneye
             Eyelink(raw_data=edf_raw, fromEDFSplit=True, sessionType=0, redoLevel=1, saveLevel=1)
@@ -77,7 +79,7 @@ class EDFSplit(DPT.DPObject):
         return self
 
     def plot(self, i = None, ax = None, overlay = False):
-		    pass
+            pass
 
 def process_session(self, file, sessionType):
     # If edfsplit is called by a fixation session
@@ -185,7 +187,7 @@ class Eyelink(DPT.DPObject):
     filename = 'eyelink.hkl'
     argsList = [('FileName', '.edf'), ('CalibFileNameChar', 'P'), ('NavDirName', 'session0'), 
     ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), ('ScreenX', 1920), ('ScreenY', 1080), 
-    ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), ('sessionType', None)]
+    ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84')]
     level = 'session'
 
     def __init__(self, *args, **kwargs):
@@ -240,6 +242,12 @@ class Eyelink(DPT.DPObject):
 
         # if not self.args['fromEDFSplit']:
         if not kwargs.get('fromEDFSplit'):
+            # determine which session eyelink is being called in 
+            cwd = os.getcwd()
+            if not cwd.endswith(self.args['CalibDirName']):
+                dir = cwd[-1]
+            else:
+                dir = 0
             os.chdir('..')
             
         files = os.listdir()
@@ -253,17 +261,12 @@ class Eyelink(DPT.DPObject):
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)
             return self
         else:
-            # create empty object
-            DPT.DPObject.create(self, *args, **kwargs)
             # if called eyelink first
             # if not self.args['fromEDFSplit']:
             if not kwargs.get('fromEDFSplit'):
-                # determine which session eyelink is being called in 
-                if not self.dirs[0].endswith(self.args['CalibDirName']):
-                    dir = self.dirs[0][-1]
+                if not cwd.endswith(self.args['CalibDirName']):
                     os.chdir('session0' + str(dir))
                 else:
-                    dir = 0
                     os.chdir('sessioneye')
 
                 # call edfsplit to extract information for that session
@@ -276,7 +279,8 @@ class Eyelink(DPT.DPObject):
             # if called edf_split first
             else:
                 # get the session type
-                dir = self.args['sessionType']
+                # dir = self.args['sessionType']
+                dir = kwargs.get('sessionType')
                 if not dir:
                     os.chdir('sessioneye')
                 else:
@@ -287,6 +291,9 @@ class Eyelink(DPT.DPObject):
                 samples = edf_split.samples
                 events = edf_split.events
                 messages = edf_split.messages
+
+            # create object
+            DPT.DPObject.create(self, *args, **kwargs)
 
             # field up object with fields
             # if fixation session, dir == 0
