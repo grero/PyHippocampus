@@ -44,17 +44,12 @@ class DirFiles(DPT.DPObject):
         if dnum > 0:
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
-            # update fields in parent
-            # self.dirs = [cwd]
-            # self.setidx = [0 for i in range(dnum)]
             # update fields in child
             self.itemList = itemList
             self.itemNum = [dnum]
         else:
             # create empty object
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)
-            # remove dirs to indicate this is an empty object
-            # self.dirs = []
 
     def append(self, df):
         # update fields in parent
@@ -92,10 +87,6 @@ class DirFiles(DPT.DPObject):
                     nidx = 0
                 return len(self.itemNum), nidx
             
-        if getLevels:
-            # Return the possible levels for this object
-            return ["item", "all"]
-        
         if ax is None:
             ax = gca()
         
