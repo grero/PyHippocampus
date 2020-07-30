@@ -3,7 +3,6 @@ import numpy as np
 import numpy.matlib
 import pandas as pd
 import hickle as hkl
-import h5py
 import os
 import math
 import matplotlib.pyplot as plt
