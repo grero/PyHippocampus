@@ -105,7 +105,7 @@ class Umaze(DPT.DPObject):
                 tempgp = utgp[pidx]
                 utgpidx = np.where(tgp == tempgp)
                 utgpidx = uDidx[utgpidx]
-                gpDurations[tempgp, a] = np.sum(unityData[utgpidx+1, 1])
+                gpDurations[tempgp-1, a] = np.sum(unityData[utgpidx+1, 1])
             gridPosition[gpreseti:uDidx[0]] = 0
             gpreseti = unityTriggers[a, 2]+1
 
