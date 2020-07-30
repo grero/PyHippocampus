@@ -10,47 +10,200 @@ import matplotlib.lines as lines
 import matplotlib.patches as patches
 import DataProcessingTools as DPT
 from .rplparallel import RPLParallel
-import time
-import csv
+
+class EDFSplit(DPT.DPObject):
+
+    filename = 'edfsplit.hkl'
+    argsList = [('FileName', '.edf'), ('CalibFileNameChar', 'P'), ('NavDirName', 'session0'), 
+    ('CalibDirName', 'sessioneye'), ('TriggerMessage', 'Trigger Version 84'),  ('sessionType', None), ('fromEyelink', False)]
+    level = 'day'
+
+    def __init__(self, *args, **kwargs):
+        # resolve levels into the day directory for creation of edfsplit object
+        rr = DPT.levels.resolve_level(self.level, os.getcwd())
+        with DPT.misc.CWD(rr):
+            DPT.DPObject.__init__(self, *args, **kwargs)
+
+    def create(self, *args, **kwargs):
+        self.samples = pd.DataFrame()
+        self.messages = pd.DataFrame()
+        self.events = pd.DataFrame()
+        # header variables
+        self.esr = 0
+        self.expTime = 0
+        self.timeouts = pd.DataFrame()
+        self.actualSessionNo = 0
+        self.noOfTrials = 0
+        self.noOfSessions = 0
+        
+        # already present in day directory
+        files = os.listdir()
+        calib_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] in i]
+        nav_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] not in i]
+
+        if not calib_files or not nav_files:
+            print('Missing .edf files.')
+            return
+ 
+        # number of sessions
+        sessionName = []
+        dirs = os.listdir()
+        for file_name in dirs:
+            if file_name.startswith(self.args['NavDirName']):
+                sessionName.append(file_name)
+        actualSessionNo = len(sessionName)
+        self.actualSessionNo = actualSessionNo
+
+        # if edf_split is called from Eyelink
+        if self.args['fromEyelink']:
+            if not self.args['sessionType']:
+                file_type = calib_files
+            else:
+                file_type = nav_files
+            process_session(self, file_type, int(self.args['sessionType']))
+        else:
+            edf_raw = process_session(self, calib_files, 0) # sessioneye
+            Eyelink(raw_data=edf_raw, fromEDFSplit=True, sessionType=0, redoLevel=1, saveLevel=1)
+
+            # calls Eyelink from edfsplit
+            for idx in range(actualSessionNo):
+                edf_raw = process_session(self, nav_files, idx+1)
+                Eyelink(raw_data=edf_raw, fromEDFSplit=True, sessionType=idx+1, redoLevel=1, saveLevel=1)
+        return self
+
+    def plot(self, i = None, ax = None, overlay = False):
+		    pass
+
+def process_session(self, file, sessionType):
+    # If edfsplit is called by a fixation session
+    if not sessionType: # change to session_type
+        # type == 0, 0 = sessioneye, 1 = session01...
+        # creation of a sessioneye (fixation) object
+        # calibration file w/ format: 'Pm_d.edf'
+        print('Reading calibration edf file.\n')
+
+        samples, events, messages = pread(
+                file[0], trial_marker=b'1  0  0  0  0  0  0  0')
+
+        # Header Variables
+        # sampling rate
+        esr = int(messages['RECCFG'][0][1])
+        # expTime
+        expTime = samples['time'].iloc[0]
+        # noOfTrials
+        noOfTrials = len(messages) - 1
+        # noOfSessions
+        noOfSessions = 1
+
+    else: # for a navigation session
+        # creation of a session# (navigation) object
+        # navigation file w/ format: 'yymmdd.edf'
+        print('Reading navigation edf file.\n')
+
+        samples, events, messages = pread(
+                file[0], trial_marker=b'Start Trial')
+
+        samples2, events2, messages2 = pread(
+                file[0], trial_marker=b'Trigger Version 84')
+        print('Loaded edf')
+        
+        # Header Variables
+        # sampling rate
+        esr = int(messages['RECCFG'][0][1])
+        # expTime
+        expTime = samples['time'].iloc[0]
+        # timeout
+        timeouts = messages['Timeout_time'].dropna()
+        # noOfTrials
+        noOfTrials = len(messages) - 1
+        # noOfSessions
+        noOfSessions = len(messages2.index) - 1
+
+        # create ranges of session
+        trigger_m = messages2['trialid_time'].dropna().tolist()
+        trigger_m[0] = 0.0
+        trigger_m.append(999999999.0)
+
+        # extract the correct session information
+        i = sessionType - 1 # session01 gives i=0
+
+        events = events[(events['end'] >= trigger_m[i]) & (events['start'] < trigger_m[i+1])]
+        samples = samples[(samples['time'] >= trigger_m[i]) & (samples['time'] < trigger_m[i+1])]
+
+    self.samples = samples
+    self.messages = messages
+    self.events = events
+    self.esr = esr
+    self.expTime = expTime
+    self.timeouts = pd.DataFrame()
+    self.noOfTrials = noOfTrials
+    self.noOfSessions = noOfSessions
+
+    return self
+
+def pread(filename,
+          ignore_samples=False,
+          filter='all',
+          split_char=' ',
+          trial_marker=b'TRIALID',
+          meta={}):
+    '''
+    Parse an EDF file into a pandas.DataFrame.
+    EDF files contain three types of data: samples, events and messages.
+    pread returns one pandas DataFrame for each type of information.
+    '''
+    if not os.path.isfile(filename):
+        raise RuntimeError('File "%s" does not exist' % filename)
+
+    if pd is None:
+        raise RuntimeError('Can not import pandas.')
+
+    samples, events, messages = edfread.fread(
+        filename, ignore_samples,
+        filter, split_char, trial_marker)
+    events = pd.DataFrame(events)
+    messages = pd.DataFrame(messages)
+    samples = pd.DataFrame(np.asarray(samples), columns=edfread.sample_columns)
+
+    for key, value in meta.items():
+        events.insert(0, key, value)
+        messages.insert(0, key, value)
+        samples.insert(0, key, value)
+
+    return samples, events, messages
+
 
 class Eyelink(DPT.DPObject):
     '''
     Eyelink(redoLevel=0, saveLevel=0)
     '''
     filename = 'eyelink.hkl'
-    argsList = [('FileName', '.edf'), ('CalibFileNameChar', 'P'), 
-    ('NavDirName', 'session0'), ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), 
-    ('ScreenX', 1920), ('ScreenY', 1080), ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), 
-    ('StartFromDay', False)]
+    argsList = [('FileName', '.edf'), ('CalibFileNameChar', 'P'), ('NavDirName', 'session0'), 
+    ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), ('ScreenX', 1920), ('ScreenY', 1080), 
+    ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), ('sessionType', None), ('fromEDFSplit', False)]
     level = 'session'
 
     def __init__(self, *args, **kwargs):
-        ll = DPT.levels.level(os.getcwd())
-        
-        # check if StartFromDay is True
-        if kwargs.get('StartFromDay'):
-            rr = DPT.levels.resolve_level('day', ll)
-        else:
-            rr = DPT.levels.resolve_level('session', ll)
+        # create object in session directory        
+        rr = DPT.levels.resolve_level(self.level, os.getcwd())
         
         with DPT.misc.CWD(rr):
             DPT.DPObject.__init__(self, *args, **kwargs)
-        
+
     def create(self, *args, **kwargs):
-        # initialize fields in eyelink object
-        self.calib_eye_pos = pd.DataFrame()
-        self.calib_fix_event = pd.DataFrame()
-        self.calib_sacc_event = pd.DataFrame()
         self.trial_timestamps = pd.DataFrame()
         self.eye_pos = pd.DataFrame()
         self.numSets =  []
         self.expTime = []
+        self.indices = pd.DataFrame()
         self.timestamps = pd.DataFrame()
         self.timeouts = pd.DataFrame()
         self.noOfTrials = []
         self.fix_event = pd.DataFrame()
-        self.fix_times = pd.DataFrame()
         self.sacc_event = pd.DataFrame()
+        self.calib_fix_event = pd.DataFrame()
+        self.calib_sacc_event = pd.DataFrame()
+        self.fix_times = pd.DataFrame()
         self.trial_codes = pd.DataFrame()
         self.session_start = []
         self.session_start_index = []
@@ -58,30 +211,79 @@ class Eyelink(DPT.DPObject):
         self.samplingRate = []
         self.discrepancies = []
 
-        # cd into day level directory
-        ll = DPT.levels.level(os.getcwd())
-        rr = DPT.levels.resolve_level('day', ll)
-        with DPT.misc.CWD(rr):
-            files = os.listdir()
-            calib_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] in i]
-            nav_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] not in i]
+        # check if arguments contain data
+        if 'trial_timestamps' in kwargs.keys():
+                if kwargs['trial_timestamps']:
+                    self.trial_timestamps = kwargs['trial_timestamps']
+                    self.eye_pos = kwargs['eye_pos']
+                    self.numSets =  kwargs['numSets']
+                    self.expTime = kwargs['expTime']
+                    self.timestamps = kwargs['timestamps']
+                    self.timeouts = kwargs['timeouts']
+                    self.noOfTrials = kwargs['noOfTrials']
+                    self.fix_event = kwargs['fix_event']
+                    self.fix_times = kwargs['fix_times']
+                    self.sacc_event = kwargs['sacc_event']
+                    self.trial_codes = kwargs['trial_codes']
+                    self.session_start = kwargs['session_start']
+                    self.session_start_index = kwargs['session_start_index']
+                    self.noOfSessions = kwargs['noOfSessions']
+                    self.samplingRate = kwargs['samplingRate']
+                    self.discrepancies = kwargs['discrepancies']
+                
+                    return self
 
-            for file in calib_files:
-                # calibration file w/ format: 'Pm_d.edf'
-                print('Reading calibration edf file.\n')
+        if not self.args['fromEDFSplit']:
+            os.chdir('..')
+            
+        files = os.listdir()
+        calib_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] in i]
+        nav_files = [i for i in files if i.endswith(self.args['FileName']) and self.args['CalibFileNameChar'] not in i]
 
-                samples, events, messages = pread(
-                        file, trial_marker=b'1  0  0  0  0  0  0  0')
+        # no edf files
+        if not calib_files or not nav_files:
+            print('Missing edf files. Return empty object...')
+            return self
+        else:
+            # if called eyelink first
+            if not self.args['fromEDFSplit']:
+                # determine which session eyelink is being called in 
+                if not self.dirs[0].endswith(self.args['CalibDirName']):
+                    dir = self.dirs[0][-1]
+                    os.chdir('session0' + str(dir))
+                else:
+                    dir = 0
+                    os.chdir('sessioneye')
 
-                sessionName = []
-                dirs = os.listdir()
-                for file_name in dirs:
-                    if file_name.startswith(self.args['NavDirName']):
-                        sessionName.append(file_name)
-                actualSessionNo = len(sessionName)
+                # call edfsplit to extract information for that session
+                edf_split = EDFSplit(sessionType=dir, fromEyelink=True)
 
-                # sampling rate
-                esr = int(messages['RECCFG'][0][1])
+                samples = edf_split.samples
+                events = edf_split.events
+                messages = edf_split.messages
+
+            # if called edf_split first
+            else:
+                # get the session type
+                dir = self.args['sessionType']
+                if not dir:
+                    os.chdir('sessioneye')
+                else:
+                    os.chdir('session0' + str(dir))
+
+                edf_split = kwargs['raw_data']
+
+                samples = edf_split.samples
+                events = edf_split.events
+                messages = edf_split.messages
+
+            # field up object with fields
+            # if fixation session, dir == 0
+            if not dir:
+                # expTime 
+                expTime = edf_split.expTime
+                # esr
+                esr = edf_split.esr
 
                 # trial_timestamps
                 time_split = (messages['0_time']).apply(pd.Series)
@@ -96,21 +298,19 @@ class Eyelink(DPT.DPObject):
                 trial_timestamps = trial_timestamps.iloc[1:]
                 trial_timestamps = trial_timestamps.reset_index(drop=True)
                 trial_timestamps = trial_timestamps.fillna(0).astype(int)
-
+            
                 # indices
                 index_1 = (messages['trialid_time'] - samples['time'].iloc[0]).iloc[1:]
                 index_2 = (time_split['time_0'] - samples['time'].iloc[0]).iloc[1:]
                 index_3 = (time_split['time_1'] - samples['time'].iloc[0]).iloc[1:]
                 indices = pd.concat([index_1, index_2, index_3], axis=1, sort=False)
+                indices = indices.fillna(0).astype(int)
 
                 # eye_positions
                 eye_pos = samples[['gx_left', 'gy_left']].copy()
                 eye_pos['gx_left'][(eye_pos['gx_left'] < 0) | (eye_pos['gx_left'] > self.args['ScreenX'])] = np.nan
                 eye_pos['gy_left'][(eye_pos['gy_left'] < 0) | (eye_pos['gy_left'] > self.args['ScreenY'])] = np.nan
                 eye_pos = eye_pos[(eye_pos.T != 0).any()]
-                
-                # numSets
-                numSets = 1
 
                 sacc_event = pd.DataFrame()
                 fix_event = pd.DataFrame()
@@ -125,74 +325,89 @@ class Eyelink(DPT.DPObject):
                 fix_event = pd.concat([fix_event, duration], axis=1)
                 # fix_times
                 fix_times = pd.concat([fix_times, new_fix['start'].reset_index(drop=True), new_fix['end'].reset_index(drop=True), duration], axis=1)
-                
-                # expTime
-                expTime = samples['time'].iloc[0]
-                
-                # noOfTrials
-                noOfTrials = len(messages) - 1
 
                 # timestamps
                 time_stamps = samples['time']
                 time_stamps = time_stamps[time_stamps > 0.0]
 
+                #numSets
+                numSets = 1
                 # session_start
                 session_start = messages['trialid_time'].iloc[1]
                 # session_start_index
-                session_start_index = session_start - expTime
+                session_start_index = session_start - expTime 
+                # noOfSessions
+                noOfSessions = edf_split.actualSessionNo
+                # noOfTrials
+                noOfTrials = edf_split.noOfTrials
+                # trialcodes
+                trial_codes = pd.DataFrame()
+                # discrepancies
+                discrepancies = []
 
-                #self.eye_pos = eye_pos
-                self.calib_eye_pos = eye_pos
-                self.indices = indices
                 self.trial_timestamps = trial_timestamps / esr
-                self.numSets = numSets
-                self.samplingRate = esr
-                self.calib_sacc_event = sacc_event
-                self.calib_fix_event = fix_event
-                self.fix_times = fix_times / esr
+                self.indices = indices
+                self.calib_eye_pos = eye_pos
+                self.numSets = [numSets]
                 self.expTime = [expTime / esr]
-                self.noOfTrials = [noOfTrials]
-                self.noOfSessions = actualSessionNo
                 self.timestamps = time_stamps / esr
+                self.timeouts = edf_split.timeouts / esr
+                self.noOfTrials = [noOfTrials]
+                self.calib_fix_event = fix_event
+                self.calib_fix_times = fix_times / esr
+                self.calib_sacc_event = sacc_event
+                self.trial_codes = trial_codes
                 self.session_start = [session_start / esr]
                 self.session_start_index = [session_start_index]
-                # self.setidx = [0 for i in range(trial_timestamps.shape[0])]
-                # self.timeouts = timeouts
-                # self.trial_codes = trial_codes
+                self.setidx = [0 for i in range(trial_timestamps.shape[0])]
+                self.noOfSessions = noOfSessions
+                self.samplingRate = esr
+                self.discrepancies = discrepancies
 
-                os.chdir(self.args['CalibDirName'])   
-                print('Saving object\n') 
-                self.save()
-                os.chdir('..')
+            # if it is a navigation session
+            else:
+                # expTime 
+                expTime = edf_split.expTime
+                # esr
+                esr = edf_split.esr
 
-            for file in nav_files:
-                # navigation file w/ format: 'yymmdd.edf'
-                print('Reading navigation edf file.\n')
+                sacc_event = pd.DataFrame()
+                fix_event = pd.DataFrame()
+                fix_times = pd.DataFrame()
+                time_stamps = pd.DataFrame()
+                eye_pos = pd.DataFrame()
 
-                samples, events, messages = pread(
-                        file, trial_marker=b'Start Trial')
+                # saccades
+                new_sacc = events[events['type'] == 'saccade']
+                sacc_event = (new_sacc['end'] - new_sacc['start']).reset_index(drop=True)
+                # fixations
+                new_fix = events[events['type'] == 'fixation']
+                fix_event = (new_fix['end'] - new_fix['start']).reset_index(drop=True)
+                # fixation times
+                fix_times = pd.concat([new_fix['start'].reset_index(drop=True), new_fix['end'].reset_index(drop=True), fix_event], axis=1)
+                # timestamps
+                time_stamps = samples['time'].reset_index(drop=True)
 
-                sessionName = []
-                dirs = os.listdir()
-                for file_name in dirs:
-                    if file_name.startswith(self.args['NavDirName']):
-                        sessionName.append(file_name)
-                actualSessionNo = len(sessionName)
-                    
-                # sampling rate
-                esr = int(messages['RECCFG'][0][1])
+                saccEvent = sacc_event.fillna(0).astype(int)
+                fixEvent = fix_event.fillna(0).astype(int)
+                fixTimes = fix_times.fillna(0)
+                timeStamps = time_stamps.fillna(0)
 
-                # expTime
-                expTime = samples['time'].iloc[0]
-
-                # timeout
-                timeouts = messages['Timeout_time'].dropna()
-
-                # noOfTrials
-                noOfTrials = len(messages) - 1
+                # session_start
+                session_start = time_stamps.iloc[1]
+                
+                # session_start_index
+                session_start_index = session_start - expTime
 
                 # numSets
                 numSets = 1
+
+                # eye positions
+                samples['gx_left'][samples['gx_left'] > self.args['ScreenX']] = np.nan
+                samples['gx_left'][samples['gx_left'] < 0] = np.nan
+                samples['gy_left'][samples['gy_left'] < 0] = np.nan
+                samples['gy_left'][samples['gy_left'] > self.args['ScreenY']] = np.nan
+                eye_pos = samples[['gx_left', 'gy_left']].reset_index(drop=True)
 
                 # trial_timestamps
                 timestamps_1 = messages['trialid_time'] - expTime
@@ -201,48 +416,6 @@ class Eyelink(DPT.DPObject):
                 trial_timestamps = pd.concat(
                     [timestamps_1, timestamps_2, timestamps_3], axis=1, sort=False)
                 trial_timestamps = trial_timestamps.iloc[1:]
-
-                samples2, events2, messages2 = pread(
-                    file, trial_marker=b'Trigger Version 84')
-
-                # sacc_event, fix_event, fix_times
-                sacc_event = pd.DataFrame()
-                fix_event = pd.DataFrame()
-                fix_times = pd.DataFrame()
-                time_stamps = pd.DataFrame()
-                eye_pos = pd.DataFrame()
-                trigger_m = messages2['trialid_time'].dropna().tolist()
-                trigger_m[0] = 0.0
-                trigger_m.append(999999999.0)
-
-                samples['gx_left'][samples['gx_left'] > self.args['ScreenX']] = np.nan
-                samples['gx_left'][samples['gx_left'] < 0] = np.nan
-                samples['gy_left'][samples['gy_left'] < 0] = np.nan
-                samples['gy_left'][samples['gy_left'] > self.args['ScreenY']] = np.nan
-
-                for i in range(actualSessionNo):
-                    # saccades
-                    new_sacc = events[(events['end'] >= trigger_m[i]) & (events['start'] < trigger_m[i+1]) & (events['type'] == 'saccade')]
-                    duration = (new_sacc['end'] - new_sacc['start']).reset_index(drop=True)
-                    sacc_event = pd.concat([sacc_event, duration], axis=1)
-                    # fixations
-                    new_fix = events[(events['end'] >= trigger_m[i]) & (events['end'] < trigger_m[i+1]) & (events['type'] == 'fixation')]
-                    duration = (new_fix['end'] - new_fix['start']).reset_index(drop=True)
-                    fix_event = pd.concat([fix_event, duration], axis=1)
-                    # fixation times
-                    fix_times = pd.concat([fix_times, new_fix['start'].reset_index(drop=True), new_fix['end'].reset_index(drop=True), duration], axis=1)
-                    # timestamps
-                    new_times = samples[(samples['time'] >= trigger_m[i]) & (samples['time'] < trigger_m[i+1])]
-                    time_stamps = pd.concat([time_stamps, new_times['time'].reset_index(drop=True)], axis=1)
-                    # eye positions
-                    eyepos = samples[samples['time'] >= trigger_m[i]] 
-                    eyepos = eyepos[eyepos['time'] < trigger_m[i+1]]
-                    eyePos = pd.concat([eye_pos, eyepos[['gx_left', 'gy_left']].reset_index(drop=True)], axis=1)
-
-                saccEvent = sacc_event.fillna(0).astype(int)
-                fixEvent = fix_event.fillna(0).astype(int)
-                fixTimes = fix_times.fillna(0)
-                timeStamps = time_stamps.fillna(0)
 
                 # setup for m dataframe by fetching events messages
                 # the two parts below merges dataframe columns of start trial, cue offset and end trial
@@ -255,7 +428,7 @@ class Eyelink(DPT.DPObject):
                 messageEvent['Trigger'].loc[~messageEvent['Trigger'].isnull()] = 'Trigger Version ' + trigger_split['trigger_1'].astype(str) # append Cue Offset string to each value
 
                 # cue_offsets
-                cue_split = messageEvent['Cue'].apply(pd.Series) 
+                cue_split = messageEvent['Cue'].apply(pd.Series)
                 cue_split = cue_split.rename(columns=lambda x: 'cue_' + str(x)) 
                 messageEvent['Cue'].loc[~messageEvent['Cue'].isnull()] = 'Cue Offset ' + cue_split['cue_1'].astype(str) 
 
@@ -282,14 +455,14 @@ class Eyelink(DPT.DPObject):
 
                 if s != '':
                     sessionIndex = [i for i in range(len(m)) if m[i] == s] # return indices of trigger messages in m
-                    noOfSessions = len(messages2.index) - 1 # find length of dataframe
+                    noOfSessions = edf_split.noOfSessions # find length of dataframe
                     print('No. of Sessions ', noOfSessions, '\n')
 
                     extraSessions = 0
-                    if noOfSessions > actualSessionNo:
+                    if noOfSessions > edf_split.actualSessionNo:
                         print('EDF file has extra sessions!')
-                        extraSessions = actualSessionNo - noOfSessions
-                    elif noOfSessions < actualSessionNo:
+                        extraSessions = edf_split.actualSessionNo - noOfSessions
+                    elif noOfSessions < edf_split.actualSessionNo:
                         print('EDF file has fewer sessions!')
 
                     #preallocate variables
@@ -303,9 +476,10 @@ class Eyelink(DPT.DPObject):
                     # 2) fills in the trialTimestamps and missingData tables by indexing
                     # with session index (i)
 
-                    for i in range(0, noOfSessions):
+                    for i in range(noOfSessions):
                         idx = sessionIndex[i]
                         session = self.args['NavDirName'] + str(i + 1)
+                        print('Session Name: ', session, '\n')
                         if i == noOfSessions-1:
                             [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:], messageEvent[idx:], session, extraSessions)
                         else:
@@ -321,13 +495,13 @@ class Eyelink(DPT.DPObject):
                             sessionFolder = sessionFolder + 1
                         else:
                             print('Dummy Session skipped', i, '\n')
-
+                
                 else:
                     # some of the early sessions did not have a message indicating the beginning
-				    # of the session, so we will have to do something different
+                    # of the session, so we will have to do something different
 
                     #preallocate variables
-                    noOfSessions = actualSessionNo
+                    noOfSessions = edf_split.actualSessionNo
                     trialTimestamps = np.zeros((m.shape[0], 3*noOfSessions))
                     noOfTrials = np.zeros((1,noOfSessions))
                     missingData = pd.DataFrame()
@@ -335,13 +509,12 @@ class Eyelink(DPT.DPObject):
                     sessionIndex = []
                     extraSessions = 0
 
-                    # loop through each session
                     for i in range(noOfSessions):
                         session = self.args['NavDirName'] + str(i + 1)
                         os.chdir(session)
 
                         # initializing variables for session01
-                        if i == 1:
+                        if i == 0:
                             sessionIndex = sessionIndex.append(1)
                             nextSessionIndex = 0
                         
@@ -386,7 +559,9 @@ class Eyelink(DPT.DPObject):
                             print('Dummy Session skipped', i, '\n')
                         # increase i to go to next sessionFolder
                         i = i + 1
-                        
+
+                noOfTrials = noOfTrials[0, idx]
+
                 # edit the size of the array and remove all zero rows and extra columns
                 trialTimestamps = trialTimestamps.astype(int)
                 trialTimestamps = trialTimestamps[~np.all(trialTimestamps == 0, axis=1), :]
@@ -394,78 +569,48 @@ class Eyelink(DPT.DPObject):
 
                 # modify number of sessions
                 noOfSessions = trialTimestamps.shape[1] // self.args['NumTrialMessages']
-                
-                # create missingData csv file
+
                 if ~missingData.empty:
                     with open('missingData.csv', 'w', newline='') as file_writer:
                         missingData.to_csv(index=False)
 
-                # this loop splits the created matrics, containing timestamps from all sessions,
-                # into session objects
-                for idx in range(noOfSessions):
-                    session = self.args['NavDirName'] + str(idx + 1)
-                    os.chdir(session)
+                # trial_timestamps = trialTimestamps[:, 0:3]
+                trial_timestamps = trialTimestamps[~np.all(trial_timestamps == 0, axis=1), :]
+                trial_timestamps = trial_timestamps[:, ~np.all(trial_timestamps == 0, axis=0)] # remove zero rows
+                trial_timestamps = trial_timestamps - 1
+                trial_timestamps = pd.DataFrame(data=trial_timestamps)
 
-                    # only need to account for trial_Timestamps to split up
-                    l = 1 + (idx) * self.args['NumTrialMessages']
-                    u = l + 2
+                rpl = RPLParallel()
 
-                    trial_timestamps = trialTimestamps[:, l-1:u]
-                    trial_timestamps = trial_timestamps[~np.all(trial_timestamps == 0, axis=1), :] 
-                    trial_timestamps = trial_timestamps[:, ~np.all(trial_timestamps == 0, axis=0)] # remove zero rows
-                    trial_timestamps = trial_timestamps - expTime
-                    trial_timestamps = pd.DataFrame(data=trial_timestamps)
-
-                    rpl = RPLParallel()
-                    if rpl.markers.shape == trial_timestamps.shape:
-                        markers = rpl.markers
-                        trial_codes = pd.DataFrame(data=markers)
-                    else:
-                        raise Exception('markers not consistent')
-
-                    m = 1 + (idx) * 2
-                    n = m + 1
-                    
-                    sacc_event = saccEvent.iloc[:, idx] 
-                    fix_event = fixEvent.iloc[:, idx]
-                    fix_times = fixTimes.iloc[:, l-1:u]
-                    eye_pos = eyePos.iloc[:, m-1:n]
-                    eye_pos = eye_pos[(eye_pos.T != 0).any()]
-                    time_stamps = timeStamps.iloc[:, idx]
-
-                    # session_start
-                    session_start = time_stamps.iloc[1]
-                    
-                    # session_start_index
-                    session_start_index = session_start - expTime
-
-                    self.expTime = [expTime / esr]
-                    self.timestamps = time_stamps / esr
-                    self.eye_pos = eye_pos
-                    self.timeouts = timeouts / esr
-                    self.noOfTrials = [noOfTrials[0, idx]]
-                    self.sacc_event = sacc_event
-                    self.fix_event = fix_event
-                    self.fix_times = fix_times / esr
-                    self.numSets = [numSets]
-                    self.trial_timestamps = trial_timestamps / esr
-                    self.trial_codes = trial_codes
-                    self.session_start = [session_start / esr]
-                    self.session_start_index = [session_start_index]
-                    self.setidx = [0 for i in range(trial_timestamps.shape[0])]
-                    self.noOfSessions = actualSessionNo
-                    self.samplingRate = esr
-
-                    print('Saving object\n')
-                    self.save()
-                    os.chdir('..')
+                if rpl.markers.shape == trial_timestamps.shape:
+                    markers = rpl.markers
+                    trial_codes = pd.DataFrame(data=markers)
+                else:
+                    raise Exception('markers not consistent')
+                
+                self.trial_timestamps = trial_timestamps / esr
+                self.eye_pos = eye_pos
+                self.numSets = [numSets]
+                self.expTime = [expTime / esr]
+                self.timestamps = time_stamps / esr
+                self.timeouts = edf_split.timeouts / esr
+                self.noOfTrials = [noOfTrials]
+                self.fix_event = fix_event
+                self.fix_times = fix_times / esr
+                self.sacc_event = sacc_event
+                self.trial_codes = trial_codes
+                self.session_start = [session_start / esr]
+                self.session_start_index = [session_start_index]
+                self.setidx = [0 for i in range(trial_timestamps.shape[0])]
+                self.noOfSessions = noOfSessions
+                self.samplingRate = esr
 
     def append(self, df):
         # update fields in parent
         DPT.DPObject.append(self, df)
 
-        self.trial_timestamps = pd.concat([self.trial_timestamps, df.trial_timestamps], axis=1)
-        self.eye_pos = pd.concat([self.eye_pos, df.eye_pos])
+        self.trial_timestamps = pd.concat([self.trial_timestamps, df.trial_timestamps], axis=1) #, axis=1
+        self.eye_pos = pd.concat([self.eye_pos, df.eye_pos]) #, axis=1
         self.numSets.append(df.numSets[0])
         self.expTime.append(df.expTime[0])
         self.timestamps = pd.concat([self.timestamps, df.timestamps], axis=1)
@@ -480,8 +625,8 @@ class Eyelink(DPT.DPObject):
 
     def update_idx(self, i):
         return max(0, min(i, len(self.setidx)-1))
-
-    def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
+        
+    def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):   
         # set plot options
         plotopts = {'Plot Options': DPT.objects.ExclusiveOptions(['XT', 'XY', 'SaccFix', 'SaccFixSession', 'Discrepancies'], 0)}
 
@@ -491,16 +636,17 @@ class Eyelink(DPT.DPObject):
         # Extract the recognized plot options from kwargs
         for (k, v) in plotopts.items():
             plotopts[k] = kwargs.get(k, v)
-
+        
         plot_type = plotopts['Plot Options'].selected()
         
         session = []
-        for index in range(0, self.noOfSessions):
+
+        for index in range(0, self.noOfSessions): # index: 0-4
             session.append([index] * int(self.noOfTrials[index]))
         session = np.array(session).flatten()
         
         if getNumEvents:
-            # Return the number of events avilable
+            # Return the number of events available
             if plot_type == 'SaccFix':
                 return 1, 0
             elif plot_type == 'SaccFixSession':
@@ -510,25 +656,24 @@ class Eyelink(DPT.DPObject):
                 else:
                     nidx = 0
                 return self.noOfSessions, session[nidx]
-            else: 
+            else:
                 if i is not None:
                     nidx = i
                 else:
                     nidx = 0
                 return len(self.setidx), nidx
 
-        sidx = 0 # sessidx = int(self.dirs[0][-1]) - 1
-
-        if getLevels:        
+        if getLevels:
             # Return the possible levels for this object
             return ['session', 'trial', 'all']
+
+        sidx = 0 # sessidx = int(self.dirs[0][-1]) - 1
 
         if ax is None:
             ax = plt.gca()
         
         ax.clear()
-        
-        # Trial - Plot x vs t and y vs t positions per trial
+
         if plot_type == 'XT':
             if self.dirs[0].endswith('eye'):
                 # Fixation of x vs t
@@ -543,6 +688,7 @@ class Eyelink(DPT.DPObject):
                 date = DPT.levels.get_shortname("day", dir)
                 session = DPT.levels.get_shortname("session", dir)
                 ax.set_title(subject + date + session)
+
             else:
                 index = 1+(sidx)*3
                 x = self.trial_timestamps.to_numpy()[:, index-1:index+2] * self.samplingRate
@@ -552,10 +698,10 @@ class Eyelink(DPT.DPObject):
                     obj_timestamps = obj_timestamps.to_numpy()[:, sidx]
                 else:
                     obj_timestamps = obj_timestamps.to_numpy()
-
+                    
                 trial_start_time = obj_timestamps[x[i][0].astype(int)]
                 trial_cue_time = obj_timestamps[x[i][1].astype(int)] - trial_start_time - 0.001
-                trial_end_time = obj_timestamps[x[i][2].astype(int)] - 1
+                trial_end_time = obj_timestamps[x[i][2].astype(int)] - 0.001
 
                 # timestamps is the x axis to be plotted
                 timestamps = obj_timestamps[x[i][0].astype(int) - 501: x[i][2].astype(int)]
@@ -580,6 +726,7 @@ class Eyelink(DPT.DPObject):
                 # Plotting lines to mark the start, cue offset, and end/timeout for the trial
                 ax.plot([0, 0], ax.set_ylim(), 'g', LineWidth=0.5)
                 ax.plot([trial_cue_time, trial_cue_time], ax.set_ylim(), 'm', LineWidth=0.5)
+                #trial_end_time = trial_end_time[0]
                 timedOut = self.timeouts == trial_end_time
                 trial_end_time = trial_end_time - trial_start_time
                 timedOut = np.nonzero(timedOut.to_numpy)
@@ -589,13 +736,13 @@ class Eyelink(DPT.DPObject):
                 else: # trial did timeout
                     ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'b', LineWidth=0.5)
 
-                ax.set_xlim([-0.3, trial_end_time + 1]) # set axis boundaries
+                ax.set_xlim([-0.2, trial_end_time + 0.2]) # set axis boundaries
                 ax.legend(loc='best')
 
         elif plot_type == 'XY':
             if self.dirs[0].endswith('eye'):
                 # Calibration - Plot of calibration eye movements
-                obj_eye_pos = self.calib_eye_pos.to_numpy()
+                obj_eye_pos = self.calib_eye_pos.to_numpy() # used to be calib_eye_pos
                 indices = self.indices.to_numpy()
                 y = obj_eye_pos[indices[i][0].astype(int) : indices[i][2].astype(int), :]
                 y = y.transpose()
@@ -610,27 +757,38 @@ class Eyelink(DPT.DPObject):
 
         elif plot_type == 'SaccFix':
             # SaccFix - Histogram of fixations and saccades per session
-            if len(self.sacc_event.shape) > 1:
-                sacc_durations = self.sacc_event.to_numpy()[:, sidx]
-                fix_durations = self.fix_event.to_numpy()[:, sidx]
-            else:
+            if not self.sacc_event.empty:
                 sacc_durations = self.sacc_event.to_numpy()
                 fix_durations = self.fix_event.to_numpy()
 
-            sacc_durations = sacc_durations[sacc_durations != 0]
-            fix_durations = fix_durations[fix_durations != 0]
+                lower = np.amin(fix_durations)
+                upper = np.amax(fix_durations)
+                
+                edges = np.arange(lower, upper, 25).tolist()
+                edges = [x for x in edges if x <= 1000]
 
-            lower = np.amin(fix_durations)
-            upper = np.amax(fix_durations)
+                sacc_durations = sacc_durations[sacc_durations != 0]
+                fix_durations = fix_durations[fix_durations != 0]
+
+                ax.hist(sacc_durations, density=False, alpha=0.5, color='#31b4e8', bins=edges, label='N Saccades', edgecolor='black', linewidth=0.3)
+                ax.hist(fix_durations, density=False, alpha=0.5, color='#ed7f18', bins=edges, label='N Fixations', edgecolor='black', linewidth=0.3)
             
-            edges = np.arange(lower, upper, 25).tolist()
-            edges = [x for x in edges if x <= 1000]
+            if not self.calib_sacc_event.empty:
+                sacc_durations = self.calib_sacc_event.to_numpy()
+                fix_durations = self.calib_fix_event.to_numpy()
 
-            ax.hist(sacc_durations, density=False, alpha=0.5, color='#31b4e8', bins=edges, label='Saccades', edgecolor='black', linewidth=0.3)
-            ax.hist(fix_durations, density=False, alpha=0.5, color='#ed7f18', bins=edges, label='Fixations', edgecolor='black', linewidth=0.3)
-            ax.hist(self.calib_sacc_event.to_numpy(), density=False, alpha=0.5, color='#a569bd', label='F Saccades', edgecolor='black', linewidth=0.3)
-            ax.hist(self.calib_fix_event.to_numpy(), density=False, alpha=0.5, color='#16a085', label='F Fixations', edgecolor='black', linewidth=0.3)
+                lower = np.amin(fix_durations)
+                upper = np.amax(fix_durations)
+                
+                edges = np.arange(lower, upper, 25).tolist()
+                edges = [x for x in edges if x <= 1000]
 
+                sacc_durations = sacc_durations[sacc_durations != 0]
+                fix_durations = fix_durations[fix_durations != 0]
+
+                ax.hist(sacc_durations, density=False, alpha=0.5, color='#a569bd', bins=edges, label='F Saccades', edgecolor='black', linewidth=0.3)
+                ax.hist(fix_durations, density=False, alpha=0.5, color='#16a085', bins=edges, label='F Fixations', edgecolor='black', linewidth=0.3)
+                        
             dir = self.dirs[0]
             subject = DPT.levels.get_shortname("subject", dir)
             date = DPT.levels.get_shortname("day", dir)
@@ -641,36 +799,43 @@ class Eyelink(DPT.DPObject):
             ax.legend(loc='best')
 
         elif plot_type == 'SaccFixSession':
-            sacc_durations = self.sacc_event[self.sacc_event < 200]
-            fix_durations = self.fix_event[self.fix_event < 200]
-            calib_sacc = self.calib_sacc_event[self.calib_sacc_event < 200]
-            calib_fix = self.calib_fix_event[self.calib_fix_event < 200]
+            data = []
+            labels = []
 
-            # for loop for column numbers in sacc_ and fix_
-            data = [calib_sacc.dropna(), calib_fix.dropna()]
-            labels = ['FS', 'FF']
+            if not self.calib_sacc_event.empty:
+                calib_sacc = self.calib_sacc_event[self.calib_sacc_event < 200]
+                calib_fix = self.calib_fix_event[self.calib_fix_event < 200]
+
+                # for loop for column numbers in sacc_ and fix_
+                data.append(calib_sacc.dropna().to_numpy())
+                data.append(calib_fix.dropna().to_numpy())
+                labels.append('FS')
+                labels.append('FF')
             
-            if len(sacc_durations.shape) > 1:
-                for i in range(sacc_durations.shape[1]):
-                    data.append(sacc_durations.iloc[:, i].dropna())
-                    data.append(fix_durations.iloc[:, i].dropna())
+            if not self.sacc_event.empty:
+                sacc_durations = self.sacc_event[self.sacc_event < 200]
+                fix_durations = self.fix_event[self.fix_event < 200]
 
-                    labels.append('NS' + str(i + 1))
-                    labels.append('NF' + str(i + 1))
-            else:
-                data.append(sacc_durations.dropna())
-                data.append(fix_durations.dropna())
-                labels.append('NS1')
-                labels.append('NF1')
+                if len(sacc_durations.shape) > 1:
+                    for i in range(sacc_durations.shape[1]):
+                        data.append(sacc_durations.iloc[:, i].dropna())
+                        data.append(fix_durations.iloc[:, i].dropna())
+                        labels.append('NS' + str(i + 1))
+                        labels.append('NF' + str(i + 1))
+                else:
+                    data.append(sacc_durations.dropna())
+                    data.append(fix_durations.dropna())
+                    labels.append('NS1')
+                    labels.append('NF1')
 
-            box = ax.boxplot(data, notch=True, labels=labels)
+            ax.boxplot(data, notch=True, labels=labels)
             
             dir = self.dirs[0]
             subject = DPT.levels.get_shortname("subject", dir)
             date = DPT.levels.get_shortname("day", dir)
             ax.set_title('Saccades and Fixations Over All Sessions - ' + subject + date)
             ax.set_ylabel ('# of events')
-        
+
         elif plot_type == 'Discrepancies':
             # plot the distributions of the durations in ms
             discrepancies = self.discrepancies.reshape((self.discrepancies.shape[0]*3, 1))
@@ -696,42 +861,9 @@ def plotGazeXY(self, i, ax, gx, gy, lineType):
     ax.set_title('Eye movements - ' + subject + date + session)
     ax.set_xlabel('Gaze Position X (screen pixels)')
     ax.set_ylabel(('Gaze Position Y (screen pixels)'))
-    #ax.set_xlim([0, 2000]) # set axis boundaries, use max
-    #ax.set_ylim([1300, 0])
 
     return ax
-
-def pread(filename,
-          ignore_samples=False,
-          filter='all',
-          split_char=' ',
-          trial_marker=b'TRIALID',
-          meta={}):
-    '''
-    Parse an EDF file into a pandas.DataFrame.
-    EDF files contain three types of data: samples, events and messages.
-    pread returns one pandas DataFrame for each type of information.
-    '''
-    if not os.path.isfile(filename):
-        raise RuntimeError('File "%s" does not exist' % filename)
-
-    if pd is None:
-        raise RuntimeError('Can not import pandas.')
-
-    samples, events, messages = edfread.fread(
-        filename, ignore_samples,
-        filter, split_char, trial_marker)
-    events = pd.DataFrame(events)
-    messages = pd.DataFrame(messages)
-    samples = pd.DataFrame(np.asarray(samples), columns=edfread.sample_columns)
-
-    for key, value in meta.items():
-        events.insert(0, key, value)
-        messages.insert(0, key, value)
-        samples.insert(0, key, value)
-
-    return samples, events, messages
-
+  
 def completeData(self, events, samples, m, messageEvent, sessionName, moreSessionsFlag):
     # set default flag to 0
     flag = 0
@@ -749,9 +881,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
     # store starting times of all events
     eltimes = messageEvent['Time']
 
-    # read ripple hdf5 file
-    os.chdir(sessionName) 
-
+    # read rplparallel file
     rpl = RPLParallel()
 
     if (rpl.numSets != 0 and (rpl.timeStamps).size != 1):  #no missing rplparallel.mat
@@ -784,17 +914,15 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
                 markers = markers.transpose()
                 rpltimeStamps = rpltimeStamps.transpose()
             n = markers.shape[0]
-            rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
+            rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.rawMarkers, trialIndices=df.trialIndices, sessionStartTime=df.sessionStartTime)
 
         elif n * 3 < m.shape[0]: # If rplparallel obj is missing data, use callEyelink
-            if os.path.exists(rpl_filename) == False:
+            if os.path.exists(rpl_filename) == False: # use starts with and is file type hkl instead
                 df = rpl # extract all fields needed to go into rplparallel constructor
                 [markers, rpltimeStamps] = callEyelink(self, markers, m, eltimes-expTime, rpltimeStamps)
                 # save object and return
                 n = markers.shape[0]
-                rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.get('rawMarkers'), trialIndices=df.get('trialIndices'), sessionStartTime=df.get('sessionStartTime'))
-                
-        os.chdir('..')
+                rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.rawMarkers, trialIndices=df.trialIndices, sessionStartTime=df.sessionStartTime)
 
         noOfmessages = messages.shape[0] # stores the number of messages recorded by eyelink in the session
 
@@ -807,7 +935,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
             if (n * 3) - messageEvent.shape[0] - 2 >= 100: # use of len of messageEvent, check if the same
                 flag = 1
                 # create empty dataframes
-                elTrials = np.zeros((n, 3))
+                elTrials = np.zeros((n, 3)) # pd.DataFrame(columns=range(0,3), index=range(0,n))
                 missingData = pd.DataFrame(columns = ['Type', 'Timestamps', 'Messages'], index=range(0,n))
                 return
         
@@ -849,13 +977,14 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
         else: #if there are not any missing messages, make the missingData matrix empty 
             print('No missing messages')
             missingData = pd.DataFrame(columns = ['Type', 'Timestamps', 'Messages'], index=range(0,n))
+        
         # To ensure that the correction of the eyelink object went correctly, 
         # we now plot a histogram of the discrepancies in the start-cue,
         # cue-end and end-start durations for ripple and eyelink objects for
         # the same session to ensure that the data recorded is consistent 
         eldurations = np.empty((elTrials.shape[0], 3))
         elTrials = elTrials - expTime
-        eldurations[:, 0] = np.insert(elTrials[1:, 0] - elTrials[0:len(elTrials)-1,2], 0, 0, axis=0)
+        eldurations[:, 0] = np.insert(elTrials[1:, 0] - elTrials[0:len(elTrials)-1, 2], 0, 0, axis=0)
         eldurations[:, 1] = elTrials[:, 1] - elTrials[:, 0] # cue time - start time
         eldurations[:, 2] = elTrials[:, 2] - elTrials[:, 1] # end - cue time
         eldurations = eldurations / 1000 #conversion to seconds
@@ -865,9 +994,10 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
         
     else: #missing rplparallel  
         # assume that there are no missing messages
-        os.chdir('..')
+        # os.chdir('..')
         print('Empty object. Just fill up time array\n')
         n = messages.shape[0]
+
         elTrials = np.zeros((n, 3)) # stores the eyelink timestamps for the events in a trial
         missing = np.zeros((n, 3))
 
@@ -963,7 +1093,10 @@ def filleye(self, messages, eltimes, rpl):
 
     missing_rows = len(truth) - len(arranged_array)
 
-    slice_after = np.empty((missing_rows, 2))
+    # print(truth)
+    # print(arranged_array.shape) # correct
+
+    slice_after = np.empty((missing_rows, 2)) # this section accounts for triples that look ok, but are made of two trials with the same posters
     slice_after[:] = np.nan
     slice_index = 1
 
@@ -1039,14 +1172,13 @@ def filleye(self, messages, eltimes, rpl):
 
     for row in range(missing_rows): #this segment attempts to identify where entire trials may have gone missing, by comparing with rpl timings
         error = np.nansum(truth - arranged_array, axis=1) #nansum(dim=2)
-        error_index = min(error.ravel().nonzero()) # min(find(error~=0))
+        error_index = np.min(error.nonzero())
         if np.sum(abs(error)) == 0:
             break
-        if error_index == 1:
+        if error_index == 0:
             empty_nan = np.empty((1, 3))
             empty_nan[:] = np.nan
             arranged_array = np.vstack((empty_nan, arranged_array[0:len(arranged_array)-1, :]))
-
         else:
             for col in range(3):
                 if ~np.isnan(arranged_array[error_index-1, col]):
@@ -1067,6 +1199,7 @@ def filleye(self, messages, eltimes, rpl):
                 if error_index-2-count == 0:
                     break
                 count = count + 1
+                     
             # count now stores the number of repeated posters before the
             # misalignment has been detected (need to test all possible
             # locations).
@@ -1174,7 +1307,7 @@ def callEyelink(self, markersRaw, messages, eltimes, rpltimeStamps):
     markers = np.delete(markers, np.nonzero(markers == 0))
     n = markersRaw.shape[1]
 
-    if (n < messages.shape[0]):
+    if (n < messages.shape[0]): # messages = m # should be len(messages)
         m = messages.shape[0] 
 
         # first check if edf file is missing something too
@@ -1184,7 +1317,8 @@ def callEyelink(self, markersRaw, messages, eltimes, rpltimeStamps):
         
         markersNew = np.zeros((m, 1))
         timesNew = np.zeros((m, 3))
-
+        print(markersNew)
+        print(timesNew)
         idx = 1
         idx2 = 1
         sz = m + n
