@@ -13,3 +13,5 @@ from .umaze import Umaze
 from .spiketrain import Spiketrain
 # from .mountain_batch import mountain_batch
 # from .export_mountain_cells import export_mountain_cells
+from .eyelink import EDFSplit 
+from .eyelink import Eyelink
