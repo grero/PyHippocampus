@@ -43,6 +43,8 @@ class EDFSplit(DPT.DPObject):
 
         if not calib_files or not nav_files:
             print('Missing .edf files.')
+            # create empty object
+            DPT.DPObject.create(self, dirs=[], *args, **kwargs)
             return
  
         # number of sessions
@@ -69,6 +71,8 @@ class EDFSplit(DPT.DPObject):
             for idx in range(actualSessionNo):
                 edf_raw = process_session(self, nav_files, idx+1)
                 Eyelink(raw_data=edf_raw, fromEDFSplit=True, sessionType=idx+1, redoLevel=1, saveLevel=1)
+        
+        DPT.DPObject.create(self, *args, **kwargs)
         return self
 
     def plot(self, i = None, ax = None, overlay = False):
@@ -243,8 +247,12 @@ class Eyelink(DPT.DPObject):
         # no edf files
         if not calib_files or not nav_files:
             print('Missing edf files. Return empty object...')
+            # create empty object
+            DPT.DPObject.create(self, dirs=[], *args, **kwargs)
             return self
         else:
+            # create empty object
+            DPT.DPObject.create(self, *args, **kwargs)
             # if called eyelink first
             if not self.args['fromEDFSplit']:
                 # determine which session eyelink is being called in 
