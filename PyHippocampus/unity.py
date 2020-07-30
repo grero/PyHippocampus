@@ -86,12 +86,15 @@ class Unity(DPT.DPObject):
         self.trialRouteRatio = []
         self.durationDiff = []
 
-        # load the rplparallel object to get the Ripple timestamps
-        rl = RPLParallel()
-        self.timeStamps = [rl.timeStamps]
-
         # look for RawData_T * folder
         if bool(glob.glob(self.args["DirName"])):
+            # create object
+            DPT.DPObject.create(self, *args, **kwargs)
+
+            # load the rplparallel object to get the Ripple timestamps
+            rl = RPLParallel()
+            self.timeStamps = [rl.timeStamps]
+
             os.chdir(glob.glob(self.args["DirName"])[0])
             # look for session_1_*.txt in RawData_T*
             if bool(glob.glob(self.args["FileName"])):
@@ -254,6 +257,9 @@ class Unity(DPT.DPObject):
                 self.unityTrialTime.append(unityTrialTime)
                 self.unityTime.append(unityTime)
                 self.setidx = ([0] * unityTriggers.shape[0])
+        else:
+            # create empty object
+            DPT.DPObject.create(self, dirs=[], *args, **kwargs)
 
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
         # set plot options
