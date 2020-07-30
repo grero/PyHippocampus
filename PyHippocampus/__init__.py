@@ -11,5 +11,5 @@ from .helperfunctions import plotFFT
 from .aligning_objects import aligning_objects
 from .umaze import Umaze
 from .spiketrain import Spiketrain
-from .mountain_batch import mountain_batch
-from .export_mountain_cells import export_mountain_cells
+# from .mountain_batch import mountain_batch
+# from .export_mountain_cells import export_mountain_cells
