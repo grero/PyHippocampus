@@ -12,9 +12,11 @@ class DirFiles(DPT.DPObject):
     argsList = [("FilesOnly", False), ("DirsOnly", False)]
     level = "session"
 
+
     def __init__(self, *args, **kwargs):
         # initialize fields in parent
         DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+
 
     def create(self, *args, **kwargs):
         # check for files or directories in current directory
@@ -40,12 +42,19 @@ class DirFiles(DPT.DPObject):
         
         # create object if there are some items in this directory
         if dnum > 0:
+            # create object
+            DPT.DPObject.create(self, *args, **kwargs)
             # update fields in parent
-            self.dirs = [cwd]
-            self.setidx = [0 for i in range(dnum)]
+            # self.dirs = [cwd]
+            # self.setidx = [0 for i in range(dnum)]
             # update fields in child
             self.itemList = itemList
             self.itemNum = [dnum]
+        else:
+            # create empty object
+            DPT.DPObject.create(self, dirs=[], *args, **kwargs)
+            # remove dirs to indicate this is an empty object
+            # self.dirs = []
 
     def append(self, df):
         # update fields in parent
@@ -53,6 +62,7 @@ class DirFiles(DPT.DPObject):
         # update fields in child
         self.itemList += df.itemList
         self.itemNum += df.itemNum
+
 
     def plot(self, i=None, getNumEvents=False, getLevels=False, 
              getPlotOpts=False, ax=None, **kwargs):
