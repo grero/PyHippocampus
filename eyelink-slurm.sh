@@ -19,5 +19,8 @@
 ## /SBATCH -e slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-
+# this script can be used like this:
+# [picasso]$ cwd=`pwd`; for i in `find . -name "session01"`; 
+#     do echo $i; cd $i; sbatch /data/src_shihcheng/PyHippocampus/eyelink-slurm.sh; 
+#     cd $cwd; done
 python -c "import PyHippocampus as pyh; pyh.Eyelink(saveLevel = 1)"

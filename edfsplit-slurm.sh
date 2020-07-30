@@ -19,5 +19,8 @@
 ## /SBATCH -e slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-
+# this script can be used like this:
+# [picasso]$ for i in *; 
+#     do echo $i; cd $i; sbatch /data/src_shihcheng/PyHippocampus/edfsplit-slurm.sh; 
+#     cd ..; done
 python -c "import PyHippocampus as pyh; pyh.EDFSplit(saveLevel = 1)"
