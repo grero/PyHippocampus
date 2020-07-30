@@ -15,7 +15,7 @@ class EDFSplit(DPT.DPObject):
 
     filename = 'edfsplit.hkl'
     argsList = [('FileName', '.edf'), ('CalibFileNameChar', 'P'), ('NavDirName', 'session0'), 
-    ('CalibDirName', 'sessioneye'), ('TriggerMessage', 'Trigger Version 84'),  ('sessionType', None), ('fromEyelink', False)]
+    ('CalibDirName', 'sessioneye'), ('TriggerMessage', 'Trigger Version 84'),  ('sessionType', None)]
     level = 'day'
 
     def __init__(self, *args, **kwargs):
@@ -57,7 +57,8 @@ class EDFSplit(DPT.DPObject):
         self.actualSessionNo = actualSessionNo
 
         # if edf_split is called from Eyelink
-        if self.args['fromEyelink']:
+        # if self.args['fromEyelink']:
+        if kwargs.get('fromEyelink'):
             if not self.args['sessionType']:
                 file_type = calib_files
             else:
@@ -184,7 +185,7 @@ class Eyelink(DPT.DPObject):
     filename = 'eyelink.hkl'
     argsList = [('FileName', '.edf'), ('CalibFileNameChar', 'P'), ('NavDirName', 'session0'), 
     ('DirName', 'session*'), ('CalibDirName', 'sessioneye'), ('ScreenX', 1920), ('ScreenY', 1080), 
-    ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), ('sessionType', None), ('fromEDFSplit', False)]
+    ('NumTrialMessages', 3), ('TriggerMessage', 'Trigger Version 84'), ('sessionType', None)]
     level = 'session'
 
     def __init__(self, *args, **kwargs):
@@ -237,7 +238,8 @@ class Eyelink(DPT.DPObject):
                 
                     return self
 
-        if not self.args['fromEDFSplit']:
+        # if not self.args['fromEDFSplit']:
+        if not kwargs.get('fromEDFSplit'):
             os.chdir('..')
             
         files = os.listdir()
@@ -254,7 +256,8 @@ class Eyelink(DPT.DPObject):
             # create empty object
             DPT.DPObject.create(self, *args, **kwargs)
             # if called eyelink first
-            if not self.args['fromEDFSplit']:
+            # if not self.args['fromEDFSplit']:
+            if not kwargs.get('fromEDFSplit'):
                 # determine which session eyelink is being called in 
                 if not self.dirs[0].endswith(self.args['CalibDirName']):
                     dir = self.dirs[0][-1]
