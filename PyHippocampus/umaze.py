@@ -206,12 +206,17 @@ class Umaze(DPT.DPObject):
             lst.append(temp)
         lst = np.array(lst)
         matrix = np.reshape(lst, (self.GridSteps, self.GridSteps), order='C')
-        df = pd.DataFrame(matrix)
+        matrix_r = []
+        for i in reversed(range(np.shape(matrix)[0])):
+            matrix_r.append(matrix[i])
+        matrix_r = np.array(matrix_r)
+        df = pd.DataFrame(matrix_r)
+        self.matrix = df        
         fig, ax = plt.subplots(figsize=(120, 70))
         title = 'Umaze Bins Heat Map'
         plt.title(title, fontsize=18)
         ttl = ax.title
-        sns.heatmap(df, fmt='.1f', cmap='Reds', linewidths=.8, ax=ax)
+        sns.heatmap(df, cmap='Reds', linewidths=.8, ax=ax)
         plt.show()
 
         # check if we need to save the object, with the default being 0
