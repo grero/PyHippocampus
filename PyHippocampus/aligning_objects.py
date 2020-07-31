@@ -13,13 +13,15 @@ from .unity import Unity
 def aligning_objects():
     threshold = 0.02
 
-    #uf = hkl.load('unity_5878.hkl')
-    #el = hkl.load('eyelink_b6b0.hkl')
-    #rp = hkl.load('rplparallel_469e.hkl')
     uf = Unity()
     rp = RPLParallel()
     el = Eyelink()
-    
+    el.session_start[0] = el.session_start[0]*el.samplingRate
+    el.timestamps = el.timestamps*el.samplingRate
+    el.trial_timestamps = el.trial_timestamps*el.samplingRate
+    el.fix_times = el.fix_times*el.samplingRate
+    el.timestamps = el.timestamps[el.timestamps > 0]
+            
     true_timestamps = np.array(rp.timeStamps) * 1000
     a = np.shape(true_timestamps)
     true_timestamps = np.reshape(true_timestamps,a[0]*a[1],order='C')
@@ -143,7 +145,7 @@ def aligning_objects():
         #print(session_trial_duration)
         finding_index = 0
         for i in range(np.shape(el.timestamps)[0]):
-            if el.timestamps[i] != el.session_start:
+            if el.timestamps[i] != el.session_start[0]:
                 finding_index += 1
             else:
                 break
@@ -214,8 +216,11 @@ def aligning_objects():
     
     #hkl.dump(uf,'uf_new1.hkl','w')
     #hkl.dump(el,'el_new1.hkl','w')
-    uf.save()
-    el.save()
+    uf_n = uf.get_filename()
+    el_n = el.get_filename()
+    hkl.dump(uf,uf_n,'w')
+    hkl.dump(el,el_n,'w')    
+    
     print('finish aligning objects')
             
 

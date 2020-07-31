@@ -16,8 +16,8 @@
 
 
 ## /SBATCH -p general # partition (queue)
-## /SBATCH -o slurm.%N.%j.out # STDOUT
-## /SBATCH -e slurm.%N.%j.err # STDERR
+## /SBATCH -o rplhp-sort-slurm.%N.%j.out # STDOUT
+## /SBATCH -e rplhp-sort-slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 
