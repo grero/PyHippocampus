@@ -901,7 +901,6 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
 
     # read rplparallel file
     rpl = RPLParallel()
-    rpl_filename = rpl.get_filename()
 
     if (rpl.numSets != 0 and rpl.timeStamps.shape[0] != 1):  #no missing rplparallel.mat
         # markers will store all the event numbers in the trial, as taken from the ripple object. 
@@ -936,7 +935,12 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
             rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.rawMarkers, trialIndices=df.trialIndices, sessionStartTime=df.sessionStartTime)
 
         elif n * 3 < m.shape[0]: # If rplparallel obj is missing data, use callEyelink
-            if not os.path.exists(rpl_filename):
+            files = os.listdir()
+            count = 0
+            for file in files:
+                if file.startswith('rplparallel'):
+                    count = count + 1 
+            if count == 0:
                 df = rpl # extract all fields needed to go into rplparallel constructor
                 [markers, rpltimeStamps] = callEyelink(self, markers, m, eltimes-expTime, rpltimeStamps)
                 # save object and return
