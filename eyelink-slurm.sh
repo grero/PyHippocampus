@@ -14,8 +14,8 @@
 #SBATCH --mail-type=FAIL
 
 ## /SBATCH -p general # partition (queue)
-## /SBATCH -o slurm.%N.%j.out # STDOUT
-## /SBATCH -e slurm.%N.%j.err # STDERR
+## /SBATCH -o eyelink-slurm.%N.%j.out # STDOUT
+## /SBATCH -e eyelink-slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 # this script can be used like this:
