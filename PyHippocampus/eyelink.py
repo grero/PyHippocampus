@@ -199,6 +199,7 @@ class Eyelink(DPT.DPObject):
 
     def create(self, *args, **kwargs):
         self.trial_timestamps = pd.DataFrame()
+        self.calib_eye_pos = pd.DataFrame()
         self.eye_pos = pd.DataFrame()
         self.numSets =  []
         self.expTime = []
@@ -489,30 +490,29 @@ class Eyelink(DPT.DPObject):
                     missingData = pd.DataFrame()
                     sessionFolder = 1
 
-                    # loop to go through all sessions found in edf file
                     # 1) checks if edf file is complete by calling completeData
                     # 2) fills in the trialTimestamps and missingData tables by indexing
                     # with session index (i)
 
-                    for i in range(noOfSessions):
-                        idx = sessionIndex[i]
-                        session = self.args['NavDirName'] + str(i + 1)
-                        print('Session Name: ', session, '\n')
-                        if i == noOfSessions-1:
-                            [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:], messageEvent[idx:], session, extraSessions)
-                        else:
-                            idx2 = sessionIndex[i+1]
-                            [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:idx2], messageEvent[idx:idx2], session, extraSessions)
-                        if flag == 0:
-                            l = 1 + (sessionFolder-1)*3
-                            u = 3 + (sessionFolder-1)*3
-                            row = corrected_times.shape[0]
-                            trialTimestamps[0:row, l-1:u] = corrected_times
-                            noOfTrials[0, sessionFolder-1] = corrected_times.shape[0]
-                            missingData.append(tempMissing)
-                            sessionFolder = sessionFolder + 1
-                        else:
-                            print('Dummy Session skipped', i, '\n')
+                    i = int(os.getcwd()[-1]) - 1
+                    idx = sessionIndex[i]
+                    session = self.args['NavDirName'] + str(i + 1)
+                    print('Session Name: ', session, '\n')
+                    if i == noOfSessions-1:
+                        [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:], messageEvent[idx:], session, extraSessions)
+                    else:
+                        idx2 = sessionIndex[i+1]
+                        [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:idx2], messageEvent[idx:idx2], session, extraSessions)
+                    if flag == 0:
+                        l = 1 + (sessionFolder-1)*3
+                        u = 3 + (sessionFolder-1)*3
+                        row = corrected_times.shape[0]
+                        trialTimestamps[0:row, l-1:u] = corrected_times
+                        noOfTrials[0, sessionFolder-1] = corrected_times.shape[0]
+                        missingData.append(tempMissing)
+                        sessionFolder = sessionFolder + 1
+                    else:
+                        print('Dummy Session skipped', i, '\n')
                 
                 else:
                     # some of the early sessions did not have a message indicating the beginning
@@ -527,56 +527,56 @@ class Eyelink(DPT.DPObject):
                     sessionIndex = []
                     extraSessions = 0
 
-                    for i in range(noOfSessions):
-                        session = self.args['NavDirName'] + str(i + 1)
-                        os.chdir(session)
+                    #for i in range(noOfSessions):
+                    #session = self.args['NavDirName'] + str(i + 1)
+                    #os.chdir(session)
 
-                        # initializing variables for session01
-                        if i == 0:
-                            sessionIndex = sessionIndex.append(1)
-                            nextSessionIndex = 0
-                        
-                        # load the rplparallel object to find out how many trials there were
-                        idx = nextSessionIndex
-                        err = 0
+                    # initializing variables for session01
+                    if i == 0:
+                        sessionIndex = sessionIndex.append(1)
+                        nextSessionIndex = 0
+                    
+                    # load the rplparallel object to find out how many trials there were
+                    idx = nextSessionIndex
+                    err = 0
 
-                        rplObj = RPLParallel()
-                        TrialNum = rplObj.markers.shape
-                        TrialNum = TrialNum[0]
-                        nextSessionIndex = 3 * TrialNum + idx
+                    rplObj = RPLParallel()
+                    TrialNum = rplObj.markers.shape
+                    TrialNum = TrialNum[0]
+                    nextSessionIndex = 3 * TrialNum + idx
 
-                        # look through the messages to figure out which to
-                        # skip (aborted sessions)
-                        k = nextSessionIndex
-                        while ('Start' in m[k] and 'Start' in m[k+1]):
-                            err = err + 1
-                            k = k + 1
-                        
-                        # save the session transitions in sessionIndex
-                        nextSessionIndex = nextSessionIndex + err
+                    # look through the messages to figure out which to
+                    # skip (aborted sessions)
+                    k = nextSessionIndex
+                    while ('Start' in m[k] and 'Start' in m[k+1]):
+                        err = err + 1
+                        k = k + 1
+                    
+                    # save the session transitions in sessionIndex
+                    nextSessionIndex = nextSessionIndex + err
 
-                        if i != noOfSessions:
-                            sessionIndex = sessionIndex.append(nextSessionIndex)
-                        
-                        os.chdir('..')
+                    if i != noOfSessions:
+                        sessionIndex = sessionIndex.append(nextSessionIndex)
+                    
+                    #os.chdir('..')
 
-                        # Check if eyelink has missing data by calling completeData 
-                        if i == noOfSessions-1:
-                            [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:], messageEvent[idx:], session, extraSessions)
-                        else:
-                            idx2 = idx + 3 * TrialNum - 1
-                            [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:idx2], messageEvent[idx:idx2], session, extraSessions)
-                        if flag == 0:
-                            l = 1 + (i-1)*3
-                            u = 3 + (i-1)*3
-                            row = corrected_times.shape[0]
-                            trialTimestamps[0:row, l-1:u] = corrected_times
-                            noOfTrials[0, i-1] = corrected_times.shape[0]
-                            missingData = missingData.append(tempMissing)
-                        else:
-                            print('Dummy Session skipped', i, '\n')
-                        # increase i to go to next sessionFolder
-                        i = i + 1
+                    # Check if eyelink has missing data by calling completeData 
+                    if i == noOfSessions-1:
+                        [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:], messageEvent[idx:], session, extraSessions)
+                    else:
+                        idx2 = idx + 3 * TrialNum - 1
+                        [corrected_times, tempMissing, flag] = completeData(self, events, samples, m[idx:idx2], messageEvent[idx:idx2], session, extraSessions)
+                    if flag == 0:
+                        l = 1 + (i-1)*3
+                        u = 3 + (i-1)*3
+                        row = corrected_times.shape[0]
+                        trialTimestamps[0:row, l-1:u] = corrected_times
+                        noOfTrials[0, i-1] = corrected_times.shape[0]
+                        missingData = missingData.append(tempMissing)
+                    else:
+                        print('Dummy Session skipped', i, '\n')
+                    # increase i to go to next sessionFolder
+                    i = i + 1
 
                 noOfTrials = noOfTrials[0, idx]
 
@@ -593,7 +593,7 @@ class Eyelink(DPT.DPObject):
                         missingData.to_csv(index=False)
 
                 # trial_timestamps = trialTimestamps[:, 0:3]
-                trial_timestamps = trialTimestamps[~np.all(trial_timestamps == 0, axis=1), :]
+                trial_timestamps = trialTimestamps[~np.all(trialTimestamps == 0, axis=1), :]
                 trial_timestamps = trial_timestamps[:, ~np.all(trial_timestamps == 0, axis=0)] # remove zero rows
                 trial_timestamps = trial_timestamps - 1
                 trial_timestamps = pd.DataFrame(data=trial_timestamps)
@@ -627,19 +627,25 @@ class Eyelink(DPT.DPObject):
         # update fields in parent
         DPT.DPObject.append(self, df)
 
-        self.trial_timestamps = pd.concat([self.trial_timestamps, df.trial_timestamps], axis=1) #, axis=1
+        self.trial_timestamps = pd.concat([self.trial_timestamps, df.trial_timestamps], ignore_index=True) #, axis=1
         self.eye_pos = pd.concat([self.eye_pos, df.eye_pos]) #, axis=1
         self.numSets.append(df.numSets[0])
         self.expTime.append(df.expTime[0])
         self.timestamps = pd.concat([self.timestamps, df.timestamps], axis=1)
-        #self.timeouts = pd.concat([self.timeouts, df.timeouts])
+        self.timeouts = pd.concat([self.timeouts, df.timeouts], axis=1)
+        self.indices = pd.concat([self.indices, df.indices], axis=1)
         self.noOfTrials.append(df.noOfTrials[0])
-        self.fix_event = pd.concat([self.fix_event, df.fix_event], axis=1)
         self.fix_times = pd.concat([self.fix_times, df.fix_times], axis=1)
-        self.sacc_event = pd.concat([self.sacc_event, df.sacc_event], axis=1)
         self.trial_codes = pd.concat([self.trial_codes, df.trial_codes], axis=1)
-        #self.session_start.append(df.session_start)
-        #self.session_start_index.append(df.session_start_index)
+        self.session_start.append(df.session_start)
+        self.session_start_index.append(df.session_start_index)
+
+        #self.fix_event = pd.concat([self.fix_event, df.fix_event], axis=1)
+        #self.sacc_event = pd.concat([self.sacc_event, df.sacc_event], axis=1)
+
+        self.calib_fix_event = pd.concat([self.calib_fix_event, df.calib_fix_event], axis=1)
+        self.calib_sacc_event = pd.concat([self.calib_fix_event, df.calib_fix_event], axis=1)
+        #self.calib_eye_pos = pd.concat([self.calib_eye_pos, df.calib_eye_pos], axis=1)
 
     def update_idx(self, i):
         return max(0, min(i, len(self.setidx)-1))
@@ -902,7 +908,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
     # read rplparallel file
     rpl = RPLParallel()
 
-    if (rpl.numSets != 0 and (rpl.timeStamps).size != 1):  #no missing rplparallel.mat
+    if (rpl.numSets != 0 and rpl.timeStamps.shape[0] != 1):  #no missing rplparallel.mat
         # markers will store all the event numbers in the trial, as taken from the ripple object. 
         # This will be used to mark which events are missing in the eyelink object. 
         # (1-start, 2-cue, 3/4 - end/timeout)
@@ -935,7 +941,12 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
             rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.rawMarkers, trialIndices=df.trialIndices, sessionStartTime=df.sessionStartTime)
 
         elif n * 3 < m.shape[0]: # If rplparallel obj is missing data, use callEyelink
-            if os.path.exists(rpl_filename) == False: # use starts with and is file type hkl instead
+            files = os.listdir()
+            count = 0
+            for file in files:
+                if file.startswith('rplparallel') and file.endswith('.hkl'):
+                    count = count + 1  
+            if count == 0:
                 df = rpl # extract all fields needed to go into rplparallel constructor
                 [markers, rpltimeStamps] = callEyelink(self, markers, m, eltimes-expTime, rpltimeStamps)
                 # save object and return
@@ -958,9 +969,9 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
                 return
         
         # calculate the durations between rplparallel timestamps 
-        # rpldurations(1,1) is assumed to be the time difference between the
+        # rpldurations(0,0) is assumed to be the time difference between the
         # start of the session and the trial start time
-        rpldurations[:, 0] = np.insert(rpltimeStamps[1:, 0] - rpltimeStamps[0:len(rpltimeStamps)-1,2], 0, rpltimeStamps[0,0], axis=0)
+        rpldurations[:, 0] = np.insert(rpltimeStamps[1:len(rpltimeStamps), 0] - rpltimeStamps[0:len(rpltimeStamps)-1,2], 0, rpltimeStamps[0,0], axis=0)
         rpldurations[:, 1] = rpltimeStamps[:, 1] - rpltimeStamps[:, 0] # cue time - start time
         rpldurations[:, 2] = rpltimeStamps[:, 2] - rpltimeStamps[:, 1] # end time - cue time
 
@@ -1221,39 +1232,41 @@ def filleye(self, messages, eltimes, rpl):
             # count now stores the number of repeated posters before the
             # misalignment has been detected (need to test all possible
             # locations).
-            print(count)
+            print('count', count)
 
             eye_start_trials = np.empty((count+2, 1))
             eye_start_trials[:] = np.nan
-            eye_start_count = 1
+            eye_start_count = 0
 
-            esi = -1
+            esi = 0
             for r in range(arranged_array.shape[0]):
                 for c in range(3):
                     if ~np.isnan(arranged_array[r, c]):
                         esi = esi + 1
-                    if r >= error_index-count-1 and r <= error_index:
-                        if c == 1:
+                    if (r >= error_index-count-1) and (r <= error_index):
+                        if c == 0:
                             if ~np.isnan(arranged_array[r, c]):
                                 eye_start_trials[eye_start_count, 0] = eye_timestamps[esi]
                             elif ~np.isnan(arranged_array[r, c+1]):
-                                print('taking cue offset and cutting 2seconds to estimate start trial timing')
+                                print('taking cue offset and cutting 2 seconds to estimate start trial timing')
                                 eye_start_trials[eye_start_count, 0] = eye_timestamps[esi+1]-2000
                             else:
-                                print('taking end trial and cutting 10seconds to estimate start trial timing')
+                                print('taking end trial and cutting 10 seconds to estimate start trial timing')
                                 eye_start_trials[eye_start_count, 0] = eye_timestamps[esi+1]-10000
                             eye_start_count = eye_start_count + 1
                 
-                rpl_start_trials = truth_timestamps[error_index-count-1:error_index, 0]
-                diff_eye = np.diff(eye_start_trials)
-                diff_rpl = np.diff(rpl_start_trials)
-                discrepancy = diff_eye - diff_rpl
-                [_,row_to_insert] = max(discrepancy)
+            rpl_start_trials = truth_timestamps[error_index-count-1:error_index+1, 0]
+            diff_eye = np.diff(eye_start_trials.flatten())
+            diff_rpl = np.diff(rpl_start_trials)
+            discrepancy = diff_eye - diff_rpl
 
-                empty_nans = np.zeros((1,3))
-                empty_nans[:] = np.nan
-                arranged_array = np.concatenate((arranged_array[0:error_index-count-2+row_to_insert, :], empty_nans, arranged_array[error_index-count-1+row_to_insert:, :]), axis=0)
-                arranged_array = arranged_array[0:len(arranged_array)-1, :]
+            row_to_insert = np.where(discrepancy == np.amax(discrepancy))
+            row_to_insert = row_to_insert[0][0]+2
+            empty_nans = np.zeros((1,3))
+            empty_nans[:] = np.nan
+
+            arranged_array = np.vstack((arranged_array[0:error_index-count-2+row_to_insert, :], empty_nans, arranged_array[error_index-count-2+row_to_insert:len(arranged_array), :]))
+            arranged_array = arranged_array[0:len(arranged_array)-1, :]
     
     if np.nansum(abs(arranged_array.astype(float) - truth.astype(float))) > 0:
         raise ValueError('eyelink was not properly arranged. current arrangement still clashes with ripple')
