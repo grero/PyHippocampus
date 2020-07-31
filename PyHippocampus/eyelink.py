@@ -64,7 +64,6 @@ class EDFSplit(DPT.DPObject):
                 file_type = calib_files
             else:
                 file_type = nav_files
-            # process_session(self, file_type, int(self.args['sessionType']))
             process_session(self, file_type, int(kwargs.get('sessionType')))
         else:
             edf_raw = process_session(self, calib_files, 0) # sessioneye
@@ -241,7 +240,6 @@ class Eyelink(DPT.DPObject):
                 
                     return self
 
-        # if not self.args['fromEDFSplit']:
         if not kwargs.get('fromEDFSplit'):
             # determine which session eyelink is being called in 
             cwd = os.getcwd()
@@ -263,7 +261,6 @@ class Eyelink(DPT.DPObject):
             return self
         else:
             # if called eyelink first
-            # if not self.args['fromEDFSplit']:
             if not kwargs.get('fromEDFSplit'):
                 if not cwd.endswith(self.args['CalibDirName']):
                     os.chdir('session0' + str(dir))
@@ -486,7 +483,7 @@ class Eyelink(DPT.DPObject):
 
                     #preallocate variables
                     trialTimestamps = np.zeros((m.shape[0], 3*noOfSessions))
-                    noOfTrials = np.zeros((1,noOfSessions))
+                    noOfTrials = 0
                     missingData = pd.DataFrame()
                     sessionFolder = 1
 
@@ -508,7 +505,7 @@ class Eyelink(DPT.DPObject):
                         u = 3 + (sessionFolder-1)*3
                         row = corrected_times.shape[0]
                         trialTimestamps[0:row, l-1:u] = corrected_times
-                        noOfTrials[0, sessionFolder-1] = corrected_times.shape[0]
+                        noOfTrials = corrected_times.shape[0]
                         missingData.append(tempMissing)
                         sessionFolder = sessionFolder + 1
                     else:
@@ -521,7 +518,7 @@ class Eyelink(DPT.DPObject):
                     #preallocate variables
                     noOfSessions = edf_split.actualSessionNo
                     trialTimestamps = np.zeros((m.shape[0], 3*noOfSessions))
-                    noOfTrials = np.zeros((1,noOfSessions))
+                    noOfTrials = 0
                     missingData = pd.DataFrame()
                     sessionFolder = 1
                     sessionIndex = []
@@ -571,14 +568,12 @@ class Eyelink(DPT.DPObject):
                         u = 3 + (i-1)*3
                         row = corrected_times.shape[0]
                         trialTimestamps[0:row, l-1:u] = corrected_times
-                        noOfTrials[0, i-1] = corrected_times.shape[0]
+                        noOfTrials = corrected_times.shape[0]
                         missingData = missingData.append(tempMissing)
                     else:
                         print('Dummy Session skipped', i, '\n')
                     # increase i to go to next sessionFolder
                     i = i + 1
-
-                noOfTrials = noOfTrials[0, idx]
 
                 # edit the size of the array and remove all zero rows and extra columns
                 trialTimestamps = trialTimestamps.astype(int)
@@ -592,7 +587,6 @@ class Eyelink(DPT.DPObject):
                     with open('missingData.csv', 'w', newline='') as file_writer:
                         missingData.to_csv(index=False)
 
-                # trial_timestamps = trialTimestamps[:, 0:3]
                 trial_timestamps = trialTimestamps[~np.all(trialTimestamps == 0, axis=1), :]
                 trial_timestamps = trial_timestamps[:, ~np.all(trial_timestamps == 0, axis=0)] # remove zero rows
                 trial_timestamps = trial_timestamps - 1
@@ -907,6 +901,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
 
     # read rplparallel file
     rpl = RPLParallel()
+    rpl_filename = rpl.get_filename()
 
     if (rpl.numSets != 0 and rpl.timeStamps.shape[0] != 1):  #no missing rplparallel.mat
         # markers will store all the event numbers in the trial, as taken from the ripple object. 
@@ -941,12 +936,7 @@ def completeData(self, events, samples, m, messageEvent, sessionName, moreSessio
             rpl_obj = RPLParallel(saveLevel=1, Data=True, markers=markers, timeStamps=rpltimeStamps, rawMarkers=df.rawMarkers, trialIndices=df.trialIndices, sessionStartTime=df.sessionStartTime)
 
         elif n * 3 < m.shape[0]: # If rplparallel obj is missing data, use callEyelink
-            files = os.listdir()
-            count = 0
-            for file in files:
-                if file.startswith('rplparallel') and file.endswith('.hkl'):
-                    count = count + 1  
-            if count == 0:
+            if not os.path.exists(rpl_filename):
                 df = rpl # extract all fields needed to go into rplparallel constructor
                 [markers, rpltimeStamps] = callEyelink(self, markers, m, eltimes-expTime, rpltimeStamps)
                 # save object and return
