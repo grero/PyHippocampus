@@ -621,25 +621,25 @@ class Eyelink(DPT.DPObject):
         # update fields in parent
         DPT.DPObject.append(self, df)
 
-        self.trial_timestamps = pd.concat([self.trial_timestamps, df.trial_timestamps], ignore_index=True) #, axis=1
-        self.eye_pos = pd.concat([self.eye_pos, df.eye_pos]) #, axis=1
+        self.eye_pos = pd.concat([self.eye_pos, df.eye_pos])
+        self.fix_event = pd.concat([self.fix_event, df.fix_event])
+        self.sacc_event = pd.concat([self.sacc_event, df.sacc_event])
+        self.calib_eye_pos = pd.concat([self.calib_eye_pos, df.calib_eye_pos])
+        self.calib_fix_event = pd.concat([self.calib_fix_event, df.calib_fix_event])
+        self.calib_sacc_event = pd.concat([self.calib_fix_event, df.calib_fix_event])
+
+        df.trial_timestamps.columns = [0, 1, 2]
+        self.trial_timestamps = pd.concat([self.trial_timestamps, df.trial_timestamps], axis=0, ignore_index=True) #, axis=1
         self.numSets.append(df.numSets[0])
         self.expTime.append(df.expTime[0])
-        self.timestamps = pd.concat([self.timestamps, df.timestamps], axis=1)
-        self.timeouts = pd.concat([self.timeouts, df.timeouts], axis=1)
+        self.timestamps = pd.concat([self.timestamps, df.timestamps])
+        self.timeouts = pd.concat([self.timeouts, df.timeouts])
         self.indices = pd.concat([self.indices, df.indices], axis=1)
         self.noOfTrials.append(df.noOfTrials[0])
-        self.fix_times = pd.concat([self.fix_times, df.fix_times], axis=1)
+        self.fix_times = pd.concat([self.fix_times, df.fix_times])
         self.trial_codes = pd.concat([self.trial_codes, df.trial_codes], axis=1)
         self.session_start.append(df.session_start)
         self.session_start_index.append(df.session_start_index)
-
-        #self.fix_event = pd.concat([self.fix_event, df.fix_event], axis=1)
-        #self.sacc_event = pd.concat([self.sacc_event, df.sacc_event], axis=1)
-
-        self.calib_fix_event = pd.concat([self.calib_fix_event, df.calib_fix_event], axis=1)
-        self.calib_sacc_event = pd.concat([self.calib_fix_event, df.calib_fix_event], axis=1)
-        #self.calib_eye_pos = pd.concat([self.calib_eye_pos, df.calib_eye_pos], axis=1)
 
     def update_idx(self, i):
         return max(0, min(i, len(self.setidx)-1))
@@ -712,10 +712,10 @@ class Eyelink(DPT.DPObject):
                 x = self.trial_timestamps.to_numpy()[:, index-1:index+2] * self.samplingRate
 
                 obj_timestamps = self.timestamps
-                if len(self.sacc_event.shape) > 1:
-                    obj_timestamps = obj_timestamps.to_numpy()[:, sidx]
-                else:
-                    obj_timestamps = obj_timestamps.to_numpy()
+                #if len(self.sacc_event.shape) > 1:
+                #    obj_timestamps = obj_timestamps.to_numpy()[:, sidx]
+                #else:
+                obj_timestamps = obj_timestamps.to_numpy()
                     
                 trial_start_time = obj_timestamps[x[i][0].astype(int)]
                 trial_cue_time = obj_timestamps[x[i][1].astype(int)] - trial_start_time - 0.001
