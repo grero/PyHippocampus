@@ -8,5 +8,5 @@ networkx
 numpy
 pandas
 scipy
+seaborn
 mountainlab-pytools
-
