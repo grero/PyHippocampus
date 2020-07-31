@@ -71,25 +71,26 @@ class Unity(DPT.DPObject):
         print(os.getcwd())
 
     def create(self, *args, **kwargs):
-        # set plot options
-        self.indexer = self.getindex("trial")
-
-        # initialization
-        self.numSets = 0
-        self.sumCost = []
-        self.unityData = []
-        self.unityTriggers = []
-        self.unityTrialTime = []
-        self.unityTime = []
-        self.timePerformance = []
-        self.routePerformance = []
-        self.trialRouteRatio = []
-        self.durationDiff = []
 
         # look for RawData_T * folder
         if bool(glob.glob(self.args["DirName"])):
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
+
+            # set plot options
+            self.indexer = self.getindex("trial")
+
+            # initialization
+            self.numSets = 0
+            self.sumCost = []
+            self.unityData = []
+            self.unityTriggers = []
+            self.unityTrialTime = []
+            self.unityTime = []
+            self.timePerformance = []
+            self.routePerformance = []
+            self.trialRouteRatio = []
+            self.durationDiff = []
 
             # load the rplparallel object to get the Ripple timestamps
             rl = RPLParallel()
