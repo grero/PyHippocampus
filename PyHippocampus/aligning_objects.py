@@ -214,12 +214,12 @@ def aligning_objects():
             uf.unityTrialTime[0][j,col] = arr[j]      
     
     
-    #hkl.dump(uf,'uf_new1.hkl','w')
-    #hkl.dump(el,'el_new1.hkl','w')
-    uf_n = uf.get_filename()
-    el_n = el.get_filename()
-    hkl.dump(uf,uf_n,'w')
-    hkl.dump(el,el_n,'w')    
+    #uf_n = uf.get_filename()
+    #el_n = el.get_filename()
+    #hkl.dump(uf,uf_n,'w')
+    #hkl.dump(el,el_n,'w')
+    uf.save()
+    el.save()
     
     print('finish aligning objects')
             
