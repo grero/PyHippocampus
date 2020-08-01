@@ -211,7 +211,9 @@ class Umaze(DPT.DPObject):
             matrix_r.append(matrix[i])
         matrix_r = np.array(matrix_r)
         df = pd.DataFrame(matrix_r)
-        self.matrix = df
+        self.matrix = df 
+        
+        # heatmap plot code
         fig, ax = plt.subplots(figsize=(120, 70))
         title = 'Umaze Bins Heat Map'
         plt.title(title, fontsize=18)
@@ -227,7 +229,17 @@ class Umaze(DPT.DPObject):
         # set plot options
         plotopts = {}
         if getPlotOpts:
-            return plotopts 
+            return plotopts
+
+        # Extract the recognized plot options from kwargs
+        for (k, v) in plotopts.items():
+            plotopts[k] = kwargs.get(k, v)
+
+        if ax is None:
+            ax = gca()
+        ax.clear()
+
+        return ax
 
     def append(self, uf):
         # update fields in parent
