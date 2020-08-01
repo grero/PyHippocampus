@@ -71,6 +71,7 @@ class EDFSplit(DPT.DPObject):
 
             # calls Eyelink from edfsplit
             for idx in range(actualSessionNo):
+                # this is where process_session needs to select the correct section of data from the edf file 
                 edf_raw = process_session(self, nav_files, idx+1)
                 Eyelink(raw_data=edf_raw, fromEDFSplit=True, sessionType=idx+1, redoLevel=1, saveLevel=1)
         
@@ -131,6 +132,8 @@ def process_session(self, file, sessionType):
         trigger_m.append(999999999.0)
 
         # extract the correct session information
+        # current using a for loop, the data is extracted in order the same number of times as the number of nav session folders that are present
+        # this function needs to recognize the 'dummy' sessions from samples, events and messages returned by pyedfread
         i = sessionType - 1 # session01 gives i=0
 
         events = events[(events['end'] >= trigger_m[i]) & (events['start'] < trigger_m[i+1])]
@@ -622,8 +625,8 @@ class Eyelink(DPT.DPObject):
         DPT.DPObject.append(self, df)
 
         self.eye_pos = pd.concat([self.eye_pos, df.eye_pos])
-        self.fix_event = pd.concat([self.fix_event, df.fix_event])
-        self.sacc_event = pd.concat([self.sacc_event, df.sacc_event])
+        #self.fix_event = pd.concat([self.fix_event, df.fix_event])
+        #self.sacc_event = pd.concat([self.sacc_event, df.sacc_event])
         self.calib_eye_pos = pd.concat([self.calib_eye_pos, df.calib_eye_pos])
         self.calib_fix_event = pd.concat([self.calib_fix_event, df.calib_fix_event])
         self.calib_sacc_event = pd.concat([self.calib_fix_event, df.calib_fix_event])
