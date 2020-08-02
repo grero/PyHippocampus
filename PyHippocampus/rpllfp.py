@@ -36,7 +36,7 @@ class RPLLFP(DPT.DPObject):
         if len(rw.data) > 0:
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
-            lfpData, resampleRate = lowPassFilter(rw.data, samplingRate = self.args['SampleRate'], resampleRate = self.args['ResampleRate'], LFPOrder = int(self.args['LFPOrder'] / 2), lowFreq = self.args['LowPassFrequency'][0], highFreq = self.args['LowPassFrequency'][1])
+            lfpData, resampleRate = lowPassFilter(rw.data, samplingRate = rw.analogInfo['SampleRate'], resampleRate = self.args['ResampleRate'], LFPOrder = int(self.args['LFPOrder'] / 2), lowFreq = self.args['LowPassFrequency'][0], highFreq = self.args['LowPassFrequency'][1])
             self.analogInfo['SampleRate'] = resampleRate
             self.analogInfo['MinVal'] = np.amin(lfpData)
             self.analogInfo['MaxVal'] = np.amax(lfpData)
