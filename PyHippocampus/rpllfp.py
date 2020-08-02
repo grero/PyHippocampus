@@ -1,7 +1,7 @@
 import numpy as np 
 from scipy import signal 
 import DataProcessingTools as DPT 
-from .rplraw import RPLRaw
+from . import rplraw
 from .helperfunctions import plotFFT
 import matplotlib.pyplot as plt
 import os 
@@ -32,7 +32,7 @@ class RPLLFP(DPT.DPObject):
         self.data = []
         self.analogInfo = {}
         self.numSets = 0 
-        rw = RPLRaw()
+        rw = rplraw.RPLRaw()
         if len(rw.data) > 0:
             # create object
             DPT.DPObject.create(self, *args, **kwargs)

@@ -1,4 +1,4 @@
-from .rplraw import RPLRaw 
+from . import rplraw
 from scipy import signal 
 import numpy as np 
 import DataProcessingTools as DPT 
@@ -31,7 +31,7 @@ class RPLHighPass(DPT.DPObject):
         self.data = []
         self.analogInfo = {}
         self.numSets = 0
-        rw = RPLRaw()
+        rw = rplraw.RPLRaw()
         if len(rw.data) > 0: 
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
