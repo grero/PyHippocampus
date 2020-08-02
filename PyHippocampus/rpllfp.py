@@ -20,7 +20,7 @@ def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq
 class RPLLFP(DPT.DPObject):
 
     filename = "rpllfp.hkl"
-    argsList = [('SampleRate', 30000), ('ResampleRate', 1000), ('LFPOrder', 8), ('LowPassFrequency', [1, 150])]
+    argsList = [('ResampleRate', 1000), ('LFPOrder', 8), ('LowPassFrequency', [1, 150])]
     level = 'channel'
 
     def __init__(self, *args, **kwargs):
