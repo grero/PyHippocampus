@@ -14,3 +14,5 @@ from .spiketrain import Spiketrain
 # from .export_mountain_cells import export_mountain_cells
 from .eyelink import EDFSplit 
 from .eyelink import Eyelink
+from .vmlfp import VMLFP
+from .vmhighpass import VMHighPass
