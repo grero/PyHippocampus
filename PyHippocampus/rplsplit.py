@@ -40,7 +40,7 @@ class RPLSplit(DPT.DPObject):
 		reader = BlackrockIO(ns5File[0])
 		bl = reader.read_block(lazy = True)
 		segment = bl.segments[0]
-		if len(glob.glob('*.ns2')) == 0: # Check if .ns2 file is present, if its not present adjust the index for analogsignals accordingly 
+		if len(glob.glob('*.ns2')) == 0: # Check if .ns2 file is present, if its not present adjust the index for raw signals accordingly 
 			index = 1 
 		else:
 			index = 2
@@ -51,19 +51,18 @@ class RPLSplit(DPT.DPObject):
 		names = list(map(lambda x: str(x), chx.channel_names))
 		indexes = list(chx.index)
 
-		def process_channel(data, annotations, chxIdx, analogInfo, channelNumber, returnData = False):
-			analogInfo['ProbeInfo'] = names[chxIdx]
+		def process_channel(data, annotations, chxIndex, analogInfo, channelNumber, returnData = False):
 			analogInfo['Units'] = 'uV'
-			analogInfo['HighFreqCorner'] = annotations['nev_hi_freq_corner'][chxIndex]
+			analogInfo['HighFreqCorner'] = float(annotations['nev_hi_freq_corner'][chxIndex])
 			analogInfo['HighFreqOrder'] = annotations['nev_hi_freq_order'][chxIndex]
 			analogInfo['HighFilterType'] = annotations['nev_hi_freq_type'][chxIndex]
-			analogInfo['LowFreqCorner'] = annotations['nev_lo_freq_corner'][chxIndex]
+			analogInfo['LowFreqCorner'] = float(annotations['nev_lo_freq_corner'][chxIndex])
 			analogInfo['LowFreqOrder'] = annotations['nev_lo_freq_order'][chxIndex]
 			analogInfo['LowFilterType'] = annotations['nev_lo_freq_type'][chxIndex]
 			analogInfo['MaxVal'] = np.amax(data)
 			analogInfo['MinVal'] = np.amin(data)
 			analogInfo['NumberSamples'] = len(data)
-			analogInfo['ProbeInfo'] = names[chxIdx]
+			analogInfo['ProbeInfo'] = names[chxIndex]
 			if returnData:
 				return analogInfo
 			arrayNumber = annotations['connector_ID'][chxIndex] + 1
@@ -85,17 +84,19 @@ class RPLSplit(DPT.DPObject):
 			print('Channel {:03d} processed'.format(channelNumber))
 			return 
 
-		if 'returnData' in kwargs.keys():
+		if 'returnData' in kwargs.keys(): # Still requires testing. 
 			i = self.args['channel'][0]
 			chxIndex = names.index(list(filter(lambda x: str(i) in x, names))[0])
 			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chx.index[chxIndex]]))
 			analogInfo = process_channel(data, annotations, chxIndex, analogInfo, i, returnData = True)
+			print('Returning data and analogInfo to RPLRaw')
 			return data, analogInfo
 
 		if len(self.args['channel']) == 0: 
-			for chxIdx in chx: 
+			for chxIdx in indexes: 
 				data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chxIdx]))
-				number = list(filter(lambda x: chxIdx in x, names))[0]
+				number = int(names[chxIdx][6:len(names[chxIdx]) - 1])
+				print('Processing channel {:03d}'.format(number))
 				process_channel(data, annotations, chxIdx, analogInfo, number)
 		else: 
 			for i in self.args['channel']:
