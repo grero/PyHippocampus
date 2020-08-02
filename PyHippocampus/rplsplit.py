@@ -4,13 +4,18 @@ from neo.io import BlackrockIO
 import os 
 import glob 
 from . import rplraw 
-# from .rplparallel import RPLParallel
+from .rplparallel import RPLParallel
+# from .mountain_batch import mountain_batch
+# from .export_mountain_cells import export_mountain_cells
+from . import rpllfp
+from . import rplhighpass
 import DataProcessingTools as DPT 
+
 
 class RPLSplit(DPT.DPObject):
 
 	filename = 'rplsplit.hkl'
-	argsList = [('channel', []), ('SkipHPC', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
+	argsList = [('channel', []), ('SkipHPC', True), ('SkipLFP', False), ('SkipHighPass', False), ('SkipSort', False), ('SkipParallel', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
 	level = 'session'
 
 	def __init__(self, *args, **kwargs):
@@ -20,9 +25,9 @@ class RPLSplit(DPT.DPObject):
 
 	def create(self, *args, **kwargs):
 
-		# if not self.args['SkipParallel']: 
-		#     print('Calling RPLParallel...')
-		#     rp = RPLParallel(saveLevel = 1)
+		if not self.args['SkipParallel']: 
+		    print('Calling RPLParallel...')
+		    rp = RPLParallel(saveLevel = 1)
 
 		ns5File = glob.glob('*.ns5')
 		if len(ns5File) > 1: 
@@ -77,14 +82,35 @@ class RPLSplit(DPT.DPObject):
 			os.chdir(channelDir)
 			print('Calling RPLRaw for channel {:03d}'.format(channelNumber))
 			rplraw.RPLRaw(analogData = data, analogInfo = analogInfo, saveLevel = 1)
-			if not self.args['SkipHPC']:
-				print('Adding slurm script for channel {:03d} to job queue'.format(channelNumber))
-				os.system('slurm-rpl.sh')
+			if self.args['SkipHPC']:
+				if not self.args['SkipLFP']:
+					print('Calling RPLLFP for channel {:03d}'.format(channelNumber))
+					rpllfp.RPLLFP(saveLevel = 1)
+				if not self.args['SkipHighPass']:
+					print('Calling RPLHighPass for channel {:03d}'.format(channelNumber))
+					rplhighpass.RPLHighPass(saveLevel = 1)
+				if DPT.levels.get_level_name('session', os.getcwd()) != 'sessioneye':
+					if not self.args['SkipSort']:
+						print('Calling Mountain Sort for channel {:03d}'.format(channelNumber))
+						# mountain_batch()
+						# export_mountain_cells()
+			else: 
+				if not self.args['SkipLFP']:
+					print('Adding RPLLFP slurm script for channel {:03d} to job queue'.format(channelNumber))
+					os.sys('sbatch rpllfp-slurm.sh')
+				if not self.args['SkipHighPass']:
+					if not self.args['SkipSort']:
+						print('Adding RPLHighPass and Mountain Sort slurm script for channel {:03d} to job queue'.format(channelNumber))
+						os.sys('sbatch rplhighpass+sort-slurm.sh')
+					else:
+						print('Adding RPLHighPass slurm script for channel {:03d} to job queue'.format(channelNumber))
+						os.sys('sbatch rplhighpass-slurm.sh')
 			os.chdir(directory)
 			print('Channel {:03d} processed'.format(channelNumber))
 			return 
 
-		if 'returnData' in kwargs.keys(): # Still requires testing. 
+		if 'returnData' in kwargs.keys(): 
+			# This features seems to return the RPLSplit object to rplraw rather than the data and analogInfo. Not sure, why this is the case. 
 			i = self.args['channel'][0]
 			chxIndex = names.index(list(filter(lambda x: str(i) in x, names))[0])
 			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chx.index[chxIndex]]))
