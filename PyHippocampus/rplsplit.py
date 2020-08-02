@@ -94,9 +94,9 @@ class RPLSplit(DPT.DPObject):
 
 		if len(self.args['channel']) == 0: 
 			for chxIdx in indexes: 
-				data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chxIdx]))
 				number = int(names[chxIdx][6:len(names[chxIdx]) - 1])
 				print('Processing channel {:03d}'.format(number))
+				data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chxIdx]))
 				process_channel(data, annotations, chxIdx, analogInfo, number)
 		else: 
 			for i in self.args['channel']:
