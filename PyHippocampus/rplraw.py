@@ -27,7 +27,9 @@ class RPLRaw(DPT.DPObject):
 			# check if in channel directory, if so create rplraw object by calling rplsplit. 
 			if DPT.levels.level(os.getcwd()) == 'channel':
 				channelNumber = int(DPT.levels.get_level_name('channel', os.getcwd())[-3:])
-				self.data, self.analogInfo = rplsplit.RPLSplit(returnData = True, channel = [channelNumber])
+				rs = rplsplit.RPLSplit(returnData = True, channel = [channelNumber])
+				self.data = rs.data 
+				self.analogInfo = rs.analogInfo
 				self.numSets = 1 
 			# create empty object
 			else: 

@@ -15,7 +15,7 @@ import DataProcessingTools as DPT
 class RPLSplit(DPT.DPObject):
 
 	filename = 'rplsplit.hkl'
-	argsList = [('channel', []), ('SkipHPC', True), ('SkipLFP', False), ('SkipHighPass', False), ('SkipSort', False), ('SkipParallel', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
+	argsList = [('channel', []), ('SkipHPC', True), ('SkipLFP', True), ('SkipHighPass', True), ('SkipSort', True), ('SkipParallel', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
 	level = 'session'
 
 	def __init__(self, *args, **kwargs):
@@ -110,13 +110,14 @@ class RPLSplit(DPT.DPObject):
 			return 
 
 		if 'returnData' in kwargs.keys(): 
-			# This features seems to return the RPLSplit object to rplraw rather than the data and analogInfo. Not sure, why this is the case. 
 			i = self.args['channel'][0]
 			chxIndex = names.index(list(filter(lambda x: str(i) in x, names))[0])
 			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chx.index[chxIndex]]))
 			analogInfo = process_channel(data, annotations, chxIndex, analogInfo, i, returnData = True)
 			print('Returning data and analogInfo to RPLRaw')
-			return data, analogInfo
+			self.data = data 
+			self.analogInfo = analogInfo 
+			return 
 
 		if len(self.args['channel']) == 0: 
 			for chxIdx in indexes: 
