@@ -265,9 +265,8 @@ class Unity(DPT.DPObject):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
                                                                 "Route Ratio", "Proportion of trial", "Routes",
-                                                                 "Trial Position"], 0),
-                    "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0,
-                    "Trial Position Type": DPT.objects.ExclusiveOptions(["X-Pos", "Y-Pos", "Orientation"], 0)}
+                                                                 "X-T", "Y-T", "Theta-T"], 0),
+                    "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
         if getPlotOpts:
             return plotopts
 
@@ -280,7 +279,8 @@ class Unity(DPT.DPObject):
         if getNumEvents:
             # Return the number of events available
             global pre
-            if plot_type == "Trial" or plot_type == "Frame Intervals" or plot_type == "Trial Position":
+            if plot_type == "Trial" or plot_type == "Frame Intervals" or plot_type == "X-T" or plot_type == "Y-T" \
+                    or plot_type == "Theta-T":
                 if i is not None:
                     if pre == "trial":
                         return len(self.setidx), i
@@ -496,9 +496,7 @@ class Unity(DPT.DPObject):
             title = "Routes: " + subject + date + session
             ax.set_title(title)
 
-        elif plot_type == "Trial Position":
-
-            pos_type = plotopts["Trial Position Type"].selected()
+        elif plot_type == "X-T":
 
             session_idx = self.setidx[i]
             if session_idx != 0:
@@ -512,18 +510,84 @@ class Unity(DPT.DPObject):
                 trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityTriggers[session_idx][i+1, 0]-1]
             time = self.unityTime[session_idx][trial_trigger[0]+1:trial_trigger[1]+2]
             x_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 2]
+
+            ax.plot(time, x_position, LineWidth=1)
+            ax.set_ylabel('X-Pos')
+            ax.set_xlabel('Time (s)')
+
+            t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
+            t_2 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]
+            t_3 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 2]+1]
+            result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
+            if result_t3 > 40:
+                ax.axvline(t_3, color='r')
+            else:
+                ax.axvline(t_3, color='b')
+            ax.axvline(t_1, color='g')
+            ax.axvline(t_2, color='m')
+
+            dir_name = self.dirs[session_idx]
+            subject = DPT.levels.get_shortname("subject", dir_name)
+            date = DPT.levels.get_shortname("day", dir_name)
+            session = DPT.levels.get_shortname("session", dir_name)
+            title = subject + date + session + " Trial " + str(i)
+            ax.set_title(title)
+
+        elif plot_type == "Y-T":
+
+            session_idx = self.setidx[i]
+            if session_idx != 0:
+                for x in range(0, session_idx):
+                    i = i - self.unityTriggers[x].shape[0]
+            if i == 0:
+                trial_trigger = [0, self.unityTriggers[session_idx][i+1, 0]-1]
+            elif i == self.unityTriggers[session_idx].shape[0]-1:
+                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityData[session_idx].shape[0]-1]
+            else:
+                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityTriggers[session_idx][i+1, 0]-1]
+            time = self.unityTime[session_idx][trial_trigger[0]+1:trial_trigger[1]+2]
             y_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 3]
+
+            ax.plot(time, y_position, LineWidth=1)
+            ax.set_ylabel('Y-Pos')
+            ax.set_xlabel('Time (s)')
+
+            t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
+            t_2 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]
+            t_3 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 2]+1]
+            result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
+            if result_t3 > 40:
+                ax.axvline(t_3, color='r')
+            else:
+                ax.axvline(t_3, color='b')
+            ax.axvline(t_1, color='g')
+            ax.axvline(t_2, color='m')
+
+            dir_name = self.dirs[session_idx]
+            subject = DPT.levels.get_shortname("subject", dir_name)
+            date = DPT.levels.get_shortname("day", dir_name)
+            session = DPT.levels.get_shortname("session", dir_name)
+            title = subject + date + session + " Trial " + str(i)
+            ax.set_title(title)
+
+        elif plot_type == "Theta-T":
+
+            session_idx = self.setidx[i]
+            if session_idx != 0:
+                for x in range(0, session_idx):
+                    i = i - self.unityTriggers[x].shape[0]
+            if i == 0:
+                trial_trigger = [0, self.unityTriggers[session_idx][i+1, 0]-1]
+            elif i == self.unityTriggers[session_idx].shape[0]-1:
+                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityData[session_idx].shape[0]-1]
+            else:
+                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityTriggers[session_idx][i+1, 0]-1]
+            time = self.unityTime[session_idx][trial_trigger[0]+1:trial_trigger[1]+2]
+
             orientation = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 4]
 
-            if pos_type == "X-Pos":
-                ax.plot(time, x_position, LineWidth=1)
-                ax.set_ylabel('X-Pos')
-            elif pos_type == "Y-Pos":
-                ax.plot(time, y_position, LineWidth=1)
-                ax.set_ylabel('Y-Pos')
-            elif pos_type == "Orientation":
-                ax.plot(time, orientation, LineWidth=1)
-                ax.set_ylabel('Orientation')
+            ax.plot(time, orientation, LineWidth=1)
+            ax.set_ylabel('Orientation')
             ax.set_xlabel('Time (s)')
 
             t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
