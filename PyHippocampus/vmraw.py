@@ -1,38 +1,32 @@
-import numpy as np 
+from .rplraw import RPLRaw 
 import DataProcessingTools as DPT 
-from .rplparallel import RPLParallel
-from .rpllfp import RPLLFP
 from .helperfunctions import plotFFT
 import os 
-import matplotlib.pyplot as plt 
+import numpy as np 
 
-class VMLFP(DPT.DPObject):
+class VMRaw(DPT.DPObject):
+	
+	filename = 'vmraw.hkl'
+	level = 'channel'
+	argsList = []
 
-    filename = 'vmflp.hkl'
-    argsList = []
-    level = 'channel'
+	def __init__(self, *args, **kwargs):
+		DPT.DPObject.__init__(self, *args, **kwargs)
 
-    def __init__(self, *args, **kwargs):
-        DPT.DPObject.__init__(self, *args, **kwargs)
-
-    def create(self, *args, **kwargs):
-        self.markers = np.array([])
-        self.timeStamps = np.array([])
-        self.trialIndices = np.array([])
-        self.data = np.array([])
-        self.samplingRate = None 
-        self.numSets = 0  
+	def create(self, *args, **kwargs):
+        self.data = []
+        self.markers = []
+        self.trialIndices = []
+        self.timeStamps = []
+        self.numSets = 0
         rp = RPLParallel()
-        rlfp = RPLLFP()
-        if len(rlfp.data) > 0 and len(rp.timeStamps) > 0: 
+        if len(rh.data) > 0 and len(rp.timeStamps) > 0: 
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
-            self.markers = rp.markers 
-            self.samplingRate = rlfp.analogInfo['SampleRate']
-            dsample = rp.samplingRate / rlfp.analogInfo['SampleRate']
-            self.timeStamps = rp.timeStamps / dsample 
-            self.trialIndices = np.rint(rp.trialIndices / dsample).astype('int')
-            self.numSets = self.trialIndices.shape[0]
+            self.markers = rp.markers
+            self.timeStamps = rp.timeStamps
+            self.trialIndices = rp.trialIndices
+            self.numSets = rp.trialIndices.shape[0]
         else:
             # create empty object
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)            
@@ -73,8 +67,8 @@ class VMLFP(DPT.DPObject):
         trialIndicesForN = self.trialIndices[i, :] 
         idx = [int(trialIndicesForN[0] - ((plotOpts['PreTrial'] / 1000) * sRate))] + list(trialIndicesForN[1:])
 
-        rlfp = RPLLFP()
-        self.data = rlfp.data
+        rw = RPLRaw()
+        self.data = rw.data 
         self.analogTime = [i / sRate for i in range(len(self.data))]
 
         if plot_type == 'Signal':
@@ -156,9 +150,3 @@ class VMLFP(DPT.DPObject):
             elif plot_type == 'TFfft':
                 ax.ylim(plotOpts['FreqLims'])
         return ax 
-
-
-
-
-
-
