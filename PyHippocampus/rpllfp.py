@@ -99,8 +99,8 @@ class RPLLFP(DPT.DPObject):
                 ax.plot(self.analogTime, self.data)
             else: 
                 idx = [self.analogInfo['SampleRate'] * plotOpts['TimeSplit'] * i, self.analogInfo['SampleRate'] * plotOpts['TimeSplit'] * (i + 1) + 1] 
-                data = self.data[idx[0]:idx[1]]
-                time = self.analogTime[idx[0]:idx[1]] 
+                data = self.data[int(idx[0]):int(idx[1])]
+                time = self.analogTime[int(idx[0]):int(idx[1])] 
                 ax.plot(time, data)
             if not plotOpts['LabelsOff']:
                 ax.set_ylabel('Voltage (uV)')

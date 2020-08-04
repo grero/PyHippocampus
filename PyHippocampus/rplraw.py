@@ -20,7 +20,7 @@ class RPLRaw(DPT.DPObject):
 		if 'analogData' in kwargs.keys() and 'analogInfo' in kwargs.keys():
 			# create object
 			DPT.DPObject.create(self, *args, **kwargs)
-			self.data = kwargs['analogData']
+			self.data = kwargs['analogData'].flatten()
 			self.analogInfo = kwargs['analogInfo']
 			self.numSets = 1
 		else:
@@ -30,7 +30,7 @@ class RPLRaw(DPT.DPObject):
 				rs = rplsplit.RPLSplit(returnData = True, channel = [channelNumber])
     			# create object
 				DPT.DPObject.create(self, *args, **kwargs)
-				self.data = rs.data 
+				self.data = rs.data.flatten() 
 				self.analogInfo = rs.analogInfo
 				self.numSets = 1 
 			# create empty object
@@ -84,8 +84,8 @@ class RPLRaw(DPT.DPObject):
 				ax.plot(self.analogTime, self.data)
 			else: 
 				idx = [self.analogInfo['SampleRate'] * plotOpts['TimeSplit'] * i, self.analogInfo['SampleRate'] * plotOpts['TimeSplit'] * (i + 1) + 1] 
-				data = self.data[idx[0]:idx[1]]
-				time = self.analogTime[idx[0]:idx[1]] 
+				data = self.data[int(idx[0]):int(idx[1])]
+				time = self.analogTime[int(idx[0]):int(idx[1])] 
 				ax.plot(time, data)
 			if not plotOpts['LabelsOff']:
 				ax.set_ylabel('Voltage (uV)')
