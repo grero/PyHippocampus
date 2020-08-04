@@ -95,16 +95,18 @@ class RPLSplit(DPT.DPObject):
 						# mountain_batch()
 						# export_mountain_cells()
 			else: 
+				if 'dir' not in kwargs.keys():
+					kwargs['dir'] = ''
 				if not self.args['SkipLFP']:
 					print('Adding RPLLFP slurm script for channel {:03d} to job queue'.format(channelNumber))
-					os.sys('sbatch rpllfp-slurm.sh')
+					os.sys('sbatch ' + kwargs['dir'] + 'rpllfp-slurm.sh')
 				if not self.args['SkipHighPass']:
 					if not self.args['SkipSort']:
 						print('Adding RPLHighPass and Mountain Sort slurm script for channel {:03d} to job queue'.format(channelNumber))
-						os.sys('sbatch rplhighpass+sort-slurm.sh')
+						os.sys('sbatch '+ kwargs['dir'] + 'rplhighpass+sort-slurm.sh')
 					else:
 						print('Adding RPLHighPass slurm script for channel {:03d} to job queue'.format(channelNumber))
-						os.sys('sbatch rplhighpass-slurm.sh')
+						os.sys('sbatch ' + kwargs['dir'] + 'rplhighpass-slurm.sh')
 			os.chdir(directory)
 			print('Channel {:03d} processed'.format(channelNumber))
 			return 
