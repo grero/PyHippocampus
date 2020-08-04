@@ -18,6 +18,7 @@ pip install .
 You should also clone the following two repositories:
 
 https://github.com/grero/DataProcessingTools
+
 https://github.com/grero/PanGUI
 
 Change to the directory where the code is saved, and install them using:
