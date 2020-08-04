@@ -57,12 +57,6 @@ df1.plot(i=0)
 
 df1.plot(i=1)
 
-rw = pyh.rplraw(...)
-
-uy = pyh.unity(...)
-
-el = pyh.eyelink(...)
-
 Test to make sure you are able to read EDF files: 
 Change to a directory that contains EDF files, e.g.:
 
@@ -71,3 +65,19 @@ cd /Volumes/Hippocampus/Data/picasso-misc/20181105
 Enter the following command: 
 
 samples, events, messages = edf.pread('181105.edf', filter='all')
+
+You can create objects by doing:
+
+rl = pyh.RPLParallel()
+
+uy = pyh.Unity()
+
+el = pyh.Eyelink()
+
+You can create plots by doing:
+
+rp = PanGUI.create_window(rl)
+
+up = PanGUI.create_window(uy)
+
+ep = PanGUI.create_window(el)
