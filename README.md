@@ -3,7 +3,9 @@ Python code for analyzing hippocampus data
 To install, launch Anaconda Navigator. On the left sidebar, select Environments. Select “base (root)” or another environment that you are using. Click on the triangle icon, and select “Open Terminal”. In the Terminal window, change to the PyHippocampus directory and do:
 
 cd ~/Documents/Python/PyHippocampus
+
 pip install -r requirements.txt
+
 pip install -e .
 
 Clone pyedfread for reading Eyelink files from GitHub to your computer by selecting Clone->Open in Desktop: https://github.com/nwilming/pyedfread
