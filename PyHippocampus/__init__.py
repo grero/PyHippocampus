@@ -16,4 +16,5 @@ from .eyelink import EDFSplit
 from .eyelink import Eyelink
 from .vmlfp import VMLFP
 from .vmhighpass import VMHighPass
+from .vmraw import VMRaw
 from .raycast import raycast
