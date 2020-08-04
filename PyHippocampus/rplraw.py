@@ -28,6 +28,8 @@ class RPLRaw(DPT.DPObject):
 			if DPT.levels.level(os.getcwd()) == 'channel':
 				channelNumber = int(DPT.levels.get_level_name('channel', os.getcwd())[-3:])
 				rs = rplsplit.RPLSplit(returnData = True, channel = [channelNumber])
+    			# create object
+				DPT.DPObject.create(self, *args, **kwargs)
 				self.data = rs.data 
 				self.analogInfo = rs.analogInfo
 				self.numSets = 1 
