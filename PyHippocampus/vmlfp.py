@@ -3,6 +3,7 @@ import DataProcessingTools as DPT
 from .rplparallel import RPLParallel
 from .rpllfp import RPLLFP
 from .helperfunctions import plotFFT
+from .helperfunctions import removeLineNoise
 import os 
 import matplotlib.pyplot as plt 
 
