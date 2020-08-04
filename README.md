@@ -58,7 +58,9 @@ df1.plot(i=0)
 df1.plot(i=1)
 
 rw = pyh.rplraw(...)
+
 uy = pyh.unity(...)
+
 el = pyh.eyelink(...)
 
 Test to make sure you are able to read EDF files: 
