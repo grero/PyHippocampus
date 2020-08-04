@@ -140,7 +140,6 @@ class RPLParallel(DPT.DPObject):
             perEvent = np.ceil(len(markers) / totalEvents)
             idx = [int(perEvent * i), int(perEvent * (i + 1))]
             x = [i for i in range(idx[0], idx[-1])]
-            print(x[0], x[-1])
             markers = markers[idx[0]:idx[-1]]
             ax.stem(x, markers)
             ax.set_xlim(x[0] - 1, x[-1] + 1)
