@@ -2,6 +2,10 @@ import DataProcessingTools as DPT
 import numpy as np 
 from .rplparallel import RPLParallel 
 from .rplhighpass import RPLHighPass 
+from .helperfunctions import plotFFT
+from .helperfunctions import removeLineNoise
+import os 
+import matplotlib.pyplot as plt 
 
 class VMHighPass(DPT.DPObject):
 
@@ -19,6 +23,7 @@ class VMHighPass(DPT.DPObject):
         self.timeStamps = []
         self.numSets = 0
         rp = RPLParallel()
+        rh = RPLHighPass()
         if len(rh.data) > 0 and len(rp.timeStamps) > 0: 
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
