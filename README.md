@@ -8,7 +8,9 @@ pip install -r requirements.txt
 
 pip install -e .
 
-Clone pyedfread for reading Eyelink files from GitHub to your computer by selecting Clone->Open in Desktop: https://github.com/nwilming/pyedfread
+Clone pyedfread for reading Eyelink files from GitHub to your computer by selecting Clone->Open in Desktop: 
+
+https://github.com/nwilming/pyedfread
 
 While still in the Terminal window, change directory to where the pyedfread code is saved, and do:
 
