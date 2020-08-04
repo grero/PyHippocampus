@@ -1,25 +1,29 @@
 from .rplraw import RPLRaw 
+from .rplparallel import RPLParallel
 import DataProcessingTools as DPT 
-from .helperfunctions import plotFFT
-import os 
 import numpy as np 
+from .helperfunctions import plotFFT
+from .helperfunctions import removeLineNoise
+import os 
+import matplotlib.pyplot as plt 
 
 class VMRaw(DPT.DPObject):
-	
-	filename = 'vmraw.hkl'
-	level = 'channel'
-	argsList = []
+    
+    filename = 'vmraw.hkl'
+    level = 'channel'
+    argsList = []
 
-	def __init__(self, *args, **kwargs):
-		DPT.DPObject.__init__(self, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        DPT.DPObject.__init__(self, *args, **kwargs)
 
-	def create(self, *args, **kwargs):
+    def create(self, *args, **kwargs):
         self.data = []
         self.markers = []
         self.trialIndices = []
         self.timeStamps = []
         self.numSets = 0
         rp = RPLParallel()
+        rh = RPLRaw()
         if len(rh.data) > 0 and len(rp.timeStamps) > 0: 
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
@@ -96,31 +100,31 @@ class VMRaw(DPT.DPObject):
                 ax.set_yscale('log')
 
         elif plot_type == 'TFftt': 
-        	if plotOpts['PlotAllData']:
-        		dIdx = self.trialIndices[:, -1] - self.trialIndices[:, 0]
-        		mIdx = np.amax(dIdx)
-        		spTimeStep = plotOpts['TFfttWindow'] - plotOpts['TFfftOverlap']
-        		spTimeBins = np.floor(mIdx/spTimeStep) - plotOpts['TFfftOverlap']/spTimeStep
-        		nFreqs = (plotOpts['TFfftPoints'] / 2) + 1
-        		ops = np.zeros(nFreqs, spTimeBins)
-        		opsCount = ops 
-        		for j in range(self.numSets):
-        			tftIdx = self.trialIndices[j,:]
-        			data = self.data[tftIdx[0]:tftIdx[-1]]
-		            if plotOpts['RemoveLineNoise']:
-		                data = removeLineNoise(data, plotOpts['RemoveLineNoiseFreq'], sRate)
-            		datam = np.mean(data)
-            		window = np.hamming(plotOpts['TFfftWindow'])
-            		[s, f, t, im] = plt.specgram(data - datam, window = window, NFFT = plotOpts['TFfftPoints'], noverlap = plotOpts['TFfftOverlap'], fs = sRate)
-        		pass 
+            if plotOpts['PlotAllData']:
+                dIdx = self.trialIndices[:, -1] - self.trialIndices[:, 0]
+                mIdx = np.amax(dIdx)
+                spTimeStep = plotOpts['TFfttWindow'] - plotOpts['TFfftOverlap']
+                spTimeBins = np.floor(mIdx/spTimeStep) - plotOpts['TFfftOverlap']/spTimeStep
+                nFreqs = (plotOpts['TFfftPoints'] / 2) + 1
+                ops = np.zeros(nFreqs, spTimeBins)
+                opsCount = ops 
+                for j in range(self.numSets):
+                    tftIdx = self.trialIndices[j,:]
+                    data = self.data[tftIdx[0]:tftIdx[-1]]
+                    if plotOpts['RemoveLineNoise']:
+                        data = removeLineNoise(data, plotOpts['RemoveLineNoiseFreq'], sRate)
+                    datam = np.mean(data)
+                    window = np.hamming(plotOpts['TFfftWindow'])
+                    [s, f, t, im] = plt.specgram(data - datam, window = window, NFFT = plotOpts['TFfftPoints'], noverlap = plotOpts['TFfftOverlap'], fs = sRate)
+                pass 
 
-        	else: 
-	            tIdx = self.trialIndices[i,:]
-	            idx = [tIdx[0] - ((plotOpts['TFfftStart']+500)/1000*sRate), tIdx[0] - ((plotOpts['TFfftStart']+1)/1000*sRate)]
-	            data = self.data[idx[0]:idx[-1]]
-	            datam = np.mean(data)
-	            window = np.hamming(plotOpts['TFfftWindow'])
-            	[s, f, t, im] = plt.specgram(data - datam, window = window, NFFT = plotOpts['TFfftPoints'], noverlap = plotOpts['TFfftOverlap'], fs = sRate)
+            else: 
+                tIdx = self.trialIndices[i,:]
+                idx = [tIdx[0] - ((plotOpts['TFfftStart']+500)/1000*sRate), tIdx[0] - ((plotOpts['TFfftStart']+1)/1000*sRate)]
+                data = self.data[idx[0]:idx[-1]]
+                datam = np.mean(data)
+                window = np.hamming(plotOpts['TFfftWindow'])
+                [s, f, t, im] = plt.specgram(data - datam, window = window, NFFT = plotOpts['TFfftPoints'], noverlap = plotOpts['TFfftOverlap'], fs = sRate)
             # data = obj.data.analogData(idx);
             # datam = mean(data);
             # [~,~,~,P]=spectrogram(data-datam,Args.TFfftWindow,Args.TFfftOverlap,Args.TFfftPoints,sRate,'yaxis');
