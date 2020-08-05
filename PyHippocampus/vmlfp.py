@@ -85,8 +85,8 @@ class VMLFP(DPT.DPObject):
 			x = np.concatenate((x, np.linspace(0, len(data) - plotOpts['PreTrial'], num = len(data) - plotOpts['PreTrial'])))
 			ax.plot(x, data)
 			ax.axvline(0, color = 'g') # Start of trial. 
-			ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * sRate, color = 'm')
-			ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * sRate, color = 'r')
+			ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * 30000, color = 'm')
+			ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 30000, color = 'r')
 
 		elif plot_type == 'FreqPlot':
 			if plotOpts['PlotAllData']:
@@ -143,7 +143,7 @@ class VMLFP(DPT.DPObject):
 					spec_Pnorm[row, :] = (s[row, :] - Pmean[row]) / Pstd[row]
 				spec_T = np.arange((-plotOpts['TFfftStart']/1000), t[-1] - (plotOpts['TFfftStart']/1000 + plotOpts['TFfftWindow']/sRate/2)+(plotOpts['TFfftWindow'] - plotOpts['TFfftOverlap'])/sRate, (plotOpts['TFfftWindow'] - plotOpts['TFfftOverlap'])/sRate)
 				ax.axvline(0, color = 'k') 
-				ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * sRate / 1000,  color = 'k')
+				ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * 30000 / 1000,  color = 'k')
 				im = ax.pcolormesh(spec_T, f, spec_Pnorm, vmin = -10, vmax = 10)
 				ax.set_ylim([0, plotOpts['TFfftFreq']])
 				# add colourbar. 
