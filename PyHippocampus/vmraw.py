@@ -23,7 +23,7 @@ class VMRaw(DPT.DPObject):
         self.timeStamps = []
         self.numSets = 0
         rp = RPLParallel()
-        if len(rp.timeStamps) > 0: 
+        if len(rp.trialIndices) > 0: 
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
             self.markers = rp.markers
@@ -50,7 +50,7 @@ class VMRaw(DPT.DPObject):
         if getNumEvents:
             if plotOpts['PlotAllData']: # to avoid replotting the same data. 
                 return 1, 0 
-            if plot_type == 'FreqPlot' or plot_type == 'Signal' or plot_type == 'TFfft':
+            if plot_type == 'FreqPlot' or plot_type == 'Signal': 
                 if i is not None:
                     nidx = i 
                 else:
@@ -81,7 +81,10 @@ class VMRaw(DPT.DPObject):
             ax.plot(x, data)
             ax.axvline(0, color = 'g') # Start of trial. 
             ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * 1000, color = 'm')
-            ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'r')
+            if np.floor(self.markers[i][2] / 10) == plotOpts['RewardMarker']:
+                ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'b')
+            elif np.floor(self.markers[i][2] / 10) == plotOpts['TimeOutMarker']:
+                ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'r')
 
         elif plot_type == 'FreqPlot':
             if plotOpts['PlotAllData']:

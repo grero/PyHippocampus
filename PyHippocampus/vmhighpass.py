@@ -82,7 +82,10 @@ class VMHighPass(DPT.DPObject):
             ax.plot(x, data)
             ax.axvline(0, color = 'g') # Start of trial. 
             ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * 1000, color = 'm')
-            ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'r')
+            if np.floor(self.markers[i][2] / 10) == plotOpts['RewardMarker']:
+                ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'b')
+            elif np.floor(self.markers[i][2] / 10) == plotOpts['TimeOutMarker']:
+                ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'r')
             # TODO: Add SpikeTrains from sorting data. 
 
         elif plot_type == 'FreqPlot':
@@ -102,9 +105,6 @@ class VMHighPass(DPT.DPObject):
             if plot_type == 'FreqPlot':
                 ax.set_xlabel('Frequency (Hz)')
                 ax.set_ylabel('Magnitude')
-            elif plot_type == 'TFfft':
-                ax.set_xlabel('Time (s)')
-                ax.set_ylabel('Frequency (Hz)')
             else:
                 ax.set_xlabel('Time (ms)')
                 ax.set_ylabel('Voltage (uV)')
@@ -116,6 +116,4 @@ class VMHighPass(DPT.DPObject):
         if len(plotOpts['FreqLims']) > 0:
             if plot_type == 'FreqPlot':
                 ax.xlim(plotOpts['FreqLims'])
-            elif plot_type == 'TFfft':
-                ax.ylim(plotOpts['FreqLims'])
         return ax 

@@ -24,10 +24,9 @@ class VMLFP(DPT.DPObject):
 		self.numSets = 0  
 		rp = RPLParallel()
 		rlfp = RPLLFP()
-		if len(rlfp.data) > 0 and len(rp.timeStamps) > 0: 
+		if len(rlfp.data) > 0 and len(rp.trialIndices) > 0: 
 			# create object
 			DPT.DPObject.create(self, *args, **kwargs)
-			# self.data = rlfp.data
 			self.markers = rp.markers 
 			self.samplingRate = rlfp.analogInfo['SampleRate']
 			dsample = rp.samplingRate / rlfp.analogInfo['SampleRate']
@@ -41,7 +40,7 @@ class VMLFP(DPT.DPObject):
 
 	def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
-		plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'NormalizeTrial': False, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 10, 'LogPlot': False, 'TFfftWindow': 256, 'TFfftOverlap': 150, 'TFfftPoints': 256, 'TFfftStart': 500, 'TFfftFreq': 150, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal', 'TFfft'], 2)} 
+		plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'NormalizeTrial': False, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 10, 'LogPlot': False, 'TFfftWindow': 256, 'TFfftOverlap': 150, 'TFfftPoints': 256, 'TFfftStart': 500, 'TFfftFreq': 150, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal', 'TFfft'], 1)} 
 		# Add flag for removelinenoise and a specific value. 
 
 		plot_type = plotOpts['Type'].selected()
@@ -75,7 +74,6 @@ class VMLFP(DPT.DPObject):
 		if i == None or i == 0:
 			rlfp = RPLLFP()
 			self.data = rlfp.data
-			self.analogTime = [i / sRate for i in range(len(self.data))]
 
 		if plot_type == 'Signal':
 			data = self.data[idx[0]-1:idx[-1]]
@@ -86,7 +84,10 @@ class VMLFP(DPT.DPObject):
 			ax.plot(x, data)
 			ax.axvline(0, color = 'g') # Start of trial. 
 			ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * 30000, color = 'm')
-			ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 30000, color = 'r')
+			if np.floor(self.markers[i][2] / 10) == plotOpts['RewardMarker']:
+				ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 30000, color = 'b')
+			elif np.floor(self.markers[i][2] / 10) == plotOpts['TimeOutMarker']:
+				ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 30000, color = 'r')
 
 		elif plot_type == 'FreqPlot':
 			if plotOpts['PlotAllData']:
@@ -102,6 +103,7 @@ class VMLFP(DPT.DPObject):
 				ax.set_yscale('log')
 
 		elif plot_type == 'TFfft': 
+			# In progress, cannot do so until, window and overlap can be different values. 
 			if plotOpts['PlotAllData']:
 				dIdx = self.trialIndices[:, -1] - self.trialIndices[:, 0]
 				mIdx = np.amax(dIdx)
@@ -121,7 +123,11 @@ class VMLFP(DPT.DPObject):
 					psIdx = range(1, s.shape[1])
 					ops[:, psIdx] = ops[:, psIdx] + s 
 					opsCount[:, psIdx] = opsCount[:, psIdx] + 1 
-				# In Progress. 
+				x = range(0, mIdx)
+				y = range(0, sRate / 2, sRate / plotOpts['TFfftPoints'])
+				i = ops / opsCount 
+				ax.pcolormesh(x, y, i, vmin = -10, vmax = 10)
+				ax.set_ylim([0, plotOpts['TFfftFreq']])
 				pass 
 
 			else: 
@@ -169,9 +175,3 @@ class VMLFP(DPT.DPObject):
 			elif plot_type == 'TFfft':
 				ax.ylim(plotOpts['FreqLims'])
 		return ax 
-
-
-
-
-
-
