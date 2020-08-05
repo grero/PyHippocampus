@@ -2,6 +2,7 @@ import DataProcessingTools as DPT
 import glob
 import csv
 import numpy as np
+import os
 
 np.seterr(divide='ignore', invalid='ignore')
 np.set_printoptions(precision=4, suppress=True)
@@ -20,7 +21,7 @@ class Spiketrain(DPT.DPObject):
         self.numSets = 0
         self.spiketimes = []
 
-        csvFile = glob.glob('.csv')
+        csvFile = glob.glob('*.csv')
         if len(csvFile) == 0: 
             print('No spiketrain file, creating empty object...')
             DPT.DPObject.create(self, dirs=[], *args, **kwargs) 
