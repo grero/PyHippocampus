@@ -1,11 +1,14 @@
 import DataProcessingTools as DPT 
 import numpy as np 
 from .rplparallel import RPLParallel 
+from .spiketrain import Spiketrain
 from .rplhighpass import RPLHighPass 
 from .helperfunctions import plotFFT
 from .helperfunctions import removeLineNoise
 import os 
 import matplotlib.pyplot as plt 
+import matplotlib.cm as cm
+
 
 class VMHighPass(DPT.DPObject):
 
@@ -37,7 +40,7 @@ class VMHighPass(DPT.DPObject):
 
     def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
-        plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'NormalizeTrial': False, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 10, 'LogPlot': True, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
+        plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 10, 'LogPlot': True, 'SpikeTrain': True, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
         # Add flag for removelinenoise and a specific value. 
 
         plot_type = plotOpts['Type'].selected()
@@ -86,7 +89,14 @@ class VMHighPass(DPT.DPObject):
                 ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'b')
             elif np.floor(self.markers[i][2] / 10) == plotOpts['TimeOutMarker']:
                 ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'r')
-            # TODO: Add SpikeTrains from sorting data. 
+            if plotOpts['SpikeTrain']:
+                st = DPT.objects.processDirs(None, Spiketrain)
+                trialSpikes = [list(filter(lambda x: x >= (self.timeStamps[i][0] * 1000 - plotOpts['PreTrial']) and x <= self.timeStamps[i][2] * 1000, map(float, j))) for j in st.spiketimes] 
+                trialSpikes = [list(map(lambda x: x - self.timeStamps[i][0] * 1000, k)) for k in trialSpikes]
+                colors = cm.rainbow(np.linspace(0, 1, len(trialSpikes)))
+                y_coords = [[int(np.amax(data)) + 5 * (k + 1) for j in range(len(trialSpikes[k]))] for k in range(len(trialSpikes))]
+                for trial, y, c in zip(trialSpikes, y_coords, colors): 
+                    ax.scatter(trial, y, color = c) 
 
         elif plot_type == 'FreqPlot':
             if plotOpts['PlotAllData']:
