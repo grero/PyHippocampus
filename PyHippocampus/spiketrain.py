@@ -1,6 +1,4 @@
 import DataProcessingTools as DPT
-import numpy as np
-import os
 import glob
 import csv
 
@@ -18,18 +16,22 @@ class Spiketrain(DPT.DPObject):
             DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
-
-        # initialization
         self.numSets = 0
         self.spiketimes = []
 
-        with open('spiketrain.csv','r') as f:
-            reader = csv.reader(f)
-            c = []
-            for row in reader:
-                c.append(row)
-
-        self.spiketimes = [c[0]]
+        csvFile = glob.glob('.csv')
+        if len(csvFile) == 0: 
+            print('No spiketrain file, creating empty object...')
+            DPT.DPObject.create(self, dirs=[], *args, **kwargs) 
+        else: 
+            DPT.DPObject.create(self, *args, **kwargs)
+            with open('spiketrain.csv','r') as f:
+                reader = csv.reader(f)
+                c = []
+                for row in reader:
+                    c.append(row)
+            self.spiketimes = [c[0]]
+            self.numSets = 1 
 
     def append(self, st):
         # update fields in parent
