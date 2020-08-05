@@ -24,30 +24,20 @@ def export_mountain_cells():
     start_time = {}
     with open('start_indices.csv') as csvfile:
         csvreader = csv.reader(csvfile,delimiter = ',')
+        linecount = 0
         for line in csvreader:
-            if line[0] == '1':
+            if linecount == 0:
                 temp = []
-                for i in range(len(line)):
-                    if i == 0 :
-                        continue
-                    elif i == 1 :
-                        temp.append(int(line[i][1:]))
-                    elif i == len(line)-1:
-                        temp.append(int(line[i][:-1]))
-                    else:
-                        temp.append(int(line[i][1:])) 
+                for term in line[1:]:
+                    temp.append(int(term.strip(" '][")))
             else:
                 temp = []
-                for i in range(len(line)):
-                    if i == 0 :
-                        continue
-                    elif i == 1 :
-                        temp.append(line[i][2:-1])
-                    elif i == len(line)-1:
-                        temp.append(line[i][2:-2])
-                    else:
-                        temp.append(line[i][2:-1])                
+                for term in line[1:]:
+                    temp.append(term.strip(" ']["))
+
             start_time[line[0]] = temp        
+            linecount += 1
+    
     current_path = os.getcwd()
     ch = current_path.partition('channel')[1] + current_path.partition('channel')[2]
     total_ind = len(original[1])
@@ -139,10 +129,14 @@ def split_into_cells_intra_session(channel, two_layer_chunk, start_ind):
             if assignment_layer[j] == unique_cells[i]:
                 times.append(time_list[j])
         try:
+            print(os.getcwd())
+            print('spikecount')
+            print(len(times))
             with open('spiketrain.csv', 'w') as f:
                 writer = csv.writer(f)
                 writer.writerow(times)
-            Spiketrain(saveLevel=1)
+            
+            #Spiketrain(saveLevel=1)
 
         except IOError:
             print("I/O error")         

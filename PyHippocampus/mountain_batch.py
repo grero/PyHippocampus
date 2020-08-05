@@ -1,9 +1,10 @@
 import numpy as np
 import os 
-import scipy.io
+import PyHippocampus as pyh
 import csv
 from mountainlab_pytools import mdaio
-
+from shutil import copyfile
+import subprocess
 
 def mountain_batch(target='',Overwrite='No'):
     c_p = os.getcwd()
@@ -69,7 +70,7 @@ def comb_channels_ms():
             full_list.append(name)
     top_folders = []
     session_names = []
-    for i in range(1,len(full_list)):
+    for i in range(len(full_list)): # was range(1,..)
         top_folders.append(full_list[i])
     for folder in top_folders:
         if len(folder) < 8:
@@ -103,6 +104,7 @@ def comb_channels_ms():
             for name in os.listdir("."):
                 if os.path.isdir(name):
                     channel_list.append(name)             
+                    
             channel_folders = []
             for l in range(len(channel_list)):
                 channel_folders.append(channel_list[l])
@@ -117,6 +119,7 @@ def comb_channels_ms():
                             channels_identified[identified_count] = info
                             identified_count += 1
                             found = 1
+                            
                         
                     else:
                         for m in range(identified_count):
@@ -174,18 +177,20 @@ def mountain_channel(full_cell, index):
         temp1.append(cut[len(cut)-2])
         start_indices[2] = temp1
         if n == 2:
-            data = scipy.io.loadmat('rplhighpass.mat')
-            data1 = data['rh'][0,0][0][0][0][0]
+            data = pyh.RPLHighPass()
+            data1 = np.transpose(data.data)
             current = len(data1)+1
         else:
-            temp = scipy.io.loadmat('rplhighpass.mat')
-            temp = temp['rh'][0,0][0][0][0][0]
+            temp = pyh.RPLHighPass()
+            temp = np.transpose(temp.data)
             data1 = np.concatenate((data1,temp))
             current = len(data1)+1
     
     data1 = np.atleast_2d(data1).T 
     #print(start_indices)
-    #print(data1.shape)
+    data1 = np.transpose(data1)
+    print('data shape')
+    print(data1.shape)
     os.chdir(current_path)
 
     try:
@@ -207,14 +212,14 @@ def mountain_channel(full_cell, index):
     mdaio.writemda(data1, 'raw_data.mda', dtype='float32')
     x = mdaio.readmda('raw_data.mda')
     #print(x.shape)
-    os.system('cp /data/geom.csv .')
-    #os.system('cp /home/ec2-user/geom.csv .')
+    copyfile('/data/geom.csv','./geom.csv')
+    #os.popen("cp /data/geom.csv .")
     os.chdir(current_path)
-    #os.system('cp /home/ec2-user/sort.sh.txt .')
-    os.system('cp /data/sort.sh.txt .')
-    #print(os.getcwd())
+    copyfile('/data/sort.sh.txt','./sort.sh.txt')
+    #os.system('cp /data/sort.sh.txt .')
     os.system('sh sort.sh.txt') 
-    
+    #subprocess.call("sh sort.sh.txt")
+
     print('finish for this channel')
     os.chdir(origin)
             
