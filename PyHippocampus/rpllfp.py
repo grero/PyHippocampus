@@ -46,7 +46,7 @@ class RPLLFP(DPT.DPObject):
             self.analogInfo['HighFreqOrder'] = self.args['LFPOrder']
             self.analogInfo['LowFreqOrder'] = self.args['LFPOrder']
             self.analogInfo['ProbeInfo'] = rw.analogInfo['ProbeInfo'].replace('raw', 'lfp')
-            self.data = lfpData
+            self.data = lfpData.astype('float32')
             self.numSets = 1 
         else:
             # create empty object

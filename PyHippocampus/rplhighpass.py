@@ -45,7 +45,7 @@ class RPLHighPass(DPT.DPObject):
             self.analogInfo['HighFreqOrder'] = self.args['HighOrder']
             self.analogInfo['LowFreqOrder'] = self.args['HighOrder']
             self.analogInfo['ProbeInfo'] = rw.analogInfo['ProbeInfo'].replace('raw', 'hp')
-            self.data = hpData
+            self.data = hpData.astype('float32')
             self.numSets = 1 
         else:
             # create empty object
