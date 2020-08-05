@@ -92,11 +92,11 @@ class VMHighPass(DPT.DPObject):
             if plotOpts['SpikeTrain']:
                 st = DPT.objects.processDirs(None, Spiketrain)
                 trialSpikes = [list(filter(lambda x: x >= (self.timeStamps[i][0] * 1000 - plotOpts['PreTrial']) and x <= self.timeStamps[i][2] * 1000, map(float, j))) for j in st.spiketimes] 
-                trialSpikes = [list(map(lambda x: x - self.timeStamps[i][0] * 1000, k)) for k in trialSpikes]
+                trialSpikes = [list(map(lambda x: round(x - self.timeStamps[i][0] * 1000, 3), k)) for k in trialSpikes]
                 colors = cm.rainbow(np.linspace(0, 1, len(trialSpikes)))
                 y_coords = [[int(np.amax(data)) + 5 * (k + 1) for j in range(len(trialSpikes[k]))] for k in range(len(trialSpikes))]
                 for trial, y, c in zip(trialSpikes, y_coords, colors): 
-                    ax.scatter(trial, y, color = c) 
+                    ax.scatter(trial, y, color = c, marker = '|') 
 
         elif plot_type == 'FreqPlot':
             if plotOpts['PlotAllData']:
