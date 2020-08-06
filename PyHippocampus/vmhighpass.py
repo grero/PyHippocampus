@@ -3,12 +3,10 @@ import numpy as np
 from .rplparallel import RPLParallel 
 from .spiketrain import Spiketrain
 from .rplhighpass import RPLHighPass 
-from .helperfunctions import plotFFT
-from .helperfunctions import removeLineNoise
+from .helperfunctions import plotFFT, removeLineNoise
 import os 
 import matplotlib.pyplot as plt 
 import matplotlib.cm as cm
-
 
 class VMHighPass(DPT.DPObject):
 
@@ -41,7 +39,6 @@ class VMHighPass(DPT.DPObject):
     def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
         plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 10, 'LogPlot': True, 'SpikeTrain': True, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
-        # Add flag for removelinenoise and a specific value. 
 
         plot_type = plotOpts['Type'].selected()
 
@@ -107,7 +104,7 @@ class VMHighPass(DPT.DPObject):
                 data = removeLineNoise(data, plotOpts['RemoveLineNoiseFreq'], sRate)
             datam = np.mean(data)
             fftProcessed, f = plotFFT(data - datam, sRate)
-            ax.plot(f[1:], fftProcessed[1:])
+            ax.plot(f, fftProcessed)
             if plotOpts['LogPlot']:
                 ax.set_yscale('log')
 
