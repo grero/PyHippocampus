@@ -145,7 +145,7 @@ class RPLSplit(DPT.DPObject):
 				else:
 					continue 
 			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=channelIndexes))
-			for ind, num in zip(channelIndexes, channelNumbers):
-				print('Processing channel {:03d}'.format(num))
-				process_channel(np.array(data[:, ind]), annotations, ind, analogInfo, num)
+			for ind, idx in enumerate(channelIndexes):
+				print('Processing channel {:03d}'.format(channelNumbers[ind]))
+				process_channel(np.array(data[:, ind]), annotations, idx, analogInfo, channelNumbers[ind])
 		return 
