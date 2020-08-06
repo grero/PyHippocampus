@@ -26,8 +26,8 @@ class RPLSplit(DPT.DPObject):
 	def create(self, *args, **kwargs):
 
 		if not self.args['SkipParallel']: 
-		    print('Calling RPLParallel...')
-		    rp = RPLParallel(saveLevel = 1)
+			print('Calling RPLParallel...')
+			rp = RPLParallel(saveLevel = 1)
 
 		ns5File = glob.glob('*.ns5')
 		if len(ns5File) > 1: 
@@ -131,19 +131,21 @@ class RPLSplit(DPT.DPObject):
 				number = int(names[chxIdx][6:len(names[chxIdx]) - 1])
 				print('Processing channel {:03d}'.format(number))
 				#data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chxIdx]))
-				data = np.array(segment.analogsignals[index][chxIdx])
+				data = np.array(segment.analogsignals[index][:,chxIdx])
 				process_channel(data, annotations, chxIdx, analogInfo, number)
 		else: 
-			channelIndex = {}
+			channelNumbers = []
+			channelIndexes = []
 			for i in self.args['channel']:
 				chxIndex = list(filter(lambda x: str(i) in x, names))
 				if len(chxIndex) > 0:
 					chxIndex = names.index(chxIndex[0])
-					channelIndex[i] = chxIndex
+					channelNumbers.append(i)
+					channelIndexes.append(chxIndex)
 				else:
 					continue 
-			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=list(channelIndex.values())))
-			for count, j in enumerate(channelIndex.keys()):
-				print('Processing channel {:03d}'.format(j))
-				process_channel(np.array(data[count]), annotations, channelIndex[j], analogInfo, j)
+			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=channelIndexes))
+			for ind, num in zip(channelIndexes, channelNumbers):
+				print('Processing channel {:03d}'.format(num))
+				process_channel(np.array(data[:, ind]), annotations, ind, analogInfo, num)
 		return 
