@@ -6,7 +6,7 @@ from .rpllfp import RPLLFP
 from .rplhighpass import RPLHighPass 
 from .rplsplit import RPLSplit
 from .rplparallel import RPLParallel
-from .helperfunctions import plotFFT
+from .helperfunctions import plotFFT, removeLineNoise
 from .aligning_objects import aligning_objects
 from .umaze import Umaze
 from .spiketrain import Spiketrain
