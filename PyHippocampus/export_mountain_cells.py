@@ -136,7 +136,7 @@ def split_into_cells_intra_session(channel, two_layer_chunk, start_ind):
                 writer = csv.writer(f)
                 writer.writerow(times)
             
-            #Spiketrain(saveLevel=1)
+            Spiketrain(saveLevel=1)
 
         except IOError:
             print("I/O error")         
