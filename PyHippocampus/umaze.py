@@ -11,7 +11,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-
 class Umaze(DPT.DPObject):
     filename = "unity.hkl"
     argsList = [('GridSteps', 40), ('OverallGridSize', 25), ('MinObs', 5)]
@@ -24,6 +23,7 @@ class Umaze(DPT.DPObject):
 
     def create(self, *args, **kwargs):
         # load the unity object to get the data
+        DPT.DPObject.create(self, *args, **kwargs)
         uf = Unity()
         unityData = uf.unityData[0]
         unityTriggers = uf.unityTriggers[0]
@@ -213,19 +213,7 @@ class Umaze(DPT.DPObject):
         df = pd.DataFrame(matrix_r)
         self.matrix = df 
         
-        # heatmap plot code
-        fig, ax = plt.subplots(figsize=(120, 70))
-        title = 'Umaze Bins Heat Map'
-        plt.title(title, fontsize=18)
-        ttl = ax.title
-        sns.heatmap(df, cmap='Reds', linewidths=.8, ax=ax)
-        plt.show()
-
-        # check if we need to save the object, with the default being 0
-        if kwargs.get("saveLevel", 0) > 0:
-            self.save()
-
-    def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
+    def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
         # set plot options
         plotopts = {}
         if getPlotOpts:
@@ -235,10 +223,25 @@ class Umaze(DPT.DPObject):
         for (k, v) in plotopts.items():
             plotopts[k] = kwargs.get(k, v)
 
+        if getLevels:
+            return ['session']
+
+        if getNumEvents:
+            return 1, 0 
+
         if ax is None:
             ax = gca()
-        ax.clear()
+        
+        if not overlay:
+            ax.clear()
 
+        im = ax.pcolormesh(self.matrix)
+        direct = os.getcwd()
+        day = DPT.levels.get_shortname('day', direct)
+        session = DPT.levels.get_shortname("session", direct)
+        title = 'D' + day + session
+        ax.set_title(title)
+        plt.colorbar(im, ax = ax)
         return ax
 
     def append(self, uf):
