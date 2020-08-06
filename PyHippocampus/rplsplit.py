@@ -43,8 +43,12 @@ class RPLSplit(DPT.DPObject):
 		# create object
 		DPT.DPObject.create(self, *args, **kwargs)
 		reader = BlackrockIO(ns5File[0])
-		bl = reader.read_block()
-		print('file loaded.')
+		if len(self.args['channel']) == 0:
+			bl = reader.read_block()
+			print('file loaded.')
+		else: 
+			bl = reader.read_block(lazy = True)
+			print('file loaded.')
 		segment = bl.segments[0]
 		if len(glob.glob('*.ns2')) == 0: # Check if .ns2 file is present, if its not present adjust the index for raw signals accordingly 
 			index = 1 
@@ -130,13 +134,16 @@ class RPLSplit(DPT.DPObject):
 				data = np.array(segment.analogsignals[index][chxIdx])
 				process_channel(data, annotations, chxIdx, analogInfo, number)
 		else: 
+			channelIndex = {}
 			for i in self.args['channel']:
 				chxIndex = list(filter(lambda x: str(i) in x, names))
 				if len(chxIndex) > 0:
 					chxIndex = names.index(chxIndex[0])
+					channelIndex[i] = chxIndex
 				else:
 					continue 
-				# data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chx.index[chxIndex]]))
-				data = np.array(segment.analogsignals[index][chxIdx]) # For non-lazy reading of data. 
-				process_channel(data, annotations, chxIndex, analogInfo, i)
+			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=list(channelIndex.values())))
+			for count, j in enumerate(channelIndex.keys()):
+				print('Processing channel {:03d}'.format(j))
+				process_channel(np.array(data[count]), annotations, channelIndex[j], analogInfo, j)
 		return 
