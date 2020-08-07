@@ -15,7 +15,7 @@ import DataProcessingTools as DPT
 class RPLSplit(DPT.DPObject):
 
 	filename = 'rplsplit.hkl'
-	argsList = [('channel', []), ('SkipHPC', True), ('SkipLFP', True), ('SkipHighPass', True), ('SkipSort', True), ('SkipParallel', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
+	argsList = [('channel', [*range(1, 124)]), ('SkipHPC', True), ('SkipLFP', True), ('SkipHighPass', True), ('SkipSort', True), ('SkipParallel', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
 	level = 'session'
 
 	def __init__(self, *args, **kwargs):
@@ -43,12 +43,8 @@ class RPLSplit(DPT.DPObject):
 		# create object
 		DPT.DPObject.create(self, *args, **kwargs)
 		reader = BlackrockIO(ns5File[0])
-		if len(self.args['channel']) == 0:
-			bl = reader.read_block()
-			print('file loaded.')
-		else: 
-			bl = reader.read_block(lazy = True)
-			print('file loaded.')
+		bl = reader.read_block(lazy = True)
+		print('.ns5 file loaded.')
 		segment = bl.segments[0]
 		if len(glob.glob('*.ns2')) == 0: # Check if .ns2 file is present, if its not present adjust the index for raw signals accordingly 
 			index = 1 
@@ -100,18 +96,16 @@ class RPLSplit(DPT.DPObject):
 						# mountain_batch()
 						# export_mountain_cells()
 			else: 
-				if 'dir' not in kwargs.keys():
-					kwargs['dir'] = ''
-				# if not self.args['SkipLFP']:
+				if 'HPCScriptsDir' not in kwargs.keys():
+					kwargs['HPCScriptsDir'] = ''
 				print('Adding RPLLFP slurm script for channel {:03d} to job queue'.format(channelNumber))
-				os.system('sbatch ' + kwargs['dir'] + 'rpllfp-slurm.sh')
-				# if not self.args['SkipHighPass']:
+				os.system('sbatch ' + kwargs['HPCScriptsDir'] + 'rpllfp-slurm.sh')
 				if not self.args['SkipSort']:
 					print('Adding RPLHighPass and Mountain Sort slurm script for channel {:03d} to job queue'.format(channelNumber))
-					os.system('sbatch '+ kwargs['dir'] + 'rplhighpass+sort-slurm.sh')
+					os.system('sbatch '+ kwargs['HPCScriptsDir'] + 'rplhighpass+sort-slurm.sh')
 				else:
 					print('Adding RPLHighPass slurm script for channel {:03d} to job queue'.format(channelNumber))
-					os.system('sbatch ' + kwargs['dir'] + 'rplhighpass-slurm.sh')
+					os.system('sbatch ' + kwargs['HPCScriptsDir'] + 'rplhighpass-slurm.sh')
 			os.chdir(directory)
 			print('Channel {:03d} processed'.format(channelNumber))
 			return 
@@ -126,24 +120,17 @@ class RPLSplit(DPT.DPObject):
 			self.analogInfo = analogInfo 
 			return 
 
-		if len(self.args['channel']) == 0: 
-			for chxIdx in indexes: 
-				number = int(names[chxIdx][6:len(names[chxIdx]) - 1])
-				print('Processing channel {:03d}'.format(number))
-				#data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=[chxIdx]))
-				data = np.array(segment.analogsignals[index][:,chxIdx])
-				process_channel(data, annotations, chxIdx, analogInfo, number)
-		else: 
-			channelNumbers = []
-			channelIndexes = []
-			for i in self.args['channel']:
-				chxIndex = list(filter(lambda x: str(i) in x, names))
-				if len(chxIndex) > 0:
-					chxIndex = names.index(chxIndex[0])
-					channelNumbers.append(i)
-					channelIndexes.append(chxIndex)
-				else:
-					continue 
+		channelNumbers = []
+		channelIndexes = []
+		for i in self.args['channel']:
+			chxIndex = list(filter(lambda x: int(i) == int(x[6:len(x) - 1]),names))
+			if len(chxIndex) > 0:
+				chxIndex = names.index(chxIndex[0])
+				channelNumbers.append(i)
+				channelIndexes.append(chxIndex)
+			else:
+				continue 
+		if len(channelIndexes) > 0:
 			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=channelIndexes))
 			for ind, idx in enumerate(channelIndexes):
 				print('Processing channel {:03d}'.format(channelNumbers[ind]))
