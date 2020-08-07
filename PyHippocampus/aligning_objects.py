@@ -2,6 +2,7 @@ import h5py
 import time
 import numpy as np
 import numpy.matlib
+import pandas as pd
 import hickle as hkl
 import DataProcessingTools as DPT
 from .rplparallel import RPLParallel
@@ -213,6 +214,12 @@ def aligning_objects():
         for j in range(np.shape(arr)[0]):
             uf.unityTrialTime[0][j,col] = arr[j]      
     
+        
+    #%% convert back to the original unit
+    el.session_start[0] = el.session_start[0]/el.samplingRate
+    el.timestamps = pd.Series(el.timestamps/el.samplingRate)
+    el.trial_timestamps = el.trial_timestamps/el.samplingRate
+    el.fix_times = el.fix_times/el.samplingRate    
     
     #uf_n = uf.get_filename()
     #el_n = el.get_filename()
