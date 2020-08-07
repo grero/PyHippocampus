@@ -20,5 +20,5 @@
 ## /SBATCH -e slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-python -u -c "import PyHippocampus as pyh; import DataProcessingTools as DPT; import time; time.localtime(); DPT.objects.processDirs(None, pyh.RPLSplit, saveLevel=1, channel=[65,67,69,70,71,72,73,74,75,76,77,78,79,80,82,84,85,86,87,88,89,90,91,92,93,94,95,96]); time.localtime();"
+python -u -c "import PyHippocampus as pyh; import DataProcessingTools as DPT; import time; time.localtime(); DPT.objects.processDirs(None, pyh.RPLSplit, channel=[*range(65,97)]); time.localtime();"
 
