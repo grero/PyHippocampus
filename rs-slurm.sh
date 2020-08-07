@@ -3,7 +3,7 @@
 # Submit this script with: sbatch <this-filename>
 
 #SBATCH --time=24:00:00   # walltime
-#SBATCH --ntasks=8   # number of processor cores (i.e. tasks)
+#SBATCH --ntasks=1   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
 #SBATCH --mem-per-cpu=1M   # memory per CPU core
 #SBATCH -J "example-job"   # job name
