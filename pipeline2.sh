@@ -10,4 +10,4 @@ sbatch /data/src/PyHippocampus/rs3-slurm.sh
 sbatch /data/src/PyHippocampus/rs4-slurm.sh
 
 # third job depends on the first job
-jid3=$(sbatch --dependency=afterok:$jid1 /data/src/PyHippocampus/unity-slurm.sh)
+sbatch --dependency=afterok:${jid1} /data/src/PyHippocampus/unity-slurm.sh
