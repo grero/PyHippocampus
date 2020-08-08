@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 # first job - no dependencies, called from the day directory
 jid1=$(sbatch rplparallel-slurm.sh)
