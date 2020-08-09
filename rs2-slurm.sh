@@ -5,19 +5,11 @@
 #SBATCH --time=24:00:00   # walltime
 #SBATCH --ntasks=8   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
-#SBATCH --mem-per-cpu=1M   # memory per CPU core
-#SBATCH -J "example-job"   # job name
-#SBATCH --mail-user=<your-email>@nus.edu.sg   # email address
-
-# Notify at the beginning, end of job and on failure.
-#SBATCH --mail-type=BEGIN
-#SBATCH --mail-type=END
-#SBATCH --mail-type=FAIL
-
+#SBATCH -J "rs2"   # job name
 
 ## /SBATCH -p general # partition (queue)
-## /SBATCH -o slurm.%N.%j.out # STDOUT
-## /SBATCH -e slurm.%N.%j.err # STDERR
+## /SBATCH -o rs2-slurm.%N.%j.out # STDOUT
+## /SBATCH -e rs2-slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 python -u -c "import PyHippocampus as pyh; import DataProcessingTools as DPT; import time; print(time.localtime()); DPT.objects.processDirs(None, pyh.RPLSplit, channel=[*range(33,65)], SkipHPC=False, HPCScriptsDir = '/data/src/PyHippocampus/', SkipSort=False); print(time.localtime());"
