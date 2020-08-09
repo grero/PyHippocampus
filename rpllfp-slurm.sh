@@ -5,15 +5,7 @@
 #SBATCH --time=1:00:00   # walltime
 #SBATCH --ntasks=1   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
-#SBATCH --mem-per-cpu=1M   # memory per CPU core
-#SBATCH -J "example-job"   # job name
-#SBATCH --mail-user=<your-email>@nus.edu.sg   # email address
-
-# Notify at the beginning, end of job and on failure.
-#SBATCH --mail-type=BEGIN
-#SBATCH --mail-type=END
-#SBATCH --mail-type=FAIL
-
+#SBATCH -J "rpllfp"   # job name
 
 ## /SBATCH -p general # partition (queue)
 ## /SBATCH -o rpllfp-slurm.%N.%j.out # STDOUT
@@ -21,4 +13,4 @@
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 
-python -c "import PyHippocampus as ph; ph.RPLLFP(saveLevel = 1)"
+python -u -c "import PyHippocampus as pyh; pyh.RPLLFP(saveLevel = 1)"
