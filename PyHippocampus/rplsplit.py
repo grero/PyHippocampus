@@ -15,7 +15,7 @@ import DataProcessingTools as DPT
 class RPLSplit(DPT.DPObject):
 
 	filename = 'rplsplit.hkl'
-	argsList = [('channel', [*range(1, 125)]), ('SkipHPC', True), ('SkipLFP', True), ('SkipHighPass', True), ('SkipSort', True), ('SkipParallel', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
+	argsList = [('channel', [*range(1, 125)]), ('SkipHPC', True), ('SkipLFP', True), ('SkipHighPass', True), ('SkipSort', True), ('SkipParallel', True)] 
 	level = 'session'
 
 	def __init__(self, *args, **kwargs):
