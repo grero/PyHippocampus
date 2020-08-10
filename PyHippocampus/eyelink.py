@@ -724,12 +724,13 @@ class Eyelink(DPT.DPObject):
                 trial_cue_time = obj_timestamps[x[i][1].astype(int)] - trial_start_time - 0.001
                 trial_end_time = obj_timestamps[x[i][2].astype(int)] - 0.001
 
+                data_timestamps = self.get_timestamps(i, x)
                 # timestamps is the x axis to be plotted
-                timestamps = obj_timestamps[x[i][0].astype(int) - 501: x[i][2].astype(int)]
+                timestamps = obj_timestamps[data_timestamps]
                 timestamps = timestamps - trial_start_time
 
                 obj_eye_pos = self.eye_pos.to_numpy()
-                y = obj_eye_pos[x[i][0].astype(int) - 501: x[i][2].astype(int)].transpose()
+                y = obj_eye_pos[data_timestamps].transpose()
 
                 # plot x axis data
                 ax.plot(timestamps, y[:][0], 'b-', LineWidth=0.5, Label='X position')
@@ -757,7 +758,7 @@ class Eyelink(DPT.DPObject):
                 else: # trial did timeout
                     ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'b', LineWidth=0.5)
 
-                ax.set_xlim([-0.2, trial_end_time + 0.2]) # set axis boundaries
+                # ax.set_xlim([-0.2, trial_end_time + 0.2]) # set axis boundaries
                 ax.legend(loc='best')
 
         elif plot_type == 'XY':
@@ -865,7 +866,20 @@ class Eyelink(DPT.DPObject):
             ax.set_xlabel('s')
             ax.set_ylabel('occurence')
 
-        return ax
+        return ax      
+    
+    def get_timestamps(self, i, x):
+        if i == 0:
+            data_timestamps = np.arange(0, x[i+1][0].astype(int))
+        elif i != x.shape[0]-1:
+            data_timestamps = np.arange(x[i-1][2], x[i+1][0]).astype(int)
+        else:
+            data_timestamps = np.arange(x[i-1][2], len(self.timestamps)-1).astype(int)
+            
+        return data_timestamps
+
+
+
 
 # plotGazeXY helper method to plot gaze position. Uses matlab's plot function
 def plotGazeXY(self, i, ax, gx, gy, lineType):
