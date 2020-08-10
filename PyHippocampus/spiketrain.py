@@ -22,9 +22,10 @@ class Spiketrain(DPT.DPObject):
         self.spiketimes = []
 
         csvFile = glob.glob('*.csv')
-        if len(csvFile) == 0: 
+        if len(csvFile) == 0:
+            kwargs["dirs"] = []
             print('No spiketrain file, creating empty object...')
-            DPT.DPObject.create(self, dirs=[], *args, **kwargs) 
+            DPT.DPObject.create(self, *args, **kwargs)
         else: 
             DPT.DPObject.create(self, *args, **kwargs)
             with open('spiketrain.csv','r') as f:
