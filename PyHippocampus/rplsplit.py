@@ -15,7 +15,7 @@ import DataProcessingTools as DPT
 class RPLSplit(DPT.DPObject):
 
 	filename = 'rplsplit.hkl'
-	argsList = [('channel', [*range(1, 124)]), ('SkipHPC', True), ('SkipLFP', True), ('SkipHighPass', True), ('SkipSort', True), ('SkipParallel', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
+	argsList = [('channel', [*range(1, 125)]), ('SkipHPC', True), ('SkipLFP', True), ('SkipHighPass', True), ('SkipSort', True), ('SkipParallel', True)] # Channel [] represents all channels to be processed, otherwise a list of channels to be provided.  
 	level = 'session'
 
 	def __init__(self, *args, **kwargs):
@@ -55,7 +55,6 @@ class RPLSplit(DPT.DPObject):
 		analogInfo['SampleRate'] = float(segment.analogsignals[index].sampling_rate)
 		annotations = chx.annotations
 		names = list(map(lambda x: str(x), chx.channel_names))
-		indexes = list(chx.index)
 
 		def process_channel(data, annotations, chxIndex, analogInfo, channelNumber, returnData = False):
 			analogInfo['Units'] = 'uV'
@@ -131,8 +130,13 @@ class RPLSplit(DPT.DPObject):
 			else:
 				continue 
 		if len(channelIndexes) > 0:
-			data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=channelIndexes))
-			for ind, idx in enumerate(channelIndexes):
-				print('Processing channel {:03d}'.format(channelNumbers[ind]))
-				process_channel(np.array(data[:, ind]), annotations, idx, analogInfo, channelNumbers[ind])
+			numOfIterations = int(np.ceil(len(channelIndexes) / 32))
+			for k in range(numOfIterations):
+				tempIndexes = channelIndexes[k*32:(k + 1) * 32]
+				tempNumbers = channelNumbers[k*32:(k + 1) * 32]
+				data = np.array(segment.analogsignals[index].load(time_slice=None, channel_indexes=tempIndexes))
+				for ind, idx in enumerate(tempIndexes):
+					print('Processing channel {:03d}'.format(tempNumbers[ind]))
+					process_channel(np.array(data[:, ind]), annotations, idx, analogInfo, tempNumbers[ind])
+				del data # to create RAM space to load in the next set of channel data. 
 		return 
