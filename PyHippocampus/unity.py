@@ -497,116 +497,36 @@ class Unity(DPT.DPObject):
             ax.set_title(title)
 
         elif plot_type == "X-T":
-
-            session_idx = self.setidx[i]
-            if session_idx != 0:
-                for x in range(0, session_idx):
-                    i = i - self.unityTriggers[x].shape[0]
-            if i == 0:
-                trial_trigger = [0, self.unityTriggers[session_idx][i+1, 0]-1]
-            elif i == self.unityTriggers[session_idx].shape[0]-1:
-                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityData[session_idx].shape[0]-1]
-            else:
-                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityTriggers[session_idx][i+1, 0]-1]
-            time = self.unityTime[session_idx][trial_trigger[0]+1:trial_trigger[1]+2]
-            x_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 2]
-
-            ax.plot(time, x_position, LineWidth=1)
+            i, session_idx, trial_trigger = self.get_trial_trigger(i)
+            x_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 2]   
+            self.get_timestamps(i, session_idx, trial_trigger, ax, x_position)
+            
             ax.set_ylabel('X-Pos')
             ax.set_xlabel('Time (s)')
 
-            t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
-            t_2 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]
-            t_3 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 2]+1]
-            result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
-            if result_t3 > 40:
-                ax.axvline(t_3, color='r')
-            else:
-                ax.axvline(t_3, color='b')
-            ax.axvline(t_1, color='g')
-            ax.axvline(t_2, color='m')
-
-            dir_name = self.dirs[session_idx]
-            subject = DPT.levels.get_shortname("subject", dir_name)
-            date = DPT.levels.get_shortname("day", dir_name)
-            session = DPT.levels.get_shortname("session", dir_name)
-            title = subject + date + session + " Trial " + str(i)
-            ax.set_title(title)
+            self.set_T_title(i, session_idx, ax)
 
         elif plot_type == "Y-T":
-
-            session_idx = self.setidx[i]
-            if session_idx != 0:
-                for x in range(0, session_idx):
-                    i = i - self.unityTriggers[x].shape[0]
-            if i == 0:
-                trial_trigger = [0, self.unityTriggers[session_idx][i+1, 0]-1]
-            elif i == self.unityTriggers[session_idx].shape[0]-1:
-                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityData[session_idx].shape[0]-1]
-            else:
-                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityTriggers[session_idx][i+1, 0]-1]
-            time = self.unityTime[session_idx][trial_trigger[0]+1:trial_trigger[1]+2]
+            i, session_idx, trial_trigger = self.get_trial_trigger(i)
             y_position = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 3]
+            self.get_timestamps(i, session_idx, trial_trigger, ax, y_position) 
 
-            ax.plot(time, y_position, LineWidth=1)
             ax.set_ylabel('Y-Pos')
             ax.set_xlabel('Time (s)')
 
-            t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
-            t_2 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]
-            t_3 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 2]+1]
-            result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
-            if result_t3 > 40:
-                ax.axvline(t_3, color='r')
-            else:
-                ax.axvline(t_3, color='b')
-            ax.axvline(t_1, color='g')
-            ax.axvline(t_2, color='m')
+            self.set_T_title(i, session_idx, ax)
 
-            dir_name = self.dirs[session_idx]
-            subject = DPT.levels.get_shortname("subject", dir_name)
-            date = DPT.levels.get_shortname("day", dir_name)
-            session = DPT.levels.get_shortname("session", dir_name)
-            title = subject + date + session + " Trial " + str(i)
-            ax.set_title(title)
 
         elif plot_type == "Theta-T":
-
-            session_idx = self.setidx[i]
-            if session_idx != 0:
-                for x in range(0, session_idx):
-                    i = i - self.unityTriggers[x].shape[0]
-            if i == 0:
-                trial_trigger = [0, self.unityTriggers[session_idx][i+1, 0]-1]
-            elif i == self.unityTriggers[session_idx].shape[0]-1:
-                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityData[session_idx].shape[0]-1]
-            else:
-                trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityTriggers[session_idx][i+1, 0]-1]
-            time = self.unityTime[session_idx][trial_trigger[0]+1:trial_trigger[1]+2]
-
+            i, session_idx, trial_trigger = self.get_trial_trigger(i)
             orientation = self.unityData[session_idx][trial_trigger[0]:trial_trigger[1]+1, 4]
+            self.get_timestamps(i, session_idx, trial_trigger, ax, orientation)
 
-            ax.plot(time, orientation, LineWidth=1)
             ax.set_ylabel('Orientation')
             ax.set_xlabel('Time (s)')
 
-            t_1 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]
-            t_2 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]
-            t_3 = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 2]+1]
-            result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
-            if result_t3 > 40:
-                ax.axvline(t_3, color='r')
-            else:
-                ax.axvline(t_3, color='b')
-            ax.axvline(t_1, color='g')
-            ax.axvline(t_2, color='m')
+            self.set_T_title(i, session_idx, ax)
 
-            dir_name = self.dirs[session_idx]
-            subject = DPT.levels.get_shortname("subject", dir_name)
-            date = DPT.levels.get_shortname("day", dir_name)
-            session = DPT.levels.get_shortname("session", dir_name)
-            title = subject + date + session + " Trial " + str(i)
-            ax.set_title(title)
 
         return ax
 
@@ -625,3 +545,54 @@ class Unity(DPT.DPObject):
         self.routePerformance += uf.routePerformance
         self.trialRouteRatio += uf.trialRouteRatio
         self.durationDiff += uf.durationDiff
+        
+    def get_trial_trigger(self, i):
+        session_idx = self.setidx[i]        
+        if session_idx != 0:
+            for x in range(0, session_idx):
+                i = i - self.unityTriggers[x].shape[0]
+        if i == 0:
+            trial_trigger = [0, self.unityTriggers[session_idx][i+1, 0]-1]
+        elif i == self.unityTriggers[session_idx].shape[0]-1:
+            trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityData[session_idx].shape[0]-1]
+        else:
+            trial_trigger = [self.unityTriggers[session_idx][i-1, 2]+1, self.unityTriggers[session_idx][i+1, 0]-1]
+        return i, session_idx, trial_trigger
+        
+    def get_timestamps(self, i, session_idx, trial_trigger, ax, data):
+        time_start = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 0]+1]  # original start time
+        time_cue = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 1]+1]  # original cue time
+        time_end = self.unityTime[session_idx][self.unityTriggers[session_idx][i, 2]+1]  # original end time
+        
+        time = self.unityTime[session_idx][trial_trigger[0]+1:trial_trigger[1]+2]  # original data time
+        time_shift = time[0]  # for shifting markers to 0
+        
+        t_1 = time_start - time_shift  # start marker shifted accordingly to the first data timestamps
+        t_2 = time_cue - time_shift  # cue marker shifted accordingly to the first data timestamps 
+        t_3 = time_end - time_shift  # end marker shifted accordingly to the first data timestamps
+
+        time = time - time_shift - t_1  # shift data time to 0 first, then shift it again according to start marker, because this data starts at the end marker of previous trial, i.e. it will start wiht negative value
+        
+        time_shift = t_1  # for shifting start marker to 0
+        t_1 -= time_shift
+        t_2 -= time_shift
+        t_3 -= time_shift  
+        
+        result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
+        
+        ax.plot(time, data, LineWidth=1)
+
+        if result_t3 > 40:
+            ax.axvline(t_3, color='r')
+        else:
+            ax.axvline(t_3, color='b')
+        ax.axvline(t_1, color='g')
+        ax.axvline(t_2, color='m')        
+    
+    def set_T_title(self, i, session_idx, ax):
+        dir_name = self.dirs[session_idx]
+        subject = DPT.levels.get_shortname("subject", dir_name)
+        date = DPT.levels.get_shortname("day", dir_name)
+        session = DPT.levels.get_shortname("session", dir_name)
+        title = subject + date + session + " Trial " + str(i)
+        ax.set_title(title)
