@@ -5,11 +5,11 @@
 #SBATCH --time=1:00:00   # walltime
 #SBATCH --ntasks=1   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
-#SBATCH -J "rplhighpass"   # job name
+#SBATCH -J "rplhp"   # job name
 
 ## /SBATCH -p general # partition (queue)
-## /SBATCH -o rplhighpass-slurm.%N.%j.out # STDOUT
-## /SBATCH -e rplhighpass-slurm.%N.%j.err # STDERR
+#SBATCH -o rplhp-slurm.%N.%j.out # STDOUT
+#SBATCH -e rplhp-slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 

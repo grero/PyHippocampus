@@ -8,8 +8,8 @@
 #SBATCH -J "rpllfp"   # job name
 
 ## /SBATCH -p general # partition (queue)
-## /SBATCH -o rpllfp-slurm.%N.%j.out # STDOUT
-## /SBATCH -e rpllfp-slurm.%N.%j.err # STDERR
+#SBATCH -o rpllfp-slurm.%N.%j.out # STDOUT
+#SBATCH -e rpllfp-slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 
