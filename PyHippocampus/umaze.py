@@ -241,7 +241,8 @@ class Umaze(DPT.DPObject):
         session = DPT.levels.get_shortname("session", direct)
         title = 'D' + day + session
         ax.set_title(title)
-        plt.colorbar(im, ax = ax)
+        # Uncomment colorbar line after PanGUI has been fixed. 
+        # plt.colorbar(im, ax = ax)
         return ax
 
     def append(self, uf):

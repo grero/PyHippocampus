@@ -40,8 +40,7 @@ class VMLFP(DPT.DPObject):
 
 	def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
-		plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'NormalizeTrial': False, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 10, 'LogPlot': False, 'TFfftWindow': 256, 'TFfftOverlap': 150, 'TFfftPoints': 256, 'TFfftStart': 500, 'TFfftFreq': 150, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal', 'TFfft'], 1)} 
-		# Add flag for removelinenoise and a specific value. 
+		plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'NormalizeTrial': False, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': True, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 50, 'LogPlot': False, 'TFfftWindow': 256, 'TFfftOverlap': 150, 'TFfftPoints': 256, 'TFfftStart': 500, 'TFfftFreq': 150, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal', 'TFfft'], 2)} 
 
 		plot_type = plotOpts['Type'].selected()
 
@@ -103,15 +102,14 @@ class VMLFP(DPT.DPObject):
 				ax.set_yscale('log')
 
 		elif plot_type == 'TFfft': 
-			# In progress, cannot do so until, window and overlap can be different values. 
 			if plotOpts['PlotAllData']:
 				dIdx = self.trialIndices[:, -1] - self.trialIndices[:, 0]
 				mIdx = np.amax(dIdx)
-				spTimeStep = plotOpts['TFfttWindow'] - plotOpts['TFfftOverlap']
-				spTimeBins = np.floor(mIdx/spTimeStep) - plotOpts['TFfftOverlap']/spTimeStep
+				spTimeStep = plotOpts['TFfftWindow'] - plotOpts['TFfftOverlap']
+				spTimeBins = int(round(np.floor(mIdx/spTimeStep) - plotOpts['TFfftOverlap']/spTimeStep))
 				nFreqs = (plotOpts['TFfftPoints'] / 2) + 1
-				ops = np.zeros((nFreqs, spTimeBins))
-				opsCount = ops 
+				ops = np.zeros((int(nFreqs), spTimeBins))
+				opsCount = np.zeros((int(nFreqs), spTimeBins)) 
 				for j in range(self.numSets):
 					tftIdx = self.trialIndices[j,:]
 					data = self.data[int(tftIdx[0])-1:int(tftIdx[-1])]
@@ -120,16 +118,17 @@ class VMLFP(DPT.DPObject):
 					datam = np.mean(data)
 					window = np.hamming(plotOpts['TFfftWindow'])
 					[s, f, t, im] = plt.specgram(data - datam, window = window, NFFT = plotOpts['TFfftPoints'], noverlap = plotOpts['TFfftOverlap'], Fs = sRate)
-					psIdx = range(1, s.shape[1])
+					psIdx = range(0, s.shape[1])
 					ops[:, psIdx] = ops[:, psIdx] + s 
 					opsCount[:, psIdx] = opsCount[:, psIdx] + 1 
-				x = range(0, mIdx)
-				y = range(0, sRate / 2, sRate / plotOpts['TFfftPoints'])
+				x = np.arange(0, mIdx-1, plotOpts['TFfftWindow'] - plotOpts['TFfftOverlap'])
+				x = x[:len(x) - 2]
+				y = np.arange(0, (sRate / 2)+1, sRate / plotOpts['TFfftPoints'])
 				i = ops / opsCount 
-				ax.pcolormesh(x, y, i, vmin = -10, vmax = 10)
+				im = ax.pcolormesh(x, y, i)
 				ax.set_ylim([0, plotOpts['TFfftFreq']])
-				pass 
-
+				# Uncomment colorbar line after PanGUI is fixed. 
+				# plt.colorbar(im, ax = ax) 
 			else: 
 				tIdx = self.trialIndices[i,:]
 				idx = [tIdx[0] - ((plotOpts['TFfftStart']+500)/1000*sRate), tIdx[0] - ((plotOpts['TFfftStart']+1)/1000*sRate)]
@@ -152,7 +151,8 @@ class VMLFP(DPT.DPObject):
 				ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * 30000 / 1000,  color = 'k')
 				im = ax.pcolormesh(spec_T, f, spec_Pnorm, vmin = -10, vmax = 10)
 				ax.set_ylim([0, plotOpts['TFfftFreq']])
-				# add colourbar. 
+				# Uncomment colour bar line after PanGUI is fixed 			
+				# plt.colorbar(im, ax = ax)
 
 		if not plotOpts['LabelsOff']:
 			if plot_type == 'FreqPlot':
