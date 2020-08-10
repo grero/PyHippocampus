@@ -127,8 +127,6 @@ class RPLSplit(DPT.DPObject):
 				chxIndex = names.index(chxIndex[0])
 				channelNumbers.append(i)
 				channelIndexes.append(chxIndex)
-			else:
-				continue 
 		if len(channelIndexes) > 0:
 			numOfIterations = int(np.ceil(len(channelIndexes) / 32))
 			for k in range(numOfIterations):
