@@ -8,9 +8,8 @@
 #SBATCH -J "rs2"   # job name
 
 ## /SBATCH -p general # partition (queue)
-## /SBATCH -o rs2-slurm.%N.%j.out # STDOUT
-## /SBATCH -e rs2-slurm.%N.%j.err # STDERR
+#SBATCH -o rs2-slurm.%N.%j.out # STDOUT
+#SBATCH -e rs2-slurm.%N.%j.err # STDERR
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-python -u -c "import PyHippocampus as pyh; import DataProcessingTools as DPT; import time; print(time.localtime()); DPT.objects.processDirs(None, pyh.RPLSplit, channel=[*range(33,65)], SkipHPC=False, HPCScriptsDir = '/data/src/PyHippocampus/', SkipSort=False); print(time.localtime());"
-
+python -u -c "import PyHippocampus as pyh; import DataProcessingTools as DPT; import os; import time; print(time.localtime()); os.chdir('session01'); pyh.RPLSplit(channel=[*range(33,65)], SkipHPC=False, HPCScriptsDir = '/data/src/PyHippocampus/', SkipSort=False); print(time.localtime());"
