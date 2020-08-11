@@ -101,7 +101,7 @@ class RPLSplit(DPT.DPObject):
 				os.system('sbatch ' + kwargs['HPCScriptsDir'] + 'rpllfp-slurm.sh')
 				if not self.args['SkipSort']:
 					print('Adding RPLHighPass and Mountain Sort slurm script for channel {:03d} to job queue'.format(channelNumber))
-					os.system('sbatch -L sort1:1 '+ kwargs['HPCScriptsDir'] + 'rplhighpass-sort-slurm.sh')
+					os.system('sbatch '+ kwargs['HPCScriptsDir'] + 'rplhighpass-sort-slurm.sh')
 				else:
 					print('Adding RPLHighPass slurm script for channel {:03d} to job queue'.format(channelNumber))
 					os.system('sbatch ' + kwargs['HPCScriptsDir'] + 'rplhighpass-slurm.sh')
