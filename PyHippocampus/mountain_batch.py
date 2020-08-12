@@ -219,8 +219,10 @@ def mountain_channel(full_cell, index):
     #os.system('cp /data/sort.sh.txt .')
     os.system('sh sort.sh.txt') 
     #subprocess.call("sh sort.sh.txt")
-
-    print('finish for this channel')
+    os.system('rm -r dataset')
+    os.system('rm output/pre2.mda')
+    os.system('rm output/pre.mda')
+    print('finished for this channel')
     os.chdir(origin)
             
             
