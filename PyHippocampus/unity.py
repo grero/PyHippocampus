@@ -313,10 +313,11 @@ class Unity(DPT.DPObject):
             ax = gca()
 
         ax.clear()
-        # fig = ax.get_figure()
-        # ax_list = fig.get_axes()
-        # for ax in ax_list:
-        #     ax.clear()
+        for other_ax in ax.figure.axes:
+            if other_ax is ax:
+                continue
+            if other_ax.bbox.bounds == ax.bbox.bounds:
+                other_ax.remove()
 
         if plot_type == "Trial":
 
