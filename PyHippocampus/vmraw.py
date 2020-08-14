@@ -3,10 +3,11 @@ from .rplparallel import RPLParallel
 import DataProcessingTools as DPT 
 import numpy as np 
 from .helperfunctions import plotFFT, removeLineNoise
+from .vmplot import VMPlot
 import os 
 import matplotlib.pyplot as plt 
 
-class VMRaw(DPT.DPObject):
+class VMRaw(DPT.DPObject, VMPlot):
     
     filename = 'vmraw.hkl'
     level = 'channel'
@@ -14,6 +15,7 @@ class VMRaw(DPT.DPObject):
 
     def __init__(self, *args, **kwargs):
         DPT.DPObject.__init__(self, *args, **kwargs)
+        VMPlot.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
         self.data = []
@@ -35,8 +37,10 @@ class VMRaw(DPT.DPObject):
         return self 
 
     def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
-
-        plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 50, 'LogPlot': False, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
+        plotOpts = {'LabelsOff': False, 'RewardMarker': 3, 'TimeOutMarker': 4,\
+                    'PlotAllData': False, 'TitleOff': False, 'FreqLims': [],\
+                    'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 50, \
+                    'LogPlot': False, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
 
         plot_type = plotOpts['Type'].selected()
 
@@ -68,28 +72,21 @@ class VMRaw(DPT.DPObject):
             self.samplingRate = rw.analogInfo['SampleRate']
 
         sRate = self.samplingRate
-        trialIndicesForN = self.trialIndices[i, :] 
-        idx = [int(trialIndicesForN[0] - ((plotOpts['PreTrial'] / 1000) * sRate))] + list(trialIndicesForN[1:])
+        VMPlot.create(self, trial_idx=i, ax=ax, plotOpts=plotOpts)
 
         if plot_type == 'Signal':
-            data = self.data[idx[0]-1:idx[-1]]
+            data = self.data[self._data_timestamps]
             if plotOpts['RemoveLineNoise']:
                 data = removeLineNoise(data, plotOpts['RemoveLineNoiseFreq'], sRate)
-            x = np.linspace(-plotOpts['PreTrial'], 0, num = int(plotOpts['PreTrial']*sRate/1000))
-            x = np.concatenate((x, np.linspace(0, (len(data) - len(x))*1000/sRate, num = int(len(data) - len(x)))))
-            ax.plot(x, data)
-            ax.axvline(0, color = 'g') # Start of trial. 
-            ax.axvline((self.timeStamps[i][1] - self.timeStamps[i][0]) * 1000, color = 'm')
-            if np.floor(self.markers[i][2] / 10) == plotOpts['RewardMarker']:
-                ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'b')
-            elif np.floor(self.markers[i][2] / 10) == plotOpts['TimeOutMarker']:
-                ax.axvline((self.timeStamps[i][2] - self.timeStamps[i][0]) * 1000, color = 'r')
+            ax.plot(self.get_data_timestamps_plot(), data)
+            self.plot_markers()
+            
 
         elif plot_type == 'FreqPlot':
             if plotOpts['PlotAllData']:
                 data = self.data 
             else: 
-                data = self.data[idx[0]-1:idx[-1]]
+                data = self.data[self._data_timestamps]
             if plotOpts['RemoveLineNoise']:
                 data = removeLineNoise(data, plotOpts['RemoveLineNoiseFreq'], sRate)
             datam = np.mean(data)
