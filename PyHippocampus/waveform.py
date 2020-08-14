@@ -1,17 +1,12 @@
 import numpy as np 
 import DataProcessingTools as DPT 
-from .rplparallel import RPLParallel
-from .rpllfp import RPLLFP
-from .helperfunctions import plotFFT, removeLineNoise
-from .vmplot import VMPlot
 import os 
 import matplotlib.pyplot as plt 
 from mountainlab_pytools import mdaio
-import os
 
-class WaveformPlot(DPT.DPObject):
+class Waveform(DPT.DPObject):
     # Please run this on the mountains directory under day level
-    filename = 'vmflp.hkl'
+    filename = 'waveform.hkl'
     argsList = []
     level = 'channel'
 
@@ -19,21 +14,11 @@ class WaveformPlot(DPT.DPObject):
         DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
-        self.channelIdx = []
-        self.data = []
-        self.numSets = 0  
-        
         self.read_templates()
-        # templatesAll = DPT.levels.processLevel('channel', \
-        #                                        "from mountainlab_pytools import mdaio;\
-        #                                        import os;\
-        #                                        print('{0}'.format(os.getcwd()));\
-        #                                        mdaio.readmda(os.path.join('output', 'templates.mda'))")
         
-        if self.data:
+        if self.data[0].all():
             # create object
             DPT.DPObject.create(self, *args, **kwargs)
-            self.numSets = len(self.channelIdx)
         else:
             # create empty object
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)            
@@ -51,7 +36,7 @@ class WaveformPlot(DPT.DPObject):
             return plotOpts 
 
         if getLevels:
-            return ['trial', 'all']
+            return ['channel', 'trial']
 
         if getNumEvents:
             return self.numSets, i
@@ -80,24 +65,23 @@ class WaveformPlot(DPT.DPObject):
             ax.get_yaxis().set_visible(False)
 
         if not plotOpts['TitleOff']:
-            ax.set_title(self.channelIdx[i])
+            ax.set_title(self.channelFilename[i])
         else:
             ax.get_title().set_visible(False)
             
-        if plot_type == 'channel':
-            return ax;
-        elif plot_type == 'array':
-            return [ax, ax];
-        else:
-            raise(ValueError('Invalid plot_type in waveformplot...'))
+        return ax
     
+    
+    def append(self, wf):
+        self.data = self.data + wf.data
+        self.channelFilename = self.channelFilename + wf.channelFilename
+        self.numSets += wf.numSets
+    
+    
+    #%% helper functions        
     def read_templates(self):
-        target_dir = 'mountains'
-        for channel_dirs in os.listdir(target_dir):
-            self.data.append(np.squeeze(mdaio.readmda(\
-                                        os.path.join(target_dir, channel_dirs,\
-                                                     'output', 'templates.mda'))))
-            self.channelIdx.append(channel_dirs)
-        
-    
-        
+        self.numSets = 1
+        # make the following items as lists for the sake of self.append
+        self.channelFilename = [os.path.basename(os.path.normpath(os.getcwd()))]
+        self.data = [np.squeeze(mdaio.readmda(os.path.join('..', '..', '..', 'mountains',\
+                                                          self.channelFilename[0], 'output', 'templates.mda')))]
