@@ -30,6 +30,9 @@ class Waveform(DPT.DPObject):
         plotOpts = {'LabelsOff': False, 'TitleOff': False, \
                     'Type': DPT.objects.ExclusiveOptions(['channel'], 0)}
 
+        for (k, v) in plotOpts.items():
+                    plotOpts[k] = kwargs.get(k, v)
+                    
         plot_type = plotOpts['Type'].selected()
 
         if getPlotOpts:
@@ -45,11 +48,7 @@ class Waveform(DPT.DPObject):
             ax = plt.gca()
 
         if not overlay:
-            if type(ax).__module__ == np.__name__:
-                for x in np.reshape(ax.size,1):
-                    x[0].clear()
-            else:
-                ax.clear()
+            ax.clear()
 
         #################### start plotting ##################################
         if plot_type == 'channel':
@@ -60,14 +59,9 @@ class Waveform(DPT.DPObject):
         if not plotOpts['LabelsOff']:
             ax.set_xlabel('Time (sample unit)')
             ax.set_ylabel('Voltage (uV)')
-        else:
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
 
         if not plotOpts['TitleOff']:
             ax.set_title(self.channelFilename[i])
-        else:
-            ax.get_title().set_visible(False)
             
         return ax
     
