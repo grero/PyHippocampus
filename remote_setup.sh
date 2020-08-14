@@ -19,8 +19,9 @@ then
 	echo key transfer failed, possibly due to read-only same-name key at target location or bad cluster name
 	exit
 fi
+fullpath=$2
 echo "#!/bin/sh" > shutdown_cluster.sh
-echo "ssh -o StrictHostKeyChecking=no -t -i ~/$2 ec2-user@$curr_ip 'touch left_cluster.note; sh update_snapshot.sh $3 $4; touch snapshot_saved.note; pcluster delete $1; touch cluster_deleted.note'" >> shutdown_cluster.sh
+echo "ssh -o StrictHostKeyChecking=no -t -i ~/${fullpath##*/} ec2-user@$curr_ip 'touch left_cluster.note; sh update_snapshot.sh $3 $4; touch snapshot_saved.note; pcluster delete $1; touch cluster_deleted.note'" >> shutdown_cluster.sh
 scp -o StrictHostKeyChecking=no -i $2 shutdown_cluster.sh ec2-user@$target_ip:~/
 rm shutdown_cluster.sh
 scp -o StrictHostKeyChecking=no -i $2 consol_jobs.sh ec2-user@$target_ip:~/
