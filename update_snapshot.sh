@@ -20,6 +20,11 @@ temp=($(aws ec2 create-snapshot --volume-id $vol --description "$1" --output tex
 snap_in_prog=${temp[3]}
 echo "new snapshot id: $snap_in_prog"
 
+if [[ -z "${snap_in_prog// }" ]]; then
+	echo "ERROR: no snapshot found, invalid volume?"
+	exit 1
+fi
+
 echo "saving snapshot"
 a=2
 until [ $a -lt 1 ]
