@@ -12,7 +12,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 class Umaze(DPT.DPObject):
-    filename = "unity.hkl"
+    filename = "umaze.hkl"
     argsList = [('GridSteps', 40), ('OverallGridSize', 25), ('MinObs', 5)]
     level = "session"
 
