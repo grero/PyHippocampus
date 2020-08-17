@@ -3,7 +3,7 @@ from scipy import signal
 import DataProcessingTools as DPT 
 from . import rplraw
 from .helperfunctions import plotFFT
-import matplotlib.pyplot as plt
+from matplotlib.pyplot import gca
 import os 
 
 def lowPassFilter(analogData, samplingRate = 30000, resampleRate = 1000, lowFreq = 1, highFreq = 150, LFPOrder = 4):
@@ -55,11 +55,6 @@ class RPLLFP(DPT.DPObject):
         
     def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
-        if ax is None: 
-            ax = plt.gca()
-        if not overlay:
-            ax.clear()
-
         plotOpts = {'LabelsOff': False, 'FFT': False, 'XLims': [0, 150], 'TimeSplit': 10, 'PlotAllData': False}
 
         for (k, v) in plotOpts.items():
@@ -83,6 +78,11 @@ class RPLLFP(DPT.DPObject):
         if getLevels:        
             # Return the possible levels for this object
             return ["channel", 'trial']
+
+        if ax is None:
+            ax = gca()
+        if not overlay:
+            ax.clear()
 
         self.analogTime = [(i * 1000) / self.analogInfo["SampleRate"] for i in range(len(self.data))]
     
