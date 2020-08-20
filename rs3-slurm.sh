@@ -3,7 +3,7 @@
 # Submit this script with: sbatch <this-filename>
 
 #SBATCH --time=24:00:00   # walltime
-#SBATCH --ntasks=8   # number of processor cores (i.e. tasks)
+#SBATCH --ntasks=5   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
 #SBATCH -J "rs3"   # job name
 
