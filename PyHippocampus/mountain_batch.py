@@ -5,6 +5,7 @@ import csv
 from mountainlab_pytools import mdaio
 from shutil import copyfile
 import subprocess
+import hickle as hkl
 
 def mountain_batch(target='',Overwrite='No'):
     c_p = os.getcwd()
@@ -219,6 +220,8 @@ def mountain_channel(full_cell, index):
     #os.system('cp /data/sort.sh.txt .')
     os.system('sh sort.sh.txt') 
     #subprocess.call("sh sort.sh.txt")
+    tmda = mdaio.readmda('output/templates.mda')
+    hkl.dump(tmda,'output/templates.hkl',mode='w')
     os.system('rm -r dataset')
     os.system('rm output/pre2.mda')
     os.system('rm output/pre.mda')
