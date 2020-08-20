@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt 
 import math
 import re
-from mountainlab_pytools import mdaio
+import hickle as hkl
 
 class Waveform(DPT.DPObject):
     # Please run this on the mountains directory under day level
@@ -33,7 +33,7 @@ class Waveform(DPT.DPObject):
              getPlotOpts = False, overlay = False, **kwargs):
 
         plotOpts = {'LabelsOff': False, 'TitleOff': False, \
-                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 1)}
+                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0)}
 
         for (k, v) in plotOpts.items():
                     plotOpts[k] = kwargs.get(k, v)
@@ -85,7 +85,7 @@ class Waveform(DPT.DPObject):
     
         ########labels###############
             if not plotOpts['TitleOff']:
-                ax.set_title(self.channelFilename[i])
+                ax.set_title(self.channel_filename[i])
                 
             if not plotOpts['LabelsOff']:
                 ax.set_xlabel('Time (sample unit)')
@@ -101,7 +101,7 @@ class Waveform(DPT.DPObject):
     
         ########labels###############
                 if not plotOpts['TitleOff']:
-                    ax.set_title('array{0:02}_{1}'.format(i+1, self.channelFilename[channel_idx[k]]))
+                    ax.set_title('array{0:02}_{1}'.format(i+1, self.channel_filename[channel_idx[k]]))
                     
                 if not plotOpts['LabelsOff']:
                     if num_col % (k+1) == 1 or k+1 == 1:
@@ -118,7 +118,7 @@ class Waveform(DPT.DPObject):
     def append(self, wf):
         DPT.DPObject.append(self, wf)
         self.data = self.data + wf.data
-        self.channelFilename = self.channelFilename + wf.channelFilename
+        self.channel_filename = self.channel_filename + wf.channel_filename
         self.numSets += wf.numSets
         
     
@@ -163,6 +163,11 @@ class Waveform(DPT.DPObject):
     def read_templates(self):
         self.numSets = 1
         # make the following items as lists for the sake of self.append
-        self.channelFilename = [os.path.basename(os.path.normpath(os.getcwd()))]
-        self.data = [np.squeeze(mdaio.readmda(os.path.join('..', '..', '..', 'mountains',\
-                                                          self.channelFilename[0], 'output', 'templates.mda')))]
+        self.channel_filename = [os.path.basename(os.path.normpath(os.getcwd()))]
+        template_fileanme = os.path.join('..', '..', '..', 'mountains',\
+                                         self.channel_filename[0], 'output', 'templates.hkl')
+        if os.path.isfile(template_fileanme):
+            self.data = [np.squeeze(hkl.load(template_fileanme))]
+        else:
+            print('No mountainsort template file is found for {0}...'.format(self.channel_filename[0]))
+            self.data = [np.array([])]
