@@ -6,6 +6,7 @@ from mountainlab_pytools import mdaio
 from shutil import copyfile
 import subprocess
 import hickle as hkl
+import DataProcessingTools as DPT
 
 def mountain_batch(target='',Overwrite='No'):
     c_p = os.getcwd()
@@ -213,10 +214,11 @@ def mountain_channel(full_cell, index):
     mdaio.writemda(data1, 'raw_data.mda', dtype='float32')
     x = mdaio.readmda('raw_data.mda')
     #print(x.shape)
-    copyfile('/data/geom.csv','./geom.csv')
+    copyfile('../../../../geom.csv','./geom.csv')
     #os.popen("cp /data/geom.csv .")
     os.chdir(current_path)
-    copyfile('/data/sort.sh.txt','./sort.sh.txt')
+    print(current_path)
+    copyfile('../../../sort.sh.txt','./sort.sh.txt')
     #os.system('cp /data/sort.sh.txt .')
     os.system('sh sort.sh.txt') 
     #subprocess.call("sh sort.sh.txt")
