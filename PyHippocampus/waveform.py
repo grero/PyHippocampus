@@ -2,7 +2,6 @@ import numpy as np
 import DataProcessingTools as DPT 
 import os 
 import matplotlib.pyplot as plt 
-import math
 import re
 import hickle as hkl
 
@@ -107,7 +106,7 @@ class Waveform(DPT.DPObject):
         elif plot_type == 'array':  # plot in array level
             channel_idx, array_name = self.get_channel_idx(i)  # get the channels that belong to the same array
             num_channels = len(channel_idx)
-            num_row, num_col = self.get_factors(num_channels)
+            num_row, num_col = self.get_subplots_grid(num_channels)
             for k, x in enumerate(channel_idx):
                 ax = fig.add_subplot(num_row, num_col, k+1)
                 ax.plot(self.data[x])   
@@ -184,10 +183,9 @@ class Waveform(DPT.DPObject):
             return None
         
     #%% helper function
-    def get_factors(self, number):
-        i = round(math.sqrt(number))
-        while number % i:
-            i -= 1
-        return i, int(number/i)
+    def get_subplots_grid(self, number):
+        num_row = np.floor(np.sqrt(number))
+        num_col = np.ceil(np.sqrt(number))
+        return num_row, num_col
         
     
