@@ -122,9 +122,8 @@ class Waveform(DPT.DPObject):
                         ax.set_title(self.channel_filename[channel_idx[k]])
                     
                 if not plotOpts['LabelsOff']:  # if LabelsOff icon in the right-click menu is clicked
-                    if k == 0:  # put the ylabel in the first subplot only
+                    if k // num_col == num_row-1 and k % num_col == 0:  # last row and first column
                         ax.set_ylabel('Voltage (uV)')
-                    if k == num_channels-1:  # put the xlable in the last subplot only
                         ax.set_xlabel('Time (sample unit)')
             
         return ax
