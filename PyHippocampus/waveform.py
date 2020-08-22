@@ -2,7 +2,6 @@ import numpy as np
 import DataProcessingTools as DPT 
 import os 
 import matplotlib.pyplot as plt 
-import math
 import re
 import hickle as hkl
 
@@ -107,19 +106,25 @@ class Waveform(DPT.DPObject):
         elif plot_type == 'array':  # plot in array level
             channel_idx, array_name = self.get_channel_idx(i)  # get the channels that belong to the same array
             num_channels = len(channel_idx)
-            num_row, num_col = self.get_factors(num_channels)
+            num_row, num_col = self.get_subplots_grid(num_channels)
             for k, x in enumerate(channel_idx):
                 ax = fig.add_subplot(num_row, num_col, k+1)
                 ax.plot(self.data[x])   
     
             ########labels###############
+                if k//num_col != num_row-1:  # hide the x tick labels in all subplots except the last row
+                    ax.get_xaxis().set_visible(False)
+            
                 if not plotOpts['TitleOff']:  # if TitleOff icon in the right-click menu is clicked
-                    ax.set_title('array{0:02}_{1}'.format(i+1, self.channel_filename[channel_idx[k]]))
+                    if k == 0:  # put array idx and channel idx as the title of the first subplot
+                        ax.set_title('array{0:02}\n{1}'.format(i+1, self.channel_filename[channel_idx[k]]))
+                    else:  # only put the channel idx as the title for the rest
+                        ax.set_title(self.channel_filename[channel_idx[k]])
                     
                 if not plotOpts['LabelsOff']:  # if LabelsOff icon in the right-click menu is clicked
-                    if num_col % (k+1) == 1 or k+1 == 1:
+                    if k == 0:  # put the ylabel in the first subplot only
                         ax.set_ylabel('Voltage (uV)')
-                    if k+1 >= num_col * (num_row-1):
+                    if k == num_channels-1:  # put the xlable in the last subplot only
                         ax.set_xlabel('Time (sample unit)')
             
         return ax
@@ -184,10 +189,9 @@ class Waveform(DPT.DPObject):
             return None
         
     #%% helper function
-    def get_factors(self, number):
-        i = round(math.sqrt(number))
-        while number % i:
-            i -= 1
-        return i, int(number/i)
+    def get_subplots_grid(self, number):
+        num_row = np.floor(np.sqrt(number))
+        num_col = np.ceil(np.sqrt(number))
+        return num_row, num_col
         
     
