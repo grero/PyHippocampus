@@ -54,11 +54,6 @@ class RPLHighPass(DPT.DPObject):
 
     def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
-        if ax is None: 
-            ax = plt.gca()
-        if not overlay:
-            ax.clear()
-
         plotOpts = {'LabelsOff': False, 'FFT': False, 'XLims': [0, 150], 'TimeSplit': 10, 'PlotAllData': False}
 
         for (k, v) in plotOpts.items():
@@ -82,6 +77,11 @@ class RPLHighPass(DPT.DPObject):
         if getLevels:        
             # Return the possible levels for this object
             return ["channel", 'trial']
+
+        if ax is None: 
+            ax = plt.gca()
+        if not overlay:
+            ax.clear()
 
         self.analogTime = [(i * 1000) / self.analogInfo["SampleRate"] for i in range(len(self.data))]
     
