@@ -63,17 +63,17 @@ class Waveform(DPT.DPObject):
         if getNumEvents:  # this will be called by PanGUI.main to return two values: first value is the total number of items to pan through, second value is the current index of the item to plot
             if plot_type == self.previous_plot_type:  # no changes of plot_type
                 if plot_type == 'channel':
-                    return self.get_num_elements('channel'), i
+                    return len(self.get_all_elements('channel')), i
                 elif plot_type == 'array':
-                    return self.get_num_elements('array'), i
+                    return len(self.get_all_elements('array')), i
             
             elif self.previous_plot_type == 'array' and plot_type == 'channel':  # change from array to channel
                 self.previous_plot_type = 'channel'
-                return self.get_num_elements('channel'), self.get_first_channel(i)
+                return len(self.get_all_elements('channel')), self.get_first_channel(i)
                     
             elif self.previous_plot_type == 'channel' and plot_type == 'array':  # change from channel to array
                 self.previous_plot_type = 'array'
-                return self.get_num_elements('array'), self.get_array_idx(i-2)
+                return len(self.get_all_elements('array')), self.get_array_idx(i)
                 
 
         if ax is None:
@@ -97,14 +97,14 @@ class Waveform(DPT.DPObject):
     
             ########labels###############
             if not plotOpts['TitleOff']:  # if TitleOff icon in the right-click menu is clicked
-                ax.set_title(self.channel_filename[i])
+                ax.set_title(self.dirs[i])
                 
             if not plotOpts['LabelsOff']:  # if LabelsOff icon in the right-click menu is clicked
                 ax.set_xlabel('Time (sample unit)')
                 ax.set_ylabel('Voltage (uV)')
             
         elif plot_type == 'array':  # plot in array level
-            channel_idx, array_name = self.get_channel_idx(i)  # get the channels that belong to the same array
+            channel_idx = self.get_channels_in_array(i)  # get the channels that belong to the same array
             num_channels = len(channel_idx)
             num_row, num_col = self.get_subplots_grid(num_channels)
             for k, x in enumerate(channel_idx):
@@ -117,7 +117,7 @@ class Waveform(DPT.DPObject):
             
                 if not plotOpts['TitleOff']:  # if TitleOff icon in the right-click menu is clicked
                     if k == 0:  # put array idx and channel idx as the title of the first subplot
-                        ax.set_title('array{0:02}\n{1}'.format(i+1, self.channel_filename[channel_idx[k]]))
+                        ax.set_title('{0}\n{1}'.format(self.get_all_elements('array')[i], self.channel_filename[channel_idx[k]]))
                     else:  # only put the channel idx as the title for the rest
                         ax.set_title(self.channel_filename[channel_idx[k]])
                     
@@ -160,27 +160,33 @@ class Waveform(DPT.DPObject):
             
     #%% tracking channel and array ID
     def get_first_channel(self, i):
+        target_str = self.get_all_elements('array')[i]
         for k, x in enumerate(self.dirs):
-            channel_temp = self.get_channels(i, x)
-            if channel_temp:
+            if target_str in self.dirs[k]:
                 return  k  # return the first available channel of the array
     
-    def get_num_elements(self, elements):
+    def get_all_elements(self, elements):
         array_idx_all = []
         for x in self.dirs:
-            array_idx_all.append(int(re.search('(?<={0})\d+'.format(elements), x)[0]))
-        return len(set(array_idx_all))
+            array_idx_all.append(self.get_fullname(x, elements))
+        return np.sort([x for x in set(array_idx_all)])
         
     def get_array_idx(self, i):
-        return int(re.search('(?<=array)\d+', self.dirs[i])[0])
+        target_str = self.get_fullname(self.dirs[i], 'array')
+        for k, x in enumerate(self.get_all_elements('array')):
+            if target_str in x:
+                return k
         
-    def get_channel_idx(self, i):
-        array_name = re.search('array\d+', self.dirs[i])[0]
+    def get_fullname(self, x, elements):
+        return x[:re.search('{0}\d+'.format(elements), x).span()[1]]
+        
+    def get_channels_in_array(self, i):
+        target_str = self.get_all_elements('array')[i]
         channel_idx = []
         for k, x in enumerate(self.dirs):
-            if self.get_channels(i, x):
+            if target_str in x:
                 channel_idx.append(k)
-        return channel_idx, array_name
+        return channel_idx
     
     def get_channels(self, i, x):
         if re.search('array(0)?{0}'.format(i+1), x):
