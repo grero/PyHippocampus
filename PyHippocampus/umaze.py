@@ -61,7 +61,7 @@ class Umaze(DPT.DPObject):
             arr = unityData[uDidx[0]:uDidx[numUnityFrames-1], 1]
             tempTrialTime = np.array([0, np.cumsum(arr)])
             tstart = unityTime[uDidx[0]]
-            tend = unityTime[uDidx[numUnityFrames-1]]
+            tend = unityTime[uDidx[-1]+1]
             # get grid positions for this trial
             tgp = []
             for i in range(numUnityFrames):
