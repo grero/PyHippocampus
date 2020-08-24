@@ -1,2 +1,4 @@
 *.pyc
 PyHippocampus.egg-info/
+.DS_Store
+PyHippocampus/.DS_Store

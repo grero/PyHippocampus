@@ -111,23 +111,3 @@ class VMRaw(DPT.DPObject, VMPlot):
             if plot_type == 'FreqPlot':
                 ax.xlim(plotOpts['FreqLims'])
         return ax
-
-    # def get_timestamps(self, i):
-    #     x = self.trialIndices
-    #     if i == 0:
-    #         data_timestamps = np.arange(0, x[i+1][0].astype(int))
-    #     elif i != x.shape[0]-1:
-    #         data_timestamps = np.arange(x[i-1][2], x[i+1][0]).astype(int)
-    #     else:
-    #         data_timestamps = np.arange(x[i-1][2], len(self.data)-1).astype(int)
-            
-    #     return data_timestamps
-    
-    # def plot_markers(self, i, ax, plotOpts):
-    #     trial_start_time, trial_cue_time, trial_end_time = self.timeStamps[i]
-    #     ax.axvline(0, color = 'g') # Start of trial. 
-    #     ax.axvline((trial_cue_time - trial_start_time), color = 'm')
-    #     if np.floor(self.markers[i][2] / 10) == plotOpts['RewardMarker']:
-    #         ax.axvline((trial_end_time - trial_start_time), color = 'b')
-    #     elif np.floor(self.markers[i][2] / 10) == plotOpts['TimeOutMarker']:
-    #         ax.axvline(trial_end_time - trial_start_time, color = 'r')
