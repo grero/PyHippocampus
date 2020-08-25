@@ -19,3 +19,4 @@ from .vmhighpass import VMHighPass
 from .vmraw import VMRaw
 from .raycast import raycast
 from .waveform import Waveform
+from .freqspectrum import FreqSpectrum
