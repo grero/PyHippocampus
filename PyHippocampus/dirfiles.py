@@ -60,12 +60,12 @@ class DirFiles(DPT.DPObject):
 
 
     def plot(self, i=None, getNumEvents=False, getLevels=False, 
-             getPlotOpts=False, ax=None, **kwargs):
+             getPlotOpts=False, ax=None, preOpt=None, **kwargs):
         """
-        DirFiles.plot(Type=["Vertical", "Horizontal", "All"], BarWidth=0.8)
+        DirFiles.plot(PlotType=["Vertical", "Horizontal", "All"], BarWidth=0.8)
         """
         # set plot options
-        plotopts = {"Type": DPT.objects.ExclusiveOptions(["Vertical", "Horizontal","All"],0),
+        plotopts = {"PlotType": DPT.objects.ExclusiveOptions(["Vertical", "Horizontal","All"],0),
                          "BarWidth": 0.8}
         if getPlotOpts:
             return plotopts
@@ -74,7 +74,7 @@ class DirFiles(DPT.DPObject):
         for (k, v) in plotopts.items():
             plotopts[k] = kwargs.get(k, v)
 
-        plottype = plotopts["Type"].selected()
+        plottype = plotopts["PlotType"].selected()
 
         if getNumEvents:
             # Return the number of events available
