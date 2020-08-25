@@ -55,8 +55,6 @@ z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
 z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 
-pre = "trial"
-
 
 class Unity(DPT.DPObject):
     filename = "unity.hkl"
@@ -261,7 +259,7 @@ class Unity(DPT.DPObject):
             # create empty object
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)
 
-    def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
+    def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, preOpt=None, **kwargs):
         # set plot options
         plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
                                                                 "Route Ratio", "Proportion of trial", "Routes",
@@ -276,16 +274,23 @@ class Unity(DPT.DPObject):
 
         plot_type = plotopts["Plot Option"].selected()
 
+        pre = 'trial'
+        if preOpt is not None:
+            if preOpt == "Trial" or preOpt == "Frame Intervals" or preOpt == "X-T" or preOpt == "Y-T" \
+                    or preOpt == "Theta-T":
+                pre = "trial"
+            elif preOpt == "Duration Diffs" or preOpt == "Route Ratio" or preOpt == "Routes":
+                pre = "session"
+
         if getNumEvents:
             # Return the number of events available
-            global pre
+            # global pre
             if plot_type == "Trial" or plot_type == "Frame Intervals" or plot_type == "X-T" or plot_type == "Y-T" \
                     or plot_type == "Theta-T":
                 if i is not None:
                     if pre == "trial":
                         return len(self.setidx), i
                     else:
-                        pre = "trial"
                         num_idx = 0
                         for x in range(0, i):
                             num_idx += self.unityTriggers[x].shape[0]
@@ -297,7 +302,6 @@ class Unity(DPT.DPObject):
                     if pre == "session":
                         return np.max(self.setidx) + 1, i
                     else:
-                        pre = "session"
                         num_idx = self.setidx[i]
                 else:
                     num_idx = 0
