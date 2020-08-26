@@ -261,7 +261,7 @@ class Unity(DPT.DPObject):
 
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, preOpt=None, **kwargs):
         # set plot options
-        plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
+        plotopts = {"PlotType": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
                                                                 "Route Ratio", "Proportion of trial", "Routes",
                                                                  "X-T", "Y-T", "Theta-T"], 0),
                     "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
@@ -272,7 +272,7 @@ class Unity(DPT.DPObject):
         for (k, v) in plotopts.items():
             plotopts[k] = kwargs.get(k, v)
 
-        plot_type = plotopts["Plot Option"].selected()
+        plot_type = plotopts["PlotType"].selected()
 
         pre = 'trial'
         if preOpt is not None:
