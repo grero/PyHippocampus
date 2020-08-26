@@ -1,8 +1,9 @@
 import numpy as np 
 from scipy import signal 
 import DataProcessingTools as DPT 
-from . import rpllfp 
-from . import rplhighpass 
+from .rpllfp import RPLLFP 
+from .rplhighpass import RPLHighPass
+from .rplraw import RPLRaw
 from .helperfunctions import plotFFT
 from matplotlib.pyplot import gca
 import os 
@@ -10,7 +11,7 @@ import os
 class FreqSpectrum(DPT.DPObject):
 
 	filename = "freqspectrum.hkl"
-	argsList = [('freqs', [1, 150])]
+	argsList = [('loadHighPass', False), ('loadRaw', False)]
 	level = 'channel'
 
 	def __init__(self, *args, **kwargs):
@@ -20,10 +21,12 @@ class FreqSpectrum(DPT.DPObject):
 		self.freq = []
 		self.magnitude = []
 		self.numSets = 0 
-		if self.args['freqs'][1] < 500: 
-			rpdata = rpllfp.RPLLFP(LowPassFrequency = self.args['freqs'])
+		if self.args['loadHighPass']:
+			rpdata = RPLHighPass()
+		elif self.args['loadRaw']:
+			rpdata = RPLRaw()
 		else: 
-			rpdata = rplhighpass.RPLHighPass(HighPassFrequency = self.args['freqs'])
+			rpdata = RPLLFP()
 		if len(rpdata.data) > 0: 
 			DPT.DPObject.create(self, *args, **kwargs)
 			self.magnitude, self.freq = plotFFT(rpdata.data, rpdata.analogInfo['SampleRate'])
