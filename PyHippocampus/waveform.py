@@ -4,8 +4,9 @@ import os
 import matplotlib.pyplot as plt 
 import re
 import hickle as hkl
+from .arrayplot import ArrayPlot
 
-class Waveform(DPT.DPObject):
+class Waveform(DPT.DPObject, ArrayPlot):
     # Please run this on the mountains directory under day level
     filename = 'waveform.hkl'
     argsList = []
@@ -13,6 +14,7 @@ class Waveform(DPT.DPObject):
 
     def __init__(self, *args, **kwargs):
         DPT.DPObject.__init__(self, *args, **kwargs)
+        ArrayPlot.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
         # thie function will be called by PanGUI.main once to create this waveform object
@@ -44,7 +46,7 @@ class Waveform(DPT.DPObject):
         # in the menu evoked by right-clicking on the axis after the window is created by PanGUI.create_window
         # for more information, please check in PanGUI.main.create_menu
         plotOpts = {'LabelsOff': False, 'TitleOff': False, \
-                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0)}
+                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 1)}
 
         self.update_local_plotopts(plotOpts, kwargs)  # update the plotOpts based on kwargs, this line is important to receive the input arguments and act accordingly
                     
@@ -85,7 +87,7 @@ class Waveform(DPT.DPObject):
         fig = ax.figure  # get the parent figure of the ax
         for x in fig.get_axes():  # remove all axes in current figure
             x.remove()
-        
+            
         ######################################################################
         #################### start plotting ##################################
         ######################################################################
@@ -104,27 +106,7 @@ class Waveform(DPT.DPObject):
                 ax.set_ylabel('Voltage (uV)')
             
         elif plot_type == 'array':  # plot in array level
-            channel_idx = self.get_channels_in_array(i)  # get the channels that belong to the same array
-            num_channels = len(channel_idx)
-            num_row, num_col = self.get_subplots_grid(num_channels)
-            for k, x in enumerate(channel_idx):
-                ax = fig.add_subplot(num_row, num_col, k+1)
-                ax.plot(self.data[x])   
-    
-            ########labels###############
-                if k//num_col != num_row-1:  # hide the x tick labels in all subplots except the last row
-                    ax.get_xaxis().set_visible(False)
-            
-                if not plotOpts['TitleOff']:  # if TitleOff icon in the right-click menu is clicked
-                    if k == 0:  # put array idx and channel idx as the title of the first subplot
-                        ax.set_title('{0}\n{1}'.format(self.get_all_elements('array')[i], self.channel_filename[channel_idx[k]]))
-                    else:  # only put the channel idx as the title for the rest
-                        ax.set_title(self.channel_filename[channel_idx[k]])
-                    
-                if not plotOpts['LabelsOff']:  # if LabelsOff icon in the right-click menu is clicked
-                    if k // num_col == num_row-1 and k % num_col == 0:  # last row and first column
-                        ax.set_ylabel('Voltage (uV)')
-                        ax.set_xlabel('Time (sample unit)')
+            self.plot_arrayplot(i, fig, plotOpts)
             
         return ax
     
@@ -144,7 +126,7 @@ class Waveform(DPT.DPObject):
     def read_templates(self):
         self.numSets = 1
         # make the following items as lists for the sake of self.append
-        self.channel_filename = [os.path.basename(os.path.normpath(os.getcwd()))]
+        self.channel_filename = [os.path.basename(os.path.normpath(os.getcwd()))]  # 'channelxxx, xxx is the number of the channel'
         template_fileanme = os.path.join('..', '..', '..', 'mountains',\
                                          self.channel_filename[0], 'output', 'templates.hkl')
         if os.path.isfile(template_fileanme):
@@ -163,12 +145,6 @@ class Waveform(DPT.DPObject):
         for k, x in enumerate(self.dirs):
             if target_str in self.dirs[k]:
                 return  k  # return the first available channel of the array
-    
-    def get_all_elements(self, elements):
-        array_idx_all = []
-        for x in self.dirs:
-            array_idx_all.append(self.get_fullname(x, elements))
-        return np.sort([x for x in set(array_idx_all)])
         
     def get_array_idx(self, i):
         target_str = self.get_fullname(self.dirs[i], 'array')
@@ -179,13 +155,6 @@ class Waveform(DPT.DPObject):
     def get_fullname(self, x, elements):
         return x[:re.search('{0}\d+'.format(elements), x).span()[1]]
         
-    def get_channels_in_array(self, i):
-        target_str = self.get_all_elements('array')[i]
-        channel_idx = []
-        for k, x in enumerate(self.dirs):
-            if target_str in x:
-                channel_idx.append(k)
-        return channel_idx
     
     def get_channels(self, i, x):
         if re.search('array(0)?{0}'.format(i+1), x):
