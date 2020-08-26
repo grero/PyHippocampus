@@ -2,7 +2,6 @@ import numpy as np
 import DataProcessingTools as DPT 
 import os 
 import matplotlib.pyplot as plt 
-import re
 import hickle as hkl
 from .arrayplot import ArrayPlot
 
@@ -140,32 +139,14 @@ class Waveform(DPT.DPObject, ArrayPlot):
                     plotOpts[k] = kwargs.get(k, v)
             
     #%% tracking channel and array ID
-    def get_first_channel(self, i):
-        target_str = self.get_all_elements('array')[i]
-        for k, x in enumerate(self.dirs):
-            if target_str in self.dirs[k]:
-                return  k  # return the first available channel of the array
-        
-    def get_array_idx(self, i):
-        target_str = self.get_fullname(self.dirs[i], 'array')
-        for k, x in enumerate(self.get_all_elements('array')):
-            if target_str in x:
-                return k
-        
-    def get_fullname(self, x, elements):
-        return x[:re.search('{0}\d+'.format(elements), x).span()[1]]
+
+
         
     
-    def get_channels(self, i, x):
-        if re.search('array(0)?{0}'.format(i+1), x):
-            return int(re.search('(?<=channel)\d+', x)[0])
-        else:
-            return None
-        
-    #%% helper function
-    def get_subplots_grid(self, number):
-        num_row = np.floor(np.sqrt(number))
-        num_col = np.ceil(np.sqrt(number))
-        return num_row, num_col
+    # def get_channels(self, i, x):
+    #     if re.search('array(0)?{0}'.format(i+1), x):
+    #         return int(re.search('(?<=channel)\d+', x)[0])
+    #     else:
+    #         return None
         
     

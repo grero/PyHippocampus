@@ -1,4 +1,5 @@
 import numpy as np
+import re
 
 class ArrayPlot:
     def __init__(self, *args, **kwargs):
@@ -42,6 +43,12 @@ class ArrayPlot:
                     
                     
     #%% Helper functions
+    def get_first_channel(self, i):
+        target_str = self.get_all_elements('array')[i]
+        for k, x in enumerate(self.dirs):
+            if target_str in self.dirs[k]:
+                return  k  # return the first available channel of the array
+            
     def get_channels_in_array(self, i):
         target_str = self.get_all_elements('array')[i]
         channel_idx = []
@@ -55,3 +62,20 @@ class ArrayPlot:
         for x in self.dirs:
             array_idx_all.append(self.get_fullname(x, elements))
         return np.sort([x for x in set(array_idx_all)])
+    
+            
+    def get_array_idx(self, i):
+        target_str = self.get_fullname(self.dirs[i], 'array')
+        for k, x in enumerate(self.get_all_elements('array')):
+            if target_str in x:
+                return k
+        
+    def get_fullname(self, x, elements):
+        return x[:re.search('{0}\d+'.format(elements), x).span()[1]]
+    
+    #%% Subplot layout
+    def get_subplots_grid(self, number):
+        num_row = np.floor(np.sqrt(number))
+        num_col = np.ceil(np.sqrt(number))
+        return num_row, num_col
+        
