@@ -266,7 +266,7 @@ class Unity(DPT.DPObject):
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, preOpt=None, **kwargs):
         # set plot options
         plotopts = {"PlotType": DPT.objects.ExclusiveOptions(["X-Y", "X-T", "Y-T", "Theta-T", "Frame Intervals", "Duration Diffs",
-                                                                "Route Ratio", "Routes", "Proportion of trial"], 0),
+                                                                "Route Ratio", "Routes", "Proportion of trials"], 0),
                     "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
         if getPlotOpts:
             return plotopts
@@ -309,7 +309,7 @@ class Unity(DPT.DPObject):
                 else:
                     num_idx = 0
                 return np.max(self.setidx) + 1, num_idx
-            elif plot_type == "Proportion of trial":
+            elif plot_type == "Proportion of trials":
                 return 1, 0
 
         if getLevels:
@@ -454,7 +454,7 @@ class Unity(DPT.DPObject):
             session = DPT.levels.get_shortname("session", dir_name)
             ax.set_title(subject + date + session)
 
-        elif plot_type == "Proportion of trial":
+        elif plot_type == "Proportion of trials":
 
             session_num = np.arange(0, len(self.unityData))
             ax.plot(session_num, self.timePerformance, label='Completed within time limit',
