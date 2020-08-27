@@ -67,7 +67,7 @@ class Unity(DPT.DPObject):
         if fname is not None:
             DPT.DPObject.__init__(self, *args, **kwargs)
         else:
-            rr = DPT.levels.resolve_level("session", os.getcwd())
+            rr = DPT.levels.resolve_level(level, os.getcwd())
             with DPT.misc.CWD(rr):
                 DPT.DPObject.__init__(self, *args, **kwargs)
 
