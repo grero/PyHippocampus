@@ -63,9 +63,13 @@ class Unity(DPT.DPObject):
     level = "session"
 
     def __init__(self, *args, **kwargs):
-        rr = DPT.levels.resolve_level("session", os.getcwd())
-        with DPT.misc.CWD(rr):
+        fname = kwargs.get("loadFrom", None)
+        if fname is not None:
             DPT.DPObject.__init__(self, *args, **kwargs)
+        else:
+            rr = DPT.levels.resolve_level("session", os.getcwd())
+            with DPT.misc.CWD(rr):
+                DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
 
@@ -261,9 +265,8 @@ class Unity(DPT.DPObject):
 
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, preOpt=None, **kwargs):
         # set plot options
-        plotopts = {"PlotType": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
-                                                                "Route Ratio", "Proportion of trial", "Routes",
-                                                                 "X-T", "Y-T", "Theta-T"], 0),
+        plotopts = {"PlotType": DPT.objects.ExclusiveOptions(["X-Y", "X-T", "Y-T", "Theta-T", "Frame Intervals", "Duration Diffs",
+                                                                "Route Ratio", "Routes", "Proportion of trial"], 0),
                     "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
         if getPlotOpts:
             return plotopts
@@ -276,7 +279,7 @@ class Unity(DPT.DPObject):
 
         pre = 'trial'
         if preOpt is not None:
-            if preOpt == "Trial" or preOpt == "Frame Intervals" or preOpt == "X-T" or preOpt == "Y-T" \
+            if preOpt == "X-Y" or preOpt == "Frame Intervals" or preOpt == "X-T" or preOpt == "Y-T" \
                     or preOpt == "Theta-T":
                 pre = "trial"
             elif preOpt == "Duration Diffs" or preOpt == "Route Ratio" or preOpt == "Routes":
@@ -285,7 +288,7 @@ class Unity(DPT.DPObject):
         if getNumEvents:
             # Return the number of events available
             # global pre
-            if plot_type == "Trial" or plot_type == "Frame Intervals" or plot_type == "X-T" or plot_type == "Y-T" \
+            if plot_type == "X-Y" or plot_type == "Frame Intervals" or plot_type == "X-T" or plot_type == "Y-T" \
                     or plot_type == "Theta-T":
                 if i is not None:
                     if pre == "trial":
@@ -323,7 +326,7 @@ class Unity(DPT.DPObject):
             if other_ax.bbox.bounds == ax.bbox.bounds:
                 other_ax.remove()
 
-        if plot_type == "Trial":
+        if plot_type == "X-Y":
 
             session_idx = self.setidx[i]
             if session_idx != 0:
