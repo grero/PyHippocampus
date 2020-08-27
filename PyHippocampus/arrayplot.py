@@ -34,10 +34,11 @@ class ArrayPlot:
     def plot_arrayplot(self, i, fig, plotOpts, *args, **kwargs):
         channel_idx, channel_locs = self.get_channels_in_array(i)  # get the channels that belong to the same array
         num_row, num_col, subplot_idx = self.get_subplots_grid(i, channel_idx)
+        idx_title, idx_label = self.get_label_subplot(channel_idx)  # these outputs are the channel number to do the labelling
         ax = fig.subplots(num_row, num_col).flatten()
         for k, x in enumerate(subplot_idx):  # x will be the channel number
             if x == -1 or x not in channel_idx:  # empty channel
-                ax[k].axis('off')
+                ax[k].remove()
             else:
                 idx_temp = channel_locs[channel_idx.index(x)]  # index in the entire channel list
                 ax[k].plot(self.data[idx_temp])   
@@ -49,14 +50,14 @@ class ArrayPlot:
                     ax[k].get_xaxis().set_visible(False)
             
                 if not plotOpts['TitleOff']:  # if TitleOff icon in the right-click menu is clicked
-                    if k == 0:  # put array idx and channel idx as the title of the first subplot
+                    if x == idx_title:  # put array idx and channel idx as the title of the first subplot
                         ax[k].set_title('{0}\n{1}'.format(self.get_all_elements('array')[i],
-                                                       self.channel_filename[idx_temp]))
+                                                          self.channel_filename[idx_temp]))
                     else:  # only put the channel idx as the title for the rest
                         ax[k].set_title(self.channel_filename[idx_temp])
                     
             if not plotOpts['LabelsOff']:  # if LabelsOff icon in the right-click menu is clicked
-                if k // num_col == num_row-1 and k % num_col == 0:  # last row and first column
+                if x == idx_label:
                     ax[k].set_ylabel(self.ylabelname)
                     ax[k].set_xlabel(self.xlabelname)
                     
@@ -113,3 +114,16 @@ class ArrayPlot:
         
         return num_row, num_col, subplot_idx
         
+    #%% Labelling
+    def get_label_subplot(self, channel_idx):
+        """
+        title will be in the first channel subplot
+        label will be in the first column of the last row of the channel subplot
+        """
+        idx_title = channel_idx[0]
+        
+        idx_row = [np.where(self._electrodes_id == x)[0][0]//self._electrodes_array_size[1] for x in channel_idx]
+        last_row = [channel_idx[k] for k, x in enumerate(idx_row) if x == max(idx_row)]
+        idx_label = last_row[0]
+        
+        return idx_title, idx_label

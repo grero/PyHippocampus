@@ -45,7 +45,7 @@ class Waveform(DPT.DPObject, ArrayPlot):
         # in the menu evoked by right-clicking on the axis after the window is created by PanGUI.create_window
         # for more information, please check in PanGUI.main.create_menu
         plotOpts = {'LabelsOff': False, 'TitleOff': False, \
-                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 1)}
+                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0)}
 
         self.update_local_plotopts(plotOpts, kwargs)  # update the plotOpts based on kwargs, this line is important to receive the input arguments and act accordingly
                     
