@@ -9,7 +9,7 @@ class DirFiles(DPT.DPObject):
              FilesOnly=False, DirsOnly=False)
     """
     filename = "dirfiles.hkl"
-    argsList = [("FilesOnly", False), ("DirsOnly", False)]
+    argsList = [("FilesOnly", False), ("DirsOnly", False), ("loadFrom", None)]
     level = "session"
 
 
@@ -18,7 +18,7 @@ class DirFiles(DPT.DPObject):
         if fname is not None:
             DPT.DPObject.__init__(self, *args, **kwargs)
         else:
-            rr = DPT.levels.resolve_level(level, os.getcwd())
+            rr = DPT.levels.resolve_level(self.level, os.getcwd())
             with DPT.misc.CWD(rr):
                 # initialize fields in parent
                 DPT.DPObject.__init__(self, *args, **kwargs)
