@@ -14,8 +14,14 @@ class DirFiles(DPT.DPObject):
 
 
     def __init__(self, *args, **kwargs):
-        # initialize fields in parent
-        DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+        fname = kwargs.get("loadFrom", None)
+        if fname is not None:
+            DPT.DPObject.__init__(self, *args, **kwargs)
+        else:
+            rr = DPT.levels.resolve_level(level, os.getcwd())
+            with DPT.misc.CWD(rr):
+                # initialize fields in parent
+                DPT.DPObject.__init__(self, *args, **kwargs)
 
 
     def create(self, *args, **kwargs):
@@ -50,6 +56,7 @@ class DirFiles(DPT.DPObject):
         else:
             # create empty object
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)
+
 
     def append(self, df):
         # update fields in parent
