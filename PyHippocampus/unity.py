@@ -58,8 +58,8 @@ z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 
 class Unity(DPT.DPObject):
     filename = "unity.hkl"
-    argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
-                ('TriggerVal2', 20), ('TriggerVal3', 30), ('BinNumberLimit', 500)]
+    argsList = [("FileLineOffset", 15), ("DirName", "RawData*"), ("FileName", "session*"), ("TriggerVal1", 10),
+                ("TriggerVal2", 20), ("TriggerVal3", 30), ("BinNumberLimit", 500), ("loadFrom", None)]
     level = "session"
 
     def __init__(self, *args, **kwargs):
@@ -67,7 +67,7 @@ class Unity(DPT.DPObject):
         if fname is not None:
             DPT.DPObject.__init__(self, *args, **kwargs)
         else:
-            rr = DPT.levels.resolve_level(level, os.getcwd())
+            rr = DPT.levels.resolve_level(self.level, os.getcwd())
             with DPT.misc.CWD(rr):
                 DPT.DPObject.__init__(self, *args, **kwargs)
 
