@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 class DPTobjectTemplate(DPT.DPObject):
     # Please change the class name according to your needs
     filename = '<saveobjectfilename>.hkl'  # this is the filename that will be saved if it's run with saveLevel=1
-    argsList = []  # please leave it empty
+    argsList = [("loadFrom", None)]  # this allows you to load an object (e.g. a cumulative object) that is not saved in the usual place
     level = 'channel'  # this is the level that this object will be created in
 
     def __init__(self, *args, **kwargs):
@@ -12,7 +12,7 @@ class DPTobjectTemplate(DPT.DPObject):
         if fname is not None:
             DPT.DPObject.__init__(self, *args, **kwargs)
         else:
-            rr = DPT.levels.resolve_level(level, os.getcwd())
+            rr = DPT.levels.resolve_level(self.level, os.getcwd())
             with DPT.misc.CWD(rr):
                 DPT.DPObject.__init__(self, *args, **kwargs)
 
