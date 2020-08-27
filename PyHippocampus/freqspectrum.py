@@ -40,7 +40,7 @@ class FreqSpectrum(DPT.DPObject):
 
 	def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
-		plotOpts = {'LabelsOff': False, 'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0), 'TitleOff': False, 'XLims': [0, 150]}
+		plotOpts = {'LabelsOff': False, 'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0), 'TitleOff': False, 'XLims': []}
 
 		if getPlotOpts:
 			return plotOpts
@@ -70,9 +70,17 @@ class FreqSpectrum(DPT.DPObject):
 			if not plotOpts['LabelsOff']:
 				ax.set_xlabel('Freq (Hz)')
 				ax.set_ylabel('Magnitude')
-			ax.set_xlim(plotOpts['XLims'])
 			if not plotOpts['TitleOff']:
 				ax.set_title('channel' + str(self.title[i]))
+			if len(plotOpts['XLims']) > 0: 
+				ax.set_xlim(plotOpts['XLims'])
+			else: 
+				if self.args['loadHighPass']:
+					ax.set_xlim([500, 7500])
+				elif self.args['loadRaw']:
+					ax.set_xlim([0, 10000])
+				else:
+					ax.set_xlim([0, 150])
 		elif plot_type == 'array':
 			pass 
 		return ax
