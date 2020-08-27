@@ -6,7 +6,10 @@ import hickle as hkl
 from .arrayplot import ArrayPlot
 
 class Waveform(DPT.DPObject, ArrayPlot):
-    # Please run this on the mountains directory under day level
+    """
+    Please run this on the mountains directory under day level
+    
+    """
     filename = 'waveform.hkl'
     argsList = []
     level = 'channel'
@@ -17,6 +20,7 @@ class Waveform(DPT.DPObject, ArrayPlot):
 
     def create(self, *args, **kwargs):
         # thie function will be called by PanGUI.main once to create this waveform object
+        ArrayPlot.create(self, *args, **kwargs)
         self.read_templates()  # read the mountainsort template files
         self.previous_plot_type = ''  # store the previous plot type to know if the ploty_type changes
         self.channel_idx = 0  
@@ -64,17 +68,17 @@ class Waveform(DPT.DPObject, ArrayPlot):
         if getNumEvents:  # this will be called by PanGUI.main to return two values: first value is the total number of items to pan through, second value is the current index of the item to plot
             if plot_type == self.previous_plot_type:  # no changes of plot_type
                 if plot_type == 'channel':
-                    return len(self.get_all_elements('channel')), i
+                    return len(ArrayPlot.get_all_elements(self, 'channel')), i
                 elif plot_type == 'array':
-                    return len(self.get_all_elements('array')), i
+                    return len(ArrayPlot.get_all_elements(self, 'array')), i
             
             elif self.previous_plot_type == 'array' and plot_type == 'channel':  # change from array to channel
                 self.previous_plot_type = 'channel'
-                return len(self.get_all_elements('channel')), self.get_first_channel(i)
+                return len(ArrayPlot.get_all_elements(self, 'channel')), ArrayPlot.get_first_channel(self, i)
                     
             elif self.previous_plot_type == 'channel' and plot_type == 'array':  # change from channel to array
                 self.previous_plot_type = 'array'
-                return len(self.get_all_elements('array')), self.get_array_idx(i)
+                return len(ArrayPlot.get_all_elements(self, 'array')), ArrayPlot.get_array_idx(self, i)
                 
 
         if ax is None:
@@ -105,7 +109,7 @@ class Waveform(DPT.DPObject, ArrayPlot):
                 ax.set_ylabel('Voltage (uV)')
             
         elif plot_type == 'array':  # plot in array level
-            self.plot_arrayplot(i, fig, plotOpts)
+            ArrayPlot.plot(self, i, fig, plotOpts)
             
         return ax
     
@@ -115,8 +119,8 @@ class Waveform(DPT.DPObject, ArrayPlot):
         # from an extra object (wf) to this object
         # It is useful to store the information of the objects for panning through in the future
         DPT.DPObject.append(self, wf)  # append self.setidx and self.dirs
+        ArrayPlot.append(self, wf)
         self.data = self.data + wf.data
-        self.channel_filename = self.channel_filename + wf.channel_filename
         self.numSets += wf.numSets
         
     
@@ -125,7 +129,6 @@ class Waveform(DPT.DPObject, ArrayPlot):
     def read_templates(self):
         self.numSets = 1
         # make the following items as lists for the sake of self.append
-        self.channel_filename = [os.path.basename(os.path.normpath(os.getcwd()))]  # 'channelxxx, xxx is the number of the channel'
         template_fileanme = os.path.join('..', '..', '..', 'mountains',
                                          self.channel_filename[0], 'output', 'templates.hkl')
         if os.path.isfile(template_fileanme):

@@ -1,14 +1,26 @@
 import numpy as np
 import re
+import os
 
 class ArrayPlot:
+    """
+    Please do the following in the child class to make sure it functions well:
+    1. Import ArrayPlot from .arrayplot 
+    2. Inherit this class
+    3. Do a `ArrayPlot.__init__(self., *args, **kwargs)` in `__init__`
+    4. Do a `ArrayPlot.create(self, *args, **kwargs)` in `create`
+    5. Call the `ArrayPlot.plot(self, i, fig, plotOpts)`, you can get the `fig` by `fig = ax.figure`. `plotOpts` is a `dict` that must contains `'TitleOff'` and `'LabelsOff'`
+    6. Do a `ArrayPlot.append(self, <another-object>)` in `append`
+    """
+    
     def __init__(self, *args, **kwargs):
-        self.create_arrayplot(*args, **kwargs)
+        self.create(*args, **kwargs)
         
-    def create_arrayplot(self, *args, **kwargs):
+    def create(self, *args, **kwargs):
         """
         Public attributes
         """
+        self.channel_filename = [os.path.basename(os.path.normpath(os.getcwd()))]  # 'channelxxx, xxx is the number of the channel'
         self.xlabelname = 'Time (sample unit)'
         self.ylabelname = 'Voltage (uV)'
         
@@ -31,7 +43,7 @@ class ArrayPlot:
             else:
                 raise ValueError("{0} does not exist vmplot...".format(k))
         
-    def plot_arrayplot(self, i, fig, plotOpts, *args, **kwargs):
+    def plot(self, i, fig, plotOpts, *args, **kwargs):
         channel_idx, channel_locs = self.get_channels_in_array(i)  # get the channels that belong to the same array
         num_row, num_col, subplot_idx = self.get_subplots_grid(i, channel_idx)
         idx_title, idx_label = self.get_label_subplot(channel_idx)  # these outputs are the channel number to do the labelling
@@ -63,6 +75,9 @@ class ArrayPlot:
                     
         return ax[0]
                     
+    def append(self, obj):
+        self.channel_filename = self.channel_filename + obj.channel_filename
+        
                     
     #%% Helper functions
     def get_first_channel(self, i):
