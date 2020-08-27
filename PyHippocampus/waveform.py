@@ -126,7 +126,7 @@ class Waveform(DPT.DPObject, ArrayPlot):
         self.numSets = 1
         # make the following items as lists for the sake of self.append
         self.channel_filename = [os.path.basename(os.path.normpath(os.getcwd()))]  # 'channelxxx, xxx is the number of the channel'
-        template_fileanme = os.path.join('..', '..', '..', 'mountains',\
+        template_fileanme = os.path.join('..', '..', '..', 'mountains',
                                          self.channel_filename[0], 'output', 'templates.hkl')
         if os.path.isfile(template_fileanme):
             self.data = [np.squeeze(hkl.load(template_fileanme))]
@@ -137,16 +137,4 @@ class Waveform(DPT.DPObject, ArrayPlot):
     def update_local_plotopts(self, plotOpts, kwargs):
         for (k, v) in plotOpts.items():
                     plotOpts[k] = kwargs.get(k, v)
-            
-    #%% tracking channel and array ID
-
-
-        
-    
-    # def get_channels(self, i, x):
-    #     if re.search('array(0)?{0}'.format(i+1), x):
-    #         return int(re.search('(?<=channel)\d+', x)[0])
-    #     else:
-    #         return None
-        
     

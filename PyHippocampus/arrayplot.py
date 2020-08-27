@@ -6,8 +6,24 @@ class ArrayPlot:
         self.create_arrayplot(*args, **kwargs)
         
     def create_arrayplot(self, *args, **kwargs):
+        """
+        Public attributes
+        """
         self.xlabelname = 'Time (sample unit)'
         self.ylabelname = 'Voltage (uV)'
+        
+        """
+        Protected attributes
+        """
+        
+        self._array_sets = [[1, 32],
+                            [33, 64],
+                            [65,  96],
+                            [97, 124]]
+        self._electrodes_array_size = [16,8]
+        self._num_channel_per_array = 32
+        self._electrodes_id = np.insert(np.arange(1, 125),
+                                        [0,7,118,124], -1)
         
         for (k,v) in kwargs.items():
             if hasattr(self, k):
@@ -16,30 +32,35 @@ class ArrayPlot:
                 raise ValueError("{0} does not exist vmplot...".format(k))
         
     def plot_arrayplot(self, i, fig, plotOpts, *args, **kwargs):
-        channel_idx = self.get_channels_in_array(i)  # get the channels that belong to the same array
-        num_channels = len(channel_idx)
-        num_row, num_col = self.get_subplots_grid(num_channels)
-        for k, x in enumerate(channel_idx):
-            ax = fig.add_subplot(num_row, num_col, k+1)
-            ax.plot(self.data[x])   
+        channel_idx, channel_locs = self.get_channels_in_array(i)  # get the channels that belong to the same array
+        num_row, num_col, subplot_idx = self.get_subplots_grid(i, channel_idx)
+        ax = fig.subplots(num_row, num_col).flatten()
+        for k, x in enumerate(subplot_idx):  # x will be the channel number
+            if x == -1 or x not in channel_idx:  # empty channel
+                ax[k].axis('off')
+            else:
+                idx_temp = channel_locs[channel_idx.index(x)]  # index in the entire channel list
+                ax[k].plot(self.data[idx_temp])   
         
-        ########labels###############
-            if k//num_col != num_row-1:  # hide the x tick labels in all subplots except the last row
-                ax.get_xaxis().set_visible(False)
-        
-            if not plotOpts['TitleOff']:  # if TitleOff icon in the right-click menu is clicked
-                if k == 0:  # put array idx and channel idx as the title of the first subplot
-                    ax.set_title('{0}\n{1}'.format(self.get_all_elements('array')[i], \
-                                                   self.channel_filename[channel_idx[k]]))
-                else:  # only put the channel idx as the title for the rest
-                    ax.set_title(self.channel_filename[channel_idx[k]])
-                
+                """
+                labels
+                """
+                if k//num_col != num_row-1:  # hide the x tick labels in all subplots except the last row
+                    ax[k].get_xaxis().set_visible(False)
+            
+                if not plotOpts['TitleOff']:  # if TitleOff icon in the right-click menu is clicked
+                    if k == 0:  # put array idx and channel idx as the title of the first subplot
+                        ax[k].set_title('{0}\n{1}'.format(self.get_all_elements('array')[i],
+                                                       self.channel_filename[idx_temp]))
+                    else:  # only put the channel idx as the title for the rest
+                        ax[k].set_title(self.channel_filename[idx_temp])
+                    
             if not plotOpts['LabelsOff']:  # if LabelsOff icon in the right-click menu is clicked
                 if k // num_col == num_row-1 and k % num_col == 0:  # last row and first column
-                    ax.set_ylabel(self.ylabelname)
-                    ax.set_xlabel(self.xlabelname)
+                    ax[k].set_ylabel(self.ylabelname)
+                    ax[k].set_xlabel(self.xlabelname)
                     
-        return ax
+        return ax[0]
                     
                     
     #%% Helper functions
@@ -52,10 +73,12 @@ class ArrayPlot:
     def get_channels_in_array(self, i):
         target_str = self.get_all_elements('array')[i]
         channel_idx = []
+        channel_locs = []
         for k, x in enumerate(self.dirs):
             if target_str in x:
-                channel_idx.append(k)
-        return channel_idx
+                channel_idx.append(int(re.search('(?<=channel)\d+', x)[0]))
+                channel_locs.append(k)
+        return channel_idx, channel_locs
     
     def get_all_elements(self, elements):
         array_idx_all = []
@@ -74,8 +97,19 @@ class ArrayPlot:
         return x[:re.search('{0}\d+'.format(elements), x).span()[1]]
     
     #%% Subplot layout
-    def get_subplots_grid(self, number):
-        num_row = np.floor(np.sqrt(number))
-        num_col = np.ceil(np.sqrt(number))
-        return num_row, num_col
+    def get_subplots_grid(self, i, channel_idx):
+        num_col = self._electrodes_array_size[1]
+        subplot_idx = [x if x in channel_idx else -1 for x in self._electrodes_id]
+        
+        start_idx = np.where(self._electrodes_id == self._array_sets[i][0])[0][0]
+        end_idx = np.where(self._electrodes_id == self._array_sets[i][1])[0][0]  
+        
+        subplot_idx_start = start_idx // num_col * num_col
+        subplot_idx_end = (end_idx // num_col + 1 ) * num_col
+                                  
+        subplot_idx = subplot_idx[subplot_idx_start: subplot_idx_end]
+        
+        num_row = (subplot_idx_end - subplot_idx_start) // num_col
+        
+        return num_row, num_col, subplot_idx
         
