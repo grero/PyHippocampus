@@ -649,7 +649,7 @@ class Eyelink(DPT.DPObject):
         
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):   
         # set plot options
-        plotopts = {'Plot Options': DPT.objects.ExclusiveOptions(['XT', 'XY', 'SaccFix', 'SaccFixSession', 'Discrepancies'], 0)}
+        plotopts = {'Plot Options': DPT.objects.ExclusiveOptions(['XT', 'XY', 'SaccFixSession', 'SaccFix', 'Discrepancies'], 0)}
 
         if getPlotOpts:
             return plotopts
