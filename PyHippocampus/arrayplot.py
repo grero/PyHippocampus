@@ -40,8 +40,6 @@ class ArrayPlot:
         for (k,v) in kwargs.items():
             if hasattr(self, k):
                 self.__dict__[k] = v
-            else:
-                raise ValueError("{0} does not exist vmplot...".format(k))
         
     def plot(self, i, fig, plotOpts, *args, **kwargs):
         channel_idx, channel_locs = self.get_channels_in_array(i)  # get the channels that belong to the same array
