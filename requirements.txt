@@ -7,5 +7,6 @@ neo
 networkx
 numpy
 pandas
+regex
 scipy
 seaborn
