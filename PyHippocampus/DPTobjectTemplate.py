@@ -74,8 +74,8 @@ class DPTobjectTemplate(DPT.DPObject):
         # plotOpts is a dictionary to store the information that will be shown 
         # in the menu evoked by right-clicking on the axis after the window is created by PanGUI.create_window
         # for more information, please check in PanGUI.main.create_menu
-        plotOpts = {'LabelsOff': False, 'TitleOff': False, \
-                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0)}
+        plotOpts = {'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0), \
+            'LabelsOff': False, 'TitleOff': False}
 
         # update the plotOpts based on kwargs, these two lines are important to
         # receive the input arguments and act accordingly
