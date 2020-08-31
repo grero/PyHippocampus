@@ -10,12 +10,20 @@ class Waveform(DPT.DPObject, ArrayPlot):
     Please run this on the mountains directory under day level
     
     """
-    filename = 'waveform.hkl'
-    argsList = []
+    filename = "waveform.hkl"
+    argsList = [("loadFrom", None), ("mountainsDirectory", "mountains"), 
+        ("ouputDirectory","output"), ("templateFilename","templates.hkl")]
     level = 'channel'
 
     def __init__(self, *args, **kwargs):
-        DPT.DPObject.__init__(self, *args, **kwargs)
+        fname = kwargs.get("loadFrom", None)
+        if fname is not None:
+            DPT.DPObject.__init__(self, *args, **kwargs)
+        else:
+            rr = DPT.levels.resolve_level(self.level, os.getcwd())
+            with DPT.misc.CWD(rr):
+                DPT.DPObject.__init__(self, *args, **kwargs)
+
         ArrayPlot.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
