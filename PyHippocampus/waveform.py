@@ -137,8 +137,11 @@ class Waveform(DPT.DPObject, ArrayPlot):
     def read_templates(self):
         self.numSets = 1
         # make the following items as lists for the sake of self.append
-        template_fileanme = os.path.join('..', '..', '..', 'mountains',
-                                         self.channel_filename[0], 'output', 'templates.hkl')
+        template_fileanme = os.path.join(DPT.levels.resolve_level("day", self.channel_filename[0]),
+                                         self.args["mountainsDirectory"],
+                                         self.channel_filename[0],
+                                         self.args["ouputDirectory"],
+                                         self.args["templateFilename"])
         if os.path.isfile(template_fileanme):
             self.data = [np.squeeze(hkl.load(template_fileanme))]
         else:
