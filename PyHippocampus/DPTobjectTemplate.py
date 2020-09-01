@@ -8,13 +8,7 @@ class DPTobjectTemplate(DPT.DPObject):
     level = 'channel'  # this is the level that this object will be created in
 
     def __init__(self, *args, **kwargs):
-        fname = kwargs.get("loadFrom", None)
-        if fname is not None:
-            DPT.DPObject.__init__(self, *args, **kwargs)
-        else:
-            rr = DPT.levels.resolve_level(self.level, os.getcwd())
-            with DPT.misc.CWD(rr):
-                DPT.DPObject.__init__(self, *args, **kwargs)
+        DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
         # thie function will be called by PanGUI.main once to create this waveform object
@@ -74,8 +68,8 @@ class DPTobjectTemplate(DPT.DPObject):
         # plotOpts is a dictionary to store the information that will be shown 
         # in the menu evoked by right-clicking on the axis after the window is created by PanGUI.create_window
         # for more information, please check in PanGUI.main.create_menu
-        plotOpts = {'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0), \
-            'LabelsOff': False, 'TitleOff': False}
+        plotOpts = {'LabelsOff': False, 'TitleOff': False, \
+                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0)}
 
         # update the plotOpts based on kwargs, these two lines are important to
         # receive the input arguments and act accordingly
