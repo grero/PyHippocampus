@@ -9,7 +9,7 @@ class DirFiles(DPT.DPObject):
              FilesOnly=False, DirsOnly=False)
     """
     filename = "dirfiles.hkl"
-    argsList = [("FilesOnly", False), ("DirsOnly", False)]
+    argsList = [("filesOnly", False), ("dirsOnly", False)]
     level = "session"
 
 
@@ -22,11 +22,11 @@ class DirFiles(DPT.DPObject):
         cwd = os.getcwd()
         dirList = os.listdir()
         
-        if self.args["FilesOnly"]:
+        if self.args["filesOnly"]:
             print("Checking " + cwd + " for files")
             # filter and save only files
             itemList = list(filter(os.path.isfile, dirList))
-        elif self.args["DirsOnly"]:
+        elif self.args["dirsOnly"]:
             print("Checking " + cwd + " for directories")
             # filter and save only dirs
             itemList = list(filter(os.path.isdir, dirList))
