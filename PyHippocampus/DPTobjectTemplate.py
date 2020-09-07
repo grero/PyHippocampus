@@ -45,15 +45,13 @@ class DPTobjectTemplate(DPT.DPObject):
         
         # check on the mountainsort template data and create a DPT object accordingly
         # Example:
-        # if <data-is-not-empty-flag>:
-        #     # create object if data is not empty
-        #     DPT.DPObject.create(self, *args, **kwargs)
-        # else:
-        #     # create empty object if data is empty
-        #     DPT.DPObject.create(self, dirs=[], *args, **kwargs)            
+        if <data-is-not-empty>:
+            # create object if data is not empty
+            DPT.DPObject.create(self, *args, **kwargs)
+        else:
+            # create empty object if data is empty
+            DPT.DPObject.create(self, dirs=[], *args, **kwargs)            
         
-        return self  # please do NOT remove this line
-
     def append(self, wf):
         # this function will be called by processDirs to append the values of certain fields
         # from an extra object (wf) to this object
