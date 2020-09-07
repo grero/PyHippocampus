@@ -77,7 +77,7 @@ class DPTobjectTemplate(DPT.DPObject):
         # plotOpts is a dictionary to store the information that will be shown 
         # in the menu evoked by right-clicking on the axis after the window is created by PanGUI.create_window
         # for more information, please check in PanGUI.main.create_menu
-        plotOpts = {'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0), \
+        plotOpts = {'PlotType': DPT.objects.ExclusiveOptions(['Channel', 'Array'], 0), \
             'LabelsOff': False, 'TitleOff': False}
 
         # update the plotOpts based on kwargs, these two lines are important to
@@ -85,14 +85,10 @@ class DPTobjectTemplate(DPT.DPObject):
         for (k, v) in plotOpts.items():
                     plotOpts[k] = kwargs.get(k, v)  
                     
-        plot_type = plotOpts['Type'].selected()  # this variable will store the selected item in 'Type'
+        plot_type = plotOpts['PlotType'].selected()  # this variable will store the selected item in 'Type'
 
         if getPlotOpts:  # this will be called by PanGUI.main to obtain the plotOpts to create a menu once we right-click on the axis
             return plotOpts 
-
-        if getLevels:  # this will be called by PanGUI.main to the level that this object is supposed to be created in
-            return ['channel', 'trial']
-            
 
         if getNumEvents:  
             # this will be called by PanGUI.main to return two values: 
@@ -104,7 +100,6 @@ class DPTobjectTemplate(DPT.DPObject):
             
             return  # please return two items here: <total-number-of-items-to-plot>, <current-item-index-to-plot>
                 
-
         if ax is None:
             ax = plt.gca()
 
@@ -114,7 +109,7 @@ class DPTobjectTemplate(DPT.DPObject):
         ######################################################################
         #################### start plotting ##################################
         ######################################################################
-        if plot_type == 'channel':  # plot in channel level
+        if plot_type == 'Channel':  # plot in channel level
             # plot the mountainsort data according to the current index 'i'
             # .........................................
             # ..................code...................
