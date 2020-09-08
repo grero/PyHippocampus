@@ -1,0 +1,27 @@
+FROM continuumio/miniconda3
+
+WORKDIR .
+
+# Create the environment:
+COPY environment.yml .
+RUN conda env create --name myvenv -f environment.yml
+ENV PATH /opt/conda/envs/myvenv/bin:$PATH
+
+# Make RUN commands use the new environment:
+RUN /bin/bash -c "source activate myvenv"
+
+# Make sure the environment is activated:
+RUN echo "Make sure numpy is installed:"
+RUN python -c "import numpy"
+
+RUN /bin/bash -c "git clone https://github.com/shihchengyen/PyHippocampus.git"
+COPY __init__.py PyHippocampus/PyHippocampus
+COPY eyelink.py PyHippocampus/PyHippocampus
+COPY aligning_objects.py PyHippocampus/PyHippocampus
+COPY mountain_batch.py PyHippocampus/PyHippocampus
+COPY sort.sh PyHippocampus/PyHippocampus
+RUN /bin/bash -c "pip install -e PyHippocampus/" 
+RUN /bin/bash -c "git clone https://github.com/grero/DataProcessingTools.git; pip install -e DataProcessingTools/"
+
+# The code to run when container is started:
+COPY run.py .
