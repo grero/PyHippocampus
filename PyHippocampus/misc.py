@@ -1,5 +1,3 @@
-# import matplotlib.pyplot as plt
-
 def getChannelInArray(channel_name, fig):
     rows = 5
     cols = 8
