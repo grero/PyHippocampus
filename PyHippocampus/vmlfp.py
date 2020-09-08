@@ -2,7 +2,7 @@ import numpy as np
 import DataProcessingTools as DPT 
 from .rplparallel import RPLParallel
 from .rpllfp import RPLLFP
-from .helperfunctions import plotFFT, removeLineNoise
+from .helperfunctions import computeFFT, removeLineNoise
 from .vmplot import VMPlot
 import os 
 import matplotlib.pyplot as plt 

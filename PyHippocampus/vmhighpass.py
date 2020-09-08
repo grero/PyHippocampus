@@ -3,7 +3,7 @@ import numpy as np
 from .rplparallel import RPLParallel 
 from .spiketrain import Spiketrain
 from .rplhighpass import RPLHighPass 
-from .helperfunctions import plotFFT, removeLineNoise
+from .helperfunctions import computeFFT, removeLineNoise
 from .vmplot import VMPlot
 import os 
 import matplotlib.pyplot as plt 
