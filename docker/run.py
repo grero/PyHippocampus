@@ -5,7 +5,7 @@ import os
 
 print(sys.argv)
 path = sys.argv[2]
-os.chdir('/mnt/' + path)
+os.chdir('/mnt' + path)
 print(os.getcwd())
 rh = ph.RPLHighPass(saveLevel = 1) 
 mountain_batch.mountain_batch()
