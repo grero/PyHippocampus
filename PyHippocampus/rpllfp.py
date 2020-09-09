@@ -2,7 +2,7 @@ import numpy as np
 from scipy import signal 
 import DataProcessingTools as DPT 
 from . import rplraw
-from .helperfunctions import plotFFT
+from .helperfunctions import computeFFT
 from matplotlib.pyplot import gca
 import os 
 
