@@ -1,7 +1,5 @@
 #!/data/miniconda3/envs/env1/bin/python
 
-##!/Volumes/User/shihcheng/anaconda3/bin/python
-
 from filelock import FileLock
 import hickle
 import sys
