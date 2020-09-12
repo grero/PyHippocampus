@@ -10,7 +10,7 @@ lock_path = "envlist.khl.lock"
 time_out_secs = 60
 
 # program modes
-READ_MDODE = 0
+READ_MODE = 0
 WRITE_MODE = 1
 RESET_MODE = 2
 
