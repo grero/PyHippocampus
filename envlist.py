@@ -1,12 +1,14 @@
-#!/Volumes/User/shihcheng/anaconda3/bin/python
+#!/data/miniconda3/envs/env1/bin/python
+
+##!/Volumes/User/shihcheng/anaconda3/bin/python
 
 from filelock import FileLock
 import hickle
 import sys
 
 # get lock
-file_path = "envlist.hkl"
-lock_path = "envlist.khl.lock"
+file_path = "/data/picasso/envlist.hkl"
+lock_path = "/data/picasso/envlist.khl.lock"
 time_out_secs = 60
 
 # program modes
