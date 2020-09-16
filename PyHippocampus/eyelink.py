@@ -792,8 +792,8 @@ class Eyelink(DPT.DPObject):
                 sacc_durations = sacc_durations[sacc_durations != 0]
                 fix_durations = fix_durations[fix_durations != 0]
 
-                ax.hist(sacc_durations, density=False, alpha=0.5, color='#31b4e8', bins=edges, label='N Saccades', edgecolor='black', linewidth=0.3)
-                ax.hist(fix_durations, density=False, alpha=0.5, color='#ed7f18', bins=edges, label='N Fixations', edgecolor='black', linewidth=0.3)
+                ax.hist(sacc_durations, density=True, alpha=0.5, color='#31b4e8', bins=edges, label='N Saccades {}'.format(len(sacc_durations)), edgecolor='black', linewidth=0.3)
+                ax.hist(fix_durations, density=True, alpha=0.5, color='#ed7f18', bins=edges, label='N Fixations {}'.format(len(fix_durations)), edgecolor='black', linewidth=0.3)
             
             if not self.calib_sacc_event.empty:
                 sacc_durations = self.calib_sacc_event.to_numpy()
@@ -808,8 +808,8 @@ class Eyelink(DPT.DPObject):
                 sacc_durations = sacc_durations[sacc_durations != 0]
                 fix_durations = fix_durations[fix_durations != 0]
 
-                ax.hist(sacc_durations, density=False, alpha=0.5, color='#a569bd', bins=edges, label='F Saccades', edgecolor='black', linewidth=0.3)
-                ax.hist(fix_durations, density=False, alpha=0.5, color='#16a085', bins=edges, label='F Fixations', edgecolor='black', linewidth=0.3)
+                ax.hist(sacc_durations, density=True, alpha=0.5, color='#a569bd', bins=edges, label='F Saccades {}'.format(len(sacc_durations)), edgecolor='black', linewidth=0.3)
+                ax.hist(fix_durations, density=True, alpha=0.5, color='#16a085', bins=edges, label='F Fixations {}'.format(len(fix_durations)), edgecolor='black', linewidth=0.3)
                         
             dir = self.dirs[0]
             subject = DPT.levels.get_shortname("subject", dir)
