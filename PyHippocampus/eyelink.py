@@ -649,7 +649,8 @@ class Eyelink(DPT.DPObject):
         
     def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):   
         # set plot options
-        plotopts = {'Plot Options': DPT.objects.ExclusiveOptions(['XT', 'XY', 'SaccFixSession', 'SaccFix', 'Discrepancies'], 0)}
+        plotopts = {'Plot Options': DPT.objects.ExclusiveOptions(['XT', 'XY', 'SaccFixSession', 'SaccFix', 'Discrepancies'], 0), 
+                    'SaccFixSessionCutOff': 600}
 
         if getPlotOpts:
             return plotopts
@@ -676,7 +677,7 @@ class Eyelink(DPT.DPObject):
                     nidx = i
                 else:
                     nidx = 0
-                return self.noOfSessions, session[nidx]
+                return len(self.dirs), nidx
             else:
                 if i is not None:
                     nidx = i
@@ -694,6 +695,11 @@ class Eyelink(DPT.DPObject):
             ax = plt.gca()
         
         ax.clear()
+        for other_ax in ax.figure.axes:
+            if other_ax is ax:
+                continue 
+            if other_ax.bbox.bounds == ax.bbox.bounds:
+                other_ax.remove()
 
         if plot_type == 'XT':
             if self.dirs[0].endswith('eye'):
@@ -792,70 +798,88 @@ class Eyelink(DPT.DPObject):
                 sacc_durations = sacc_durations[sacc_durations != 0]
                 fix_durations = fix_durations[fix_durations != 0]
 
+<<<<<<< HEAD
+=======
                 ax.hist(sacc_durations, density=True, alpha=0.5, color='#31b4e8', bins=edges, label='N Saccades {}'.format(len(sacc_durations)), edgecolor='black', linewidth=0.3)
                 ax.hist(fix_durations, density=True, alpha=0.5, color='#ed7f18', bins=edges, label='N Fixations {}'.format(len(fix_durations)), edgecolor='black', linewidth=0.3)
             
+>>>>>>> 4d307544cb0472cea294bad2cbb34b78d585bf6c
             if not self.calib_sacc_event.empty:
-                sacc_durations = self.calib_sacc_event.to_numpy()
-                fix_durations = self.calib_fix_event.to_numpy()
+                calib_sacc_durations = self.calib_sacc_event.to_numpy()
+                calib_fix_durations = self.calib_fix_event.to_numpy()
 
-                lower = np.amin(fix_durations)
-                upper = np.amax(fix_durations)
+                calib_lower = np.amin(calib_fix_durations)
+                calib_upper = np.amax(calib_fix_durations)
                 
-                edges = np.arange(lower, upper, 25).tolist()
-                edges = [x for x in edges if x <= 1000]
+                calib_edges = np.arange(calib_lower, calib_upper, 25).tolist()
+                calib_edges = [x for x in calib_edges if x <= 1000]
 
-                sacc_durations = sacc_durations[sacc_durations != 0]
-                fix_durations = fix_durations[fix_durations != 0]
+                calib_acc_durations = calib_sacc_durations[calib_sacc_durations != 0]
+                calib_fix_durations = calib_fix_durations[calib_fix_durations != 0]
 
+            ax.hist(sacc_durations, density=True, alpha=0.5, color='#31b4e8', bins=edges, label='N Saccades: {}'.format(len(sacc_durations)), edgecolor='black', linewidth=0.3)
+            ax.hist(fix_durations, density=True, alpha=0.5, color='#ed7f18', bins=edges, label='N Fixations: {}'.format(len(fix_durations)), edgecolor='black', linewidth=0.3)
+            ax.set_ylabel('Density for Navigation Sessions')
+
+            ax2 = ax.twinx()
+            ax2.hist(calib_sacc_durations, density=True, alpha=0.35, color='#a569bd', bins=edges, label='F Saccades: {}'.format(len(calib_sacc_durations)), edgecolor='black', linewidth=0.3)
+            ax2.hist(calib_fix_durations, density=True, alpha=0.35, color='#16a085', bins=edges, label='F Fixations: {}'.format(len(calib_fix_durations)), edgecolor='black', linewidth=0.3)
+            ax2.set_ylabel('Density for Fixation Session', rotation = 270, va = "bottom")   
+            ax2.grid(axis = "y")
+            ax2.spines['right'].set_color('magenta')
+            ax2.tick_params(axis = 'y', colors = 'magenta')
+            ax2.set_xlabel('Duration (s)')
+            lines, labels = ax.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax2.legend(lines + lines2, labels + labels2, loc='best')
+
+<<<<<<< HEAD
+=======
                 ax.hist(sacc_durations, density=True, alpha=0.5, color='#a569bd', bins=edges, label='F Saccades {}'.format(len(sacc_durations)), edgecolor='black', linewidth=0.3)
                 ax.hist(fix_durations, density=True, alpha=0.5, color='#16a085', bins=edges, label='F Fixations {}'.format(len(fix_durations)), edgecolor='black', linewidth=0.3)
                         
+>>>>>>> 4d307544cb0472cea294bad2cbb34b78d585bf6c
             dir = self.dirs[0]
             subject = DPT.levels.get_shortname("subject", dir)
             date = DPT.levels.get_shortname("day", dir)
             session = DPT.levels.get_shortname("session", dir)
-            ax.set_title('Distribution of Saccades and Fixations - ' + subject + date + session)
-            ax.set_xlabel ('Duration (s)')
-            ax.set_ylabel ('# of events')
-            ax.legend(loc='best')
+            ax.set_title('Distribution of Saccades and Fixations - ' + subject + date)
 
         elif plot_type == 'SaccFixSession':
             data = []
             labels = []
 
-            if not self.calib_sacc_event.empty:
-                calib_sacc = self.calib_sacc_event[self.calib_sacc_event < 200]
-                calib_fix = self.calib_fix_event[self.calib_fix_event < 200]
+            directory = self.dirs[i]
+            currSession = DPT.levels.get_shortname('session', directory)
+            if currSession == 'seye':
+                if not self.calib_sacc_event.empty:
+                    calib_sacc = self.calib_sacc_event[self.calib_sacc_event < plotopts['SaccFixSessionCutOff']]
+                    calib_fix = self.calib_fix_event[self.calib_fix_event < plotopts['SaccFixSessionCutOff']]
 
-                # for loop for column numbers in sacc_ and fix_
-                data.append(calib_sacc.dropna().to_numpy())
-                data.append(calib_fix.dropna().to_numpy())
-                labels.append('FS')
-                labels.append('FF')
-            
-            if not self.sacc_event.empty:
-                sacc_durations = self.sacc_event[self.sacc_event < 200]
-                fix_durations = self.fix_event[self.fix_event < 200]
+                    data.append(calib_sacc.dropna().to_numpy())
+                    data.append(calib_fix.dropna().to_numpy())
+                    labels.append('FS')
+                    labels.append('FF')
+            else: 
+                if not self.sacc_event.empty:
+                    sacc_durations = self.sacc_event[self.sacc_event < plotopts['SaccFixSessionCutOff']]
+                    fix_durations = self.fix_event[self.fix_event < plotopts['SaccFixSessionCutOff']]
 
-                if len(sacc_durations.shape) > 1:
-                    for i in range(sacc_durations.shape[1]):
+                    if len(sacc_durations.shape) > 1:
                         data.append(sacc_durations.iloc[:, i].dropna())
                         data.append(fix_durations.iloc[:, i].dropna())
-                        labels.append('NS' + str(i + 1))
-                        labels.append('NF' + str(i + 1))
-                else:
-                    data.append(sacc_durations.dropna())
-                    data.append(fix_durations.dropna())
-                    labels.append('NS1')
-                    labels.append('NF1')
+
+                    else:
+                        data.append(sacc_durations.dropna())
+                        data.append(fix_durations.dropna())
+
+                    labels.append('NS' + str(i + 1))
+                    labels.append('NF' + str(i + 1))
 
             ax.boxplot(data, notch=True, labels=labels)
-            
-            dir = self.dirs[0]
-            subject = DPT.levels.get_shortname("subject", dir)
-            date = DPT.levels.get_shortname("day", dir)
-            ax.set_title('Saccades and Fixations Over All Sessions - ' + subject + date)
+            subject = DPT.levels.get_shortname("subject", directory)
+            date = DPT.levels.get_shortname("day", directory)
+            ax.set_title('Saccades and Fixations For Sessions - ' + subject + date + currSession)
             ax.set_ylabel ('# of events')
 
         elif plot_type == 'Discrepancies':
@@ -877,8 +901,6 @@ class Eyelink(DPT.DPObject):
             data_timestamps = np.arange(x[i-1][2], len(self.timestamps)-1).astype(int)
             
         return data_timestamps
-
-
 
 
 # plotGazeXY helper method to plot gaze position. Uses matlab's plot function
