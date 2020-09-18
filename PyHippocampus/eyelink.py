@@ -798,12 +798,6 @@ class Eyelink(DPT.DPObject):
                 sacc_durations = sacc_durations[sacc_durations != 0]
                 fix_durations = fix_durations[fix_durations != 0]
 
-<<<<<<< HEAD
-=======
-                ax.hist(sacc_durations, density=True, alpha=0.5, color='#31b4e8', bins=edges, label='N Saccades {}'.format(len(sacc_durations)), edgecolor='black', linewidth=0.3)
-                ax.hist(fix_durations, density=True, alpha=0.5, color='#ed7f18', bins=edges, label='N Fixations {}'.format(len(fix_durations)), edgecolor='black', linewidth=0.3)
-            
->>>>>>> 4d307544cb0472cea294bad2cbb34b78d585bf6c
             if not self.calib_sacc_event.empty:
                 calib_sacc_durations = self.calib_sacc_event.to_numpy()
                 calib_fix_durations = self.calib_fix_event.to_numpy()
@@ -833,12 +827,6 @@ class Eyelink(DPT.DPObject):
             lines2, labels2 = ax2.get_legend_handles_labels()
             ax2.legend(lines + lines2, labels + labels2, loc='best')
 
-<<<<<<< HEAD
-=======
-                ax.hist(sacc_durations, density=True, alpha=0.5, color='#a569bd', bins=edges, label='F Saccades {}'.format(len(sacc_durations)), edgecolor='black', linewidth=0.3)
-                ax.hist(fix_durations, density=True, alpha=0.5, color='#16a085', bins=edges, label='F Fixations {}'.format(len(fix_durations)), edgecolor='black', linewidth=0.3)
-                        
->>>>>>> 4d307544cb0472cea294bad2cbb34b78d585bf6c
             dir = self.dirs[0]
             subject = DPT.levels.get_shortname("subject", dir)
             date = DPT.levels.get_shortname("day", dir)
