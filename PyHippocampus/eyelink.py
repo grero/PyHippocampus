@@ -694,6 +694,7 @@ class Eyelink(DPT.DPObject):
         if ax is None:
             ax = plt.gca()
 
+
         ax.clear()
         figure = ax.get_figure()
         figure.clf()
@@ -862,7 +863,7 @@ class Eyelink(DPT.DPObject):
             ax.boxplot(data, notch=True, labels=labels)
             subject = DPT.levels.get_shortname("subject", directory)
             date = DPT.levels.get_shortname("day", directory)
-            ax.set_title('Saccades and Fixations For Sessions - ' + subject + date + currSession)
+            ax.set_title('Saccades and Fixations For Session - ' + subject + date + currSession)
             ax.set_ylabel('# of events')
 
         elif plot_type == 'Discrepancies':
