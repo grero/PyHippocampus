@@ -1,4 +1,4 @@
-from .phtest import pyhcheck
+from .pyhtest import pyhcheck
 from .dirfiles import DirFiles
 from .unity import Unity
 from .rplraw import RPLRaw 
