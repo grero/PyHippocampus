@@ -12,7 +12,8 @@ import re
 class VMPlaceCell(DPT.DPObject):
 
     filename = "vmplacecell.hkl"
-    argsList = [("NumShuffles", 100), ("ShuffleBounds", [0.1, 0.9])]
+    argsList = [("NumShuffles", 100), ("ShuffleBounds", [0.1, 0.9]),
+        ('GridSteps', 40), ('OverallGridSize', 25), ('MinObs', 5)]
     level = "cell"
 
     def __init__(self, *args, **kwargs):
@@ -22,13 +23,14 @@ class VMPlaceCell(DPT.DPObject):
         
         self.numSets = 0
         
-        um = Umaze()
-        st = Spiketrain()
-        rp = RPLParallel()
+        um = Umaze(*args, **kwargs)
+        st = Spiketrain(*args, **kwargs)
+        rp = RPLParallel(*args, **kwargs)
         
         if len(um.sessionTime) > 0 and len(st.spiketimes) > 0 and len(rp.timeStamps) > 0: # able to get needed objects
             
             # create object
+            print('Creating VMPlaceCell')
             DPT.DPObject.create(self, *args, **kwargs)
             
             stimes = np.array(st.spiketimes[0]).astype(float)
