@@ -83,7 +83,7 @@ class Umaze(DPT.DPObject):
                     temp_0 = []
                     temp_1 = []
                     for i in gpc[0][:]:
-                        temp_0.append(unityTrialTime[i+2, a])
+                        temp_0.append(unityTrialTime[i+1, a])
                         temp_1.append(tgp[i+1])
                     temp_0 += tstart
                     temp_0 = np.array(temp_0)
