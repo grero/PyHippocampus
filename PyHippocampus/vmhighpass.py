@@ -40,7 +40,7 @@ class VMHighPass(DPT.DPObject, VMPlot):
 
     def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
 
-        plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 50, 'LogPlot': True, 'SpikeTrain': True, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
+        plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 50, 'LogPlot': True, 'SpikeTrain': False, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
 
         plot_type = plotOpts['Type'].selected()
 
@@ -80,12 +80,11 @@ class VMHighPass(DPT.DPObject, VMPlot):
                 data = removeLineNoise(data, plotOpts['RemoveLineNoiseFreq'], sRate)
             ax.plot(self.get_data_timestamps_plot(), data)
             self.plot_markers()
-            
             if plotOpts['SpikeTrain']:
                 st = DPT.objects.processDirs(None, Spiketrain)
                 if st.numSets > 0: 
-                    trialSpikes = [list(filter(lambda x: x >= self._data_timestamps[0] and x <= self._data_timestamps[-1], map(float, j))) for j in st.spiketimes] 
-                    trialSpikes = [list(map(lambda x: round(x - self.timeStamps[i][0], 3), k)) for k in trialSpikes]
+                    trialSpikes = [list(filter(lambda x: x >= (self._data_timestamps[0] * 1000 / sRate) and x <= (self._data_timestamps[-1] * 1000 / sRate), map(float, j))) for j in st.spiketimes] 
+                    trialSpikes = [list(map(lambda x: round((x - self.timeStamps[i][0] * 1000) / 1000, 3), k)) for k in trialSpikes]
                     colors = cm.rainbow(np.linspace(0, 1, len(trialSpikes)))
                     y_coords = [[int(np.amax(data)) + 5 * (k + 1) for j in range(len(trialSpikes[k]))] for k in range(len(trialSpikes))]
                     for trial, y, c in zip(trialSpikes, y_coords, colors): 
@@ -109,7 +108,7 @@ class VMHighPass(DPT.DPObject, VMPlot):
                 ax.set_xlabel('Frequency (Hz)')
                 ax.set_ylabel('Magnitude')
             else:
-                ax.set_xlabel('Time (ms)')
+                ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Voltage (uV)')
 
         if not plotOpts['TitleOff']:
