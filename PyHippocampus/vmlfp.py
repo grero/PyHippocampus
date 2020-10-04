@@ -2,7 +2,7 @@ import numpy as np
 import DataProcessingTools as DPT 
 from .rplparallel import RPLParallel
 from .rpllfp import RPLLFP
-from .helperfunctions import plotFFT, removeLineNoise
+from .helperfunctions import computeFFT, removeLineNoise
 from .vmplot import VMPlot
 import os 
 import matplotlib.pyplot as plt 
@@ -48,6 +48,9 @@ class VMLFP(DPT.DPObject, VMPlot):
                     'LogPlot': False, 'TFfftWindow': 256, 'TFfftOverlap': 150,\
                     'TFfftPoints': 256, 'TFfftStart': 500, 'TFfftFreq': 150,\
                     "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal', 'TFfft'], 1)} 
+
+        for (k, v) in plotOpts.items():
+            plotOpts[k] = kwargs.get(k, v)
 
         plot_type = plotOpts['Type'].selected()
 
@@ -95,7 +98,7 @@ class VMLFP(DPT.DPObject, VMPlot):
             if plotOpts['RemoveLineNoise']:
                 data = removeLineNoise(data, plotOpts['RemoveLineNoiseFreq'], sRate)
             datam = np.mean(data)
-            fftProcessed, f = plotFFT(data - datam, sRate)
+            fftProcessed, f = computeFFT(data - datam, sRate)
             ax.plot(f, fftProcessed)
             if plotOpts['LogPlot']:
                 ax.set_yscale('log')

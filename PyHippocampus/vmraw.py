@@ -2,7 +2,7 @@ from .rplraw import RPLRaw
 from .rplparallel import RPLParallel
 import DataProcessingTools as DPT 
 import numpy as np 
-from .helperfunctions import plotFFT, removeLineNoise
+from .helperfunctions import computeFFT, removeLineNoise
 from .vmplot import VMPlot
 import os 
 import matplotlib.pyplot as plt 
@@ -41,6 +41,9 @@ class VMRaw(DPT.DPObject, VMPlot):
                     'PlotAllData': False, 'TitleOff': False, 'FreqLims': [],\
                     'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 50, \
                     'LogPlot': False, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
+
+        for (k, v) in plotOpts.items():
+            plotOpts[k] = kwargs.get(k, v)
 
         plot_type = plotOpts['Type'].selected()
 
@@ -90,7 +93,7 @@ class VMRaw(DPT.DPObject, VMPlot):
             if plotOpts['RemoveLineNoise']:
                 data = removeLineNoise(data, plotOpts['RemoveLineNoiseFreq'], sRate)
             datam = np.mean(data)
-            fftProcessed, f = plotFFT(data - datam, sRate)
+            fftProcessed, f = computeFFT(data - datam, sRate)
             ax.plot(f, fftProcessed)
             if plotOpts['LogPlot']:
                 ax.set_yscale('log')

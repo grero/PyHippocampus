@@ -55,19 +55,15 @@ z3Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 x4Bound = [2.5, 7.5, 7.5, 2.5, 2.5]  # green pillar
 z4Bound = [-2.5, -2.5, -7.5, -7.5, -2.5]
 
-pre = "trial"
-
 
 class Unity(DPT.DPObject):
     filename = "unity.hkl"
-    argsList = [("FileLineOffset", 15), ("DirName", 'RawData*'), ("FileName", 'session*'), ('TriggerVal1', 10),
-                ('TriggerVal2', 20), ('TriggerVal3', 30), ('BinNumberLimit', 500)]
+    argsList = [("FileLineOffset", 15), ("DirName", "RawData*"), ("FileName", "session*"), ("TriggerVal1", 10),
+                ("TriggerVal2", 20), ("TriggerVal3", 30), ("BinNumberLimit", 500)]
     level = "session"
 
     def __init__(self, *args, **kwargs):
-        rr = DPT.levels.resolve_level("session", os.getcwd())
-        with DPT.misc.CWD(rr):
-            DPT.DPObject.__init__(self, *args, **kwargs)
+        DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
 
@@ -261,11 +257,10 @@ class Unity(DPT.DPObject):
             # create empty object
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)
 
-    def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, **kwargs):
+    def plot(self, i=None, getNumEvents=False, getLevels=False, getPlotOpts=False, ax=None, preOpt=None, **kwargs):
         # set plot options
-        plotopts = {"Plot Option": DPT.objects.ExclusiveOptions(["Trial", "Frame Intervals", "Duration Diffs",
-                                                                "Route Ratio", "Proportion of trial", "Routes",
-                                                                 "X-T", "Y-T", "Theta-T"], 0),
+        plotopts = {"PlotType": DPT.objects.ExclusiveOptions(["X-Y", "X-T", "Y-T", "Theta-T", "Frame Intervals", "Duration Diffs",
+                                                                "Route Ratio", "Routes", "Proportion of trials"], 0),
                     "Frame Interval Triggers": {"from": 1.0, "to": 2.0}, "Number of bins": 0}
         if getPlotOpts:
             return plotopts
@@ -274,18 +269,25 @@ class Unity(DPT.DPObject):
         for (k, v) in plotopts.items():
             plotopts[k] = kwargs.get(k, v)
 
-        plot_type = plotopts["Plot Option"].selected()
+        plot_type = plotopts["PlotType"].selected()
+
+        pre = 'trial'
+        if preOpt is not None:
+            if preOpt == "X-Y" or preOpt == "Frame Intervals" or preOpt == "X-T" or preOpt == "Y-T" \
+                    or preOpt == "Theta-T":
+                pre = "trial"
+            elif preOpt == "Duration Diffs" or preOpt == "Route Ratio" or preOpt == "Routes":
+                pre = "session"
 
         if getNumEvents:
             # Return the number of events available
-            global pre
-            if plot_type == "Trial" or plot_type == "Frame Intervals" or plot_type == "X-T" or plot_type == "Y-T" \
+            # global pre
+            if plot_type == "X-Y" or plot_type == "Frame Intervals" or plot_type == "X-T" or plot_type == "Y-T" \
                     or plot_type == "Theta-T":
                 if i is not None:
                     if pre == "trial":
                         return len(self.setidx), i
                     else:
-                        pre = "trial"
                         num_idx = 0
                         for x in range(0, i):
                             num_idx += self.unityTriggers[x].shape[0]
@@ -297,12 +299,11 @@ class Unity(DPT.DPObject):
                     if pre == "session":
                         return np.max(self.setidx) + 1, i
                     else:
-                        pre = "session"
                         num_idx = self.setidx[i]
                 else:
                     num_idx = 0
                 return np.max(self.setidx) + 1, num_idx
-            elif plot_type == "Proportion of trial":
+            elif plot_type == "Proportion of trials":
                 return 1, 0
 
         if getLevels:
@@ -319,7 +320,7 @@ class Unity(DPT.DPObject):
             if other_ax.bbox.bounds == ax.bbox.bounds:
                 other_ax.remove()
 
-        if plot_type == "Trial":
+        if plot_type == "X-Y":
 
             session_idx = self.setidx[i]
             if session_idx != 0:
@@ -327,10 +328,10 @@ class Unity(DPT.DPObject):
                     i = i - self.unityTriggers[x].shape[0]
 
             ax.plot(xBound, zBound, color='k', linewidth=1.5)
-            ax.plot(x1Bound, z1Bound, 'y', LineWidth=1)
-            ax.plot(x2Bound, z2Bound, 'r', LineWidth=1)
-            ax.plot(x3Bound, z3Bound, 'b', LineWidth=1)
-            ax.plot(x4Bound, z4Bound, 'g', LineWidth=1)
+            ax.plot(x1Bound, z1Bound, 'y', linewidth=1)
+            ax.plot(x2Bound, z2Bound, 'r', linewidth=1)
+            ax.plot(x3Bound, z3Bound, 'b', linewidth=1)
+            ax.plot(x4Bound, z4Bound, 'g', linewidth=1)
             ax.text(poster_pos[0,0],poster_pos[0,1]-1,'1')
             ax.text(poster_pos[1,0]-0.5,poster_pos[1,1],'2')
             ax.text(poster_pos[2,0],poster_pos[2,1],'3')
@@ -341,11 +342,11 @@ class Unity(DPT.DPObject):
                                                  int(self.unityTriggers[session_idx][i, 2]), 2]
             y_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
                                                  int(self.unityTriggers[session_idx][i, 2]), 3]
-            ax.plot(x_data, y_data, 'b+', LineWidth=1)
+            ax.plot(x_data, y_data, 'b+', linewidth=1)
 
             # plot end point identifier
             ax.plot(self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 2],
-                    self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 3], 'k.', MarkerSize=10)
+                    self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 3], 'k.', markersize=10)
             route_str = str(self.sumCost[session_idx][i, 1])
             short_str = str(self.sumCost[session_idx][i, 0])
             ratio_str = str(self.sumCost[session_idx][i, 1] / self.sumCost[session_idx][i, 0])
@@ -447,7 +448,7 @@ class Unity(DPT.DPObject):
             session = DPT.levels.get_shortname("session", dir_name)
             ax.set_title(subject + date + session)
 
-        elif plot_type == "Proportion of trial":
+        elif plot_type == "Proportion of trials":
 
             session_num = np.arange(0, len(self.unityData))
             ax.plot(session_num, self.timePerformance, label='Completed within time limit',
@@ -488,7 +489,7 @@ class Unity(DPT.DPObject):
 
             x_data = self.unityData[i][:, 2]
             y_data = self.unityData[i][:, 3]
-            ax.plot(x_data, y_data, LineWidth=1)
+            ax.plot(x_data, y_data, linewidth=1)
 
             dir_name = self.dirs[i]
             subject = DPT.levels.get_shortname("subject", dir_name)
@@ -581,7 +582,7 @@ class Unity(DPT.DPObject):
         
         result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
         
-        ax.plot(time, data, LineWidth=1)
+        ax.plot(time, data, linewidth=1)
 
         if result_t3 > 40:
             ax.axvline(t_3, color='r')

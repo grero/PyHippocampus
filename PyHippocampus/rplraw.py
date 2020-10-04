@@ -1,7 +1,7 @@
 import numpy as np 
 import DataProcessingTools as DPT
 from matplotlib.pyplot import gca
-from .helperfunctions import plotFFT
+from .helperfunctions import computeFFT
 import os
 from . import rplsplit
 

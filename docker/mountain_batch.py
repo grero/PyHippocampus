@@ -220,7 +220,7 @@ def mountain_channel(full_cell, index):
     print(current_path)
     copyfile('../../../sort.sh.txt','./sort.sh.txt')
     #os.system('cp /data/sort.sh.txt .')
-    os.system('sh sort.sh.txt') 
+    os.system('conda init bash; source ~/bashrc; conda activate myvenv; ./sort.sh') 
     #subprocess.call("sh sort.sh.txt")
     tmda = mdaio.readmda('output/templates.mda')
     hkl.dump(tmda,'output/templates.hkl',mode='w')
@@ -231,12 +231,4 @@ def mountain_channel(full_cell, index):
     os.chdir(origin)
             
             
-
-#print(mountain_batch('120',Overwrite='No'))
-        
-
-    
-
-                                
-                                
-                            
+#print(mountain_batch('120',Overwrite='No'))     

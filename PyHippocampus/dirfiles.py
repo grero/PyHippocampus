@@ -9,13 +9,12 @@ class DirFiles(DPT.DPObject):
              FilesOnly=False, DirsOnly=False)
     """
     filename = "dirfiles.hkl"
-    argsList = [("FilesOnly", False), ("DirsOnly", False)]
+    argsList = [("filesOnly", False), ("dirsOnly", False)]
     level = "session"
 
 
     def __init__(self, *args, **kwargs):
-        # initialize fields in parent
-        DPT.DPObject.__init__(self, normpath=False, *args, **kwargs)
+        DPT.DPObject.__init__(self, *args, **kwargs)
 
 
     def create(self, *args, **kwargs):
@@ -23,11 +22,11 @@ class DirFiles(DPT.DPObject):
         cwd = os.getcwd()
         dirList = os.listdir()
         
-        if self.args["FilesOnly"]:
+        if self.args["filesOnly"]:
             print("Checking " + cwd + " for files")
             # filter and save only files
             itemList = list(filter(os.path.isfile, dirList))
-        elif self.args["DirsOnly"]:
+        elif self.args["dirsOnly"]:
             print("Checking " + cwd + " for directories")
             # filter and save only dirs
             itemList = list(filter(os.path.isdir, dirList))
@@ -51,6 +50,7 @@ class DirFiles(DPT.DPObject):
             # create empty object
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)
 
+
     def append(self, df):
         # update fields in parent
         DPT.DPObject.append(self, df)
@@ -60,12 +60,12 @@ class DirFiles(DPT.DPObject):
 
 
     def plot(self, i=None, getNumEvents=False, getLevels=False, 
-             getPlotOpts=False, ax=None, **kwargs):
+             getPlotOpts=False, ax=None, preOpt=None, **kwargs):
         """
-        DirFiles.plot(Type=["Vertical", "Horizontal", "All"], BarWidth=0.8)
+        DirFiles.plot(PlotType=["Vertical", "Horizontal", "All"], BarWidth=0.8)
         """
         # set plot options
-        plotopts = {"Type": DPT.objects.ExclusiveOptions(["Vertical", "Horizontal","All"],0),
+        plotopts = {"PlotType": DPT.objects.ExclusiveOptions(["Vertical", "Horizontal","All"],0),
                          "BarWidth": 0.8}
         if getPlotOpts:
             return plotopts
@@ -74,7 +74,7 @@ class DirFiles(DPT.DPObject):
         for (k, v) in plotopts.items():
             plotopts[k] = kwargs.get(k, v)
 
-        plottype = plotopts["Type"].selected()
+        plottype = plotopts["PlotType"].selected()
 
         if getNumEvents:
             # Return the number of events available

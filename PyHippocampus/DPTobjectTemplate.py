@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 class DPTobjectTemplate(DPT.DPObject):
     # Please change the class name according to your needs
     filename = '<saveobjectfilename>.hkl'  # this is the filename that will be saved if it's run with saveLevel=1
-    argsList = []  # please leave it empty
+    argsList = []  # these is where arguments used in the creation of the object are listed
     level = 'channel'  # this is the level that this object will be created in
 
     def __init__(self, *args, **kwargs):
         DPT.DPObject.__init__(self, *args, **kwargs)
 
     def create(self, *args, **kwargs):
-        # thie function will be called by PanGUI.main once to create this waveform object
+        # this function will be called once to create this waveform object
         
         # one neat property of Object-Oriented Programming (OOP) structure is that 
         # you can create some field-value pairs that can be called and updated 
@@ -39,21 +39,28 @@ class DPTobjectTemplate(DPT.DPObject):
         
         # read the mountainsort template files
         # .........................................
-        # ..................codes..................
+        # ..................code...................
         # .........................................
         
         
         # check on the mountainsort template data and create a DPT object accordingly
         # Example:
-        # if <data-is-not-empty-flag>:
-        #     # create object if data is not empty
-        #     DPT.DPObject.create(self, *args, **kwargs)
-        # else:
-        #     # create empty object if data is empty
-        #     DPT.DPObject.create(self, dirs=[], *args, **kwargs)            
+        if <data-is-not-empty>:
+            # create object if data is not empty
+            DPT.DPObject.create(self, *args, **kwargs)
+        else:
+            # create empty object if data is empty
+            DPT.DPObject.create(self, dirs=[], *args, **kwargs)            
         
-        return self  # please do NOT remove this line
-
+    def append(self, wf):
+        # this function will be called by processDirs to append the values of certain fields
+        # from an extra object (wf) to this object
+        # It is useful to store the information of the objects for panning through in the future
+        DPT.DPObject.append(self, wf)  # append self.setidx and self.dirs
+        # .........................................
+        # ..................code...................
+        # .........................................
+        
     def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False,\
              getPlotOpts = False, overlay = False, **kwargs):
         # this function will be called in different instances in PanGUI.main
@@ -68,34 +75,29 @@ class DPTobjectTemplate(DPT.DPObject):
         # plotOpts is a dictionary to store the information that will be shown 
         # in the menu evoked by right-clicking on the axis after the window is created by PanGUI.create_window
         # for more information, please check in PanGUI.main.create_menu
-        plotOpts = {'LabelsOff': False, 'TitleOff': False, \
-                    'Type': DPT.objects.ExclusiveOptions(['channel', 'array'], 0)}
+        plotOpts = {'PlotType': DPT.objects.ExclusiveOptions(['Channel', 'Array'], 0), \
+            'LabelsOff': False, 'TitleOff': False}
 
         # update the plotOpts based on kwargs, these two lines are important to
         # receive the input arguments and act accordingly
         for (k, v) in plotOpts.items():
                     plotOpts[k] = kwargs.get(k, v)  
                     
-        plot_type = plotOpts['Type'].selected()  # this variable will store the selected item in 'Type'
+        plot_type = plotOpts['PlotType'].selected()  # this variable will store the selected item in 'Type'
 
         if getPlotOpts:  # this will be called by PanGUI.main to obtain the plotOpts to create a menu once we right-click on the axis
             return plotOpts 
-
-        if getLevels:  # this will be called by PanGUI.main to the level that this object is supposed to be created in
-            return ['channel', 'trial']
-            
 
         if getNumEvents:  
             # this will be called by PanGUI.main to return two values: 
             # first value is the total number of items to pan through, 
             # second value is the current index of the item to plot
             # .........................................
-            # ..................codes..................
+            # ..................code...................
             # .........................................
             
             return  # please return two items here: <total-number-of-items-to-plot>, <current-item-index-to-plot>
                 
-
         if ax is None:
             ax = plt.gca()
 
@@ -105,10 +107,10 @@ class DPTobjectTemplate(DPT.DPObject):
         ######################################################################
         #################### start plotting ##################################
         ######################################################################
-        if plot_type == 'channel':  # plot in channel level
+        if plot_type == 'Channel':  # plot in channel level
             # plot the mountainsort data according to the current index 'i'
             # .........................................
-            # ..................codes..................
+            # ..................code...................
             # .........................................
             pass  # you may delete this line
     
@@ -123,22 +125,12 @@ class DPTobjectTemplate(DPT.DPObject):
         if not plotOpts['LabelsOff']:  # if LabelsOff icon in the right-click menu is clicked
             # set the xlabel and ylabel
             # .........................................
-            # ..................codes..................
+            # ..................code...................
             # .........................................
             pass  # you may delete this line
             
         return ax
     
-    
-    def append(self, wf):
-        # this function will be called by PanGUI.main to append the values of certain fields
-        # from an extra object (wf) to this object
-        # It is useful to store the information of the objects for panning through in the future
-        DPT.DPObject.append(self, wf)  # append self.setidx and self.dirs
-        # .........................................
-        # ..................codes..................
-        # .........................................
-        
     
     
     #%% helper functions        
