@@ -38,9 +38,15 @@ class VMHighPass(DPT.DPObject, VMPlot):
             DPT.DPObject.create(self, dirs=[], *args, **kwargs)            
         return self 
 
-    def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, getPlotOpts = False, overlay = False, **kwargs):
+    def plot(self, i = None, ax = None, getNumEvents = False, getLevels = False, 
+             getPlotOpts = False, overlay = False, **kwargs):
 
-        plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'RewardMarker': 3, 'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 'FreqLims': [], 'RemoveLineNoise': False, 'RemoveLineNoiseFreq': 50, 'LogPlot': True, 'SpikeTrain': False, "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
+        plotOpts = {'LabelsOff': False, 'PreTrial': 500, 'RewardMarker': 3, 
+                    'TimeOutMarker': 4, 'PlotAllData': False, 'TitleOff': False, 
+                    'FreqLims': [], 'RemoveLineNoise': False, 
+                    'RemoveLineNoiseFreq': 50, 'LogPlot': True, 
+                    'SpikeTrain': False, 
+                    "Type": DPT.objects.ExclusiveOptions(["FreqPlot", 'Signal'], 1)} 
 
         plot_type = plotOpts['Type'].selected()
 
