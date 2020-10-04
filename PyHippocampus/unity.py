@@ -328,10 +328,10 @@ class Unity(DPT.DPObject):
                     i = i - self.unityTriggers[x].shape[0]
 
             ax.plot(xBound, zBound, color='k', linewidth=1.5)
-            ax.plot(x1Bound, z1Bound, 'y', LineWidth=1)
-            ax.plot(x2Bound, z2Bound, 'r', LineWidth=1)
-            ax.plot(x3Bound, z3Bound, 'b', LineWidth=1)
-            ax.plot(x4Bound, z4Bound, 'g', LineWidth=1)
+            ax.plot(x1Bound, z1Bound, 'y', linewidth=1)
+            ax.plot(x2Bound, z2Bound, 'r', linewidth=1)
+            ax.plot(x3Bound, z3Bound, 'b', linewidth=1)
+            ax.plot(x4Bound, z4Bound, 'g', linewidth=1)
             ax.text(poster_pos[0,0],poster_pos[0,1]-1,'1')
             ax.text(poster_pos[1,0]-0.5,poster_pos[1,1],'2')
             ax.text(poster_pos[2,0],poster_pos[2,1],'3')
@@ -342,11 +342,11 @@ class Unity(DPT.DPObject):
                                                  int(self.unityTriggers[session_idx][i, 2]), 2]
             y_data = self.unityData[session_idx][int(self.unityTriggers[session_idx][i, 1]):
                                                  int(self.unityTriggers[session_idx][i, 2]), 3]
-            ax.plot(x_data, y_data, 'b+', LineWidth=1)
+            ax.plot(x_data, y_data, 'b+', linewidth=1)
 
             # plot end point identifier
             ax.plot(self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 2],
-                    self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 3], 'k.', MarkerSize=10)
+                    self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 3], 'k.', markersize=10)
             route_str = str(self.sumCost[session_idx][i, 1])
             short_str = str(self.sumCost[session_idx][i, 0])
             ratio_str = str(self.sumCost[session_idx][i, 1] / self.sumCost[session_idx][i, 0])
@@ -489,7 +489,7 @@ class Unity(DPT.DPObject):
 
             x_data = self.unityData[i][:, 2]
             y_data = self.unityData[i][:, 3]
-            ax.plot(x_data, y_data, LineWidth=1)
+            ax.plot(x_data, y_data, linewidth=1)
 
             dir_name = self.dirs[i]
             subject = DPT.levels.get_shortname("subject", dir_name)
@@ -582,7 +582,7 @@ class Unity(DPT.DPObject):
         
         result_t3 = self.unityData[session_idx][self.unityTriggers[session_idx][i, 2], 0]
         
-        ax.plot(time, data, LineWidth=1)
+        ax.plot(time, data, linewidth=1)
 
         if result_t3 > 40:
             ax.axvline(t_3, color='r')

@@ -741,7 +741,7 @@ class Eyelink(DPT.DPObject):
                 y = obj_eye_pos[data_timestamps].transpose()
 
                 # plot x axis data
-                ax.plot(timestamps, y[:][0], 'b-', LineWidth=0.5, Label='X position')
+                ax.plot(timestamps, y[:][0], 'b-', linewidth=0.5, label='X position')
                 dir = self.dirs[0]
                 subject = DPT.levels.get_shortname("subject", dir)
                 date = DPT.levels.get_shortname("day", dir)
@@ -751,20 +751,20 @@ class Eyelink(DPT.DPObject):
                 ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Position (screen pixels)')
                 # plot y axis
-                ax.plot(timestamps, y[:][1], 'g-', LineWidth=0.5, Label='Y position')
+                ax.plot(timestamps, y[:][1], 'g-', linewidth=0.5, label='Y position')
                 
                 # Plotting lines to mark the start, cue offset, and end/timeout for the trial
-                ax.plot([0, 0], ax.set_ylim(), 'g', LineWidth=0.5)
-                ax.plot([trial_cue_time, trial_cue_time], ax.set_ylim(), 'm', LineWidth=0.5)
+                ax.plot([0, 0], ax.set_ylim(), 'g', linewidth=0.5)
+                ax.plot([trial_cue_time, trial_cue_time], ax.set_ylim(), 'm', linewidth=0.5)
                 #trial_end_time = trial_end_time[0]
                 timedOut = self.timeouts == trial_end_time
                 trial_end_time = trial_end_time - trial_start_time
                 timedOut = np.nonzero(timedOut.to_numpy)
 
                 if not timedOut: # trial did not timeout
-                    ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'r', LineWidth=0.5)
+                    ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'r', linewidth=0.5)
                 else: # trial did timeout
-                    ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'b', LineWidth=0.5)
+                    ax.plot([trial_end_time, trial_end_time], ax.set_ylim(), 'b', linewidth=0.5)
 
                 # ax.set_xlim([-0.2, trial_end_time + 0.2]) # set axis boundaries
                 ax.legend(loc='best')
