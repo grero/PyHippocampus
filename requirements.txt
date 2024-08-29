@@ -10,3 +10,6 @@ pandas
 regex
 scipy
 seaborn
+PyQt5
+spikeinterface
+spikeinterface_gui
