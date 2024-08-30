@@ -2,6 +2,7 @@ import os
 import numpy as np
 import spikeinterface.full as si
 from spikeinterface_gui import MainWindow, mkQApp
+import json
 
 class MountainSortAnalyzer():
     def __init__(self, raw_data_file="dataset/raw_data.mda", firings_file="output/firings.mda",
@@ -10,7 +11,8 @@ class MountainSortAnalyzer():
         params_file = os.path.join(raw_data_dir, "params.json")
         if not os.path.isfile(params_file):
             with open(params_file, "w") as fid:
-                fid.write("{'samplerate': {}}\n".format(sampling_rate))
+                dd = {'samplerate': sampling_rate}
+                fid.write(json.dumps(dd))
         
         sorting = si.read_mda_sorting(firings_file, sampling_rate)
         recording = si.read_mda_recording(raw_data_dir,raw_fname=raw_data_file)
