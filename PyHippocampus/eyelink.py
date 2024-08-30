@@ -1,4 +1,9 @@
-from pyedfread import edfread
+import warnings
+try:
+    from pyedfread import edfread
+except ImportError:
+    warnings.warn("Eyelink import failed. You won't be able to read edf files")
+    edfread = None
 import numpy as np
 import numpy.matlib
 import pandas as pd
