@@ -11,6 +11,6 @@ regex
 scipy
 seaborn
 PyQt5
-spikeinterface
+spikeinterface @ git+https://github.com/grero/spikeinterface.git
 spikeinterface_gui
 mountainlab_pytools
