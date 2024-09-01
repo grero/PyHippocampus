@@ -8,4 +8,5 @@ setup(
 	author="Shih-Cheng Yen & friends",
 	author_email="shihcheng@nus.edu.sg",
 	packages=["PyHippocampus"],
+	scripts=["PyHippocampus/si_sorting.py"],
 )
