@@ -44,6 +44,7 @@ class MountainSortAnalyzer():
                                                 )
             # compute all the necessary components to do curation
             self.analyzer.compute("random_spikes", method="uniform", max_spikes_per_unit=500)
+            self.analyzer.compute("isi_violations")
             self.analyzer.compute("waveforms")
             self.analyzer.compute("templates", operators=["average", "median", "std"])
             self.analyzer.compute("unit_locations")
