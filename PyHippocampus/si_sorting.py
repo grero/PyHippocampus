@@ -6,6 +6,7 @@ from spikeinterface_gui import MainWindow, mkQApp
 import json
 import csv
 from mountainlab_pytools import mdaio
+import sys
 
 class MountainSortAnalyzer():
     def __init__(self, raw_data_file="dataset/raw_data.mda", firings_file="output/firings.mda",
@@ -25,9 +26,15 @@ class MountainSortAnalyzer():
         # create the analyzer
 
         self.folder = "sorting_analyzer"
+        loaded = False
         if not redo and os.path.isdir(self.folder):
-            self.analyzer = si.load_sorting_analyzer(self.folder)
-        else:
+            try:
+                self.analyzer = si.load_sorting_analyzer(self.folder)
+                loaded = True
+            except:
+                loaded = False
+                redo = True
+        if not loaded:
             self.analyzer = si.create_sorting_analyzer(sorting=sorting,
                                                 recording=recording,
                                                 format="binary_folder",
@@ -37,6 +44,7 @@ class MountainSortAnalyzer():
                                                 )
             # compute all the necessary components to do curation
             self.analyzer.compute("random_spikes", method="uniform", max_spikes_per_unit=500)
+            self.analyzer.compute("isi_violations")
             self.analyzer.compute("waveforms")
             self.analyzer.compute("templates", operators=["average", "median", "std"])
             self.analyzer.compute("unit_locations")
