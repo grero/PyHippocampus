@@ -7,6 +7,80 @@ import json
 import csv
 from mountainlab_pytools import mdaio
 import sys
+import matplotlib.pylab as plt
+from matplotlib.gridspec import GridSpec
+
+# nice colors than matplotlib's default
+wong_colors = [(0.0,0.44705883,0.69803923),
+               (0.9019608,0.62352943,0.0),
+               (0.0,0.61960787,0.4509804),
+               (0.8,0.4745098,0.654902),
+               (0.3372549,0.7058824,0.9137255),
+               (0.8352941,0.36862746,0.0),
+               (0.9411765,0.89411765,0.25882354)]
+
+def find_analyzers(basedir="."):
+    """
+    Find all curated sorting analyzers under `basedir`
+    """
+    paths = []
+    for root, dirs, filenames in os.walk(basedir):
+        for d in dirs:
+            if d == "curated_sorting_analyzer":
+                paths.append(os.path.join(root, d))
+    return paths
+
+def plot_analyzers(basedir="."):
+    paths = find_analyzers(basedir)
+    for path in paths:
+        analyzer = si.load_sorting_analyzer(path)
+        fig = plot_summary(analyzer)
+        if fig == None:
+            continue
+        bb,qq = os.path.split(path)
+        fig.savefig(os.path.join(bb, "curated_sorting_analyzer.pdf"))
+
+def plot_summary(analyzer):
+    n_units = analyzer.get_num_units()
+    if n_units == 0:
+        return None
+    unit_ids = analyzer.sorting.get_unit_ids()
+    unit_colors = {k: wong_colors[i] for i,k in enumerate(unit_ids)}
+    fig = plt.figure(layout="constrained")
+    fig.set_size_inches((9.7, 6.8))
+    nrows = 1+n_units
+    ncols = 1+n_units
+    wr = [1 for i in range(n_units)]
+    wr.append(3)
+    gs = GridSpec(nrows, ncols, width_ratios=wr, figure=fig)
+    axes = [fig.add_subplot(gs[0,j]) for j in range(n_units)]
+    si.plot_unit_templates(sorting_analyzer_or_templates=analyzer, axes=axes, unit_colors=unit_colors)
+    # post-process; equalize axis
+    ylims = (np.inf, -np.inf)
+    for ax in axes:
+        _ylims = ax.get_ylim()
+        ylims = (min(ylims[0], _ylims[0]), max(ylims[1], _ylims[1]))
+    for ax in axes:
+        ax.set_ylim(*ylims)
+    axes2 = [fig.add_subplot(gs[1+i, j]) for i in range(n_units) for j in range(n_units)]
+    axes2 = np.asarray(axes2).reshape(n_units, n_units)
+    si.plot_crosscorrelograms(sorting_analyzer_or_sorting=analyzer, axes=axes2)
+    # post process; don's show axis titles
+    for ax in axes2[0,:]:
+        ax.set_title(None)
+    # add text describing these plots as cross-correlograms
+
+    axes2[n_units//2,0].set_ylabel("Cross-correlograms")
+    # plot scatter plot of features
+    comps = analyzer.extensions["principal_components"].get_data()
+    spikes = analyzer.extensions["random_spikes"].get_random_spikes()
+    unit_idx = [sp[1] for sp in spikes]
+    # plot_unit_templates should have created one axis for each unit idx
+    ax = fig.add_subplot(gs[:, ncols-1])
+    ax.scatter(comps[:,0], comps[:,1],c=[wong_colors[ii] for ii in unit_idx])
+    ax.set_xlabel("PCA 1")
+    ax.set_ylabel("PCA 2")
+    return fig
 
 class MountainSortAnalyzer():
     def __init__(self, raw_data_file="dataset/raw_data.mda", firings_file="output/firings.mda",
@@ -44,7 +118,7 @@ class MountainSortAnalyzer():
                                                 )
             # compute all the necessary components to do curation
             self.analyzer.compute("random_spikes", method="uniform", max_spikes_per_unit=500)
-            self.analyzer.compute("isi_violations")
+            self.analyzer.compute("isi_histograms")
             self.analyzer.compute("waveforms")
             self.analyzer.compute("templates", operators=["average", "median", "std"])
             self.analyzer.compute("unit_locations")
@@ -56,6 +130,9 @@ class MountainSortAnalyzer():
     def plot(self, curation=True):
         si.plot_sorting_summary(sorting_analyzer=self.analyzer, curation=curation,
                                 backend='spikeinterface_gui')
+
+    def plot_summary(self):
+        plot_summary(self.analyzer)
 
     def save_as_mda(self):
         # only do this if we actually curated anything
@@ -130,4 +207,5 @@ if __name__ == "__main__":
      # once the window closes, apply the curation and create the spike trains
      mda_analyzer.apply_curation()
      mda_analyzer.save_as_mda()
+     mda_analyzer.plot_summary()
      #mda_analyzer.create_spiketrains()
