@@ -207,4 +207,5 @@ if __name__ == "__main__":
      # once the window closes, apply the curation and create the spike trains
      mda_analyzer.apply_curation()
      mda_analyzer.save_as_mda()
+     mda_analyzer.plot_summary()
      #mda_analyzer.create_spiketrains()
