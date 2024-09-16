@@ -21,4 +21,4 @@ from .raycast import raycast
 from .waveform import Waveform
 from .freqspectrum import FreqSpectrum
 from .vmpc import VMPlaceCell
-from .si_sorting import MountainSortAnalyzer
+from .si_sorting import MountainSortAnalyzer, plot_summary
