@@ -40,7 +40,7 @@ def plot_analyzers(basedir="."):
         bb,qq = os.path.split(path)
         fig.savefig(os.path.join(bb, "curated_sorting_analyzer.pdf"))
 
-def plot_summary(analyzer):
+def plot_summary(analyzer,save=True):
     n_units = analyzer.get_num_units()
     if n_units == 0:
         return None
@@ -132,7 +132,10 @@ class MountainSortAnalyzer():
                                 backend='spikeinterface_gui')
 
     def plot_summary(self):
-        plot_summary(self.analyzer)
+        fig = plot_summary(self.analyzer)
+        if fig is not None:
+            bb,qq = os.path.split(self.folder)
+            fig.savefig(os.path.join(bb, "curated_sorting_analyzer.pdf"))
 
     def save_as_mda(self):
         # only do this if we actually curated anything
@@ -197,6 +200,7 @@ class MountainSortAnalyzer():
 
                 clean_sorting_analyzer = si.apply_curation(self.analyzer, curation_dict=curation_dict)
                 clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder)
+                self.analyzer = clean_sorting_analyzer     
 
 if __name__ == "__main__":
      app = mkQApp()
