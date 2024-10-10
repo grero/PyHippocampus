@@ -9,6 +9,7 @@ from mountainlab_pytools import mdaio
 import sys
 import matplotlib.pylab as plt
 from matplotlib.gridspec import GridSpec
+import argparse
 
 # nice colors than matplotlib's default
 wong_colors = [(0.0,0.44705883,0.69803923),
@@ -200,16 +201,53 @@ class MountainSortAnalyzer():
 
                 clean_sorting_analyzer = si.apply_curation(self.analyzer, curation_dict=curation_dict)
                 clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder)
-                self.analyzer = clean_sorting_analyzer     
+                self.analyzer = clean_sorting_analyzer
+
+def parse_args():
+    parser = argparse.ArgumentParser("Spike sorting curation")
+    parser.add_argument("--features_only", action='store_true', help='Only compute features')
+    parser.add_argument("--channels_file", type=str, help="A csv file with a list of channels to sort",
+                        default="")
+    parser.add_argument("--skip_error", action='store_true', help="Whether to skip channels with errors")
+    return parser.parse_args()
 
 if __name__ == "__main__":
-     app = mkQApp()
-     mda_analyzer = MountainSortAnalyzer()
-     win = MainWindow(mda_analyzer.analyzer, curation=mda_analyzer.curation)
-     win.show()
-     app.exec()
-     # once the window closes, apply the curation and create the spike trains
-     mda_analyzer.apply_curation()
-     mda_analyzer.save_as_mda()
-     mda_analyzer.plot_summary()
-     #mda_analyzer.create_spiketrains()
+    arglist = parse_args()
+    if not arglist.features_only:
+        mda_analyzer = MountainSortAnalyzer()
+        app = mkQApp()
+        win = MainWindow(mda_analyzer.analyzer, curation=mda_analyzer.curation)
+        win.show()
+        app.exec()
+        # once the window closes, apply the curation and create the spike trains
+        mda_analyzer.apply_curation()
+        mda_analyzer.save_as_mda()
+        mda_analyzer.plot_summary()
+        #mda_analyzer.create_spiketrains()
+    elif arglist.channels_file:
+        dirnames = []
+        with open(arglist.channels_file,"r") as fid:
+                reader = csv.reader(fid)
+                for row in reader:
+                    date = row[0]
+                    # hack; the first row is the header
+                    if row[1] == "Channel":
+                        continue
+                    channel = int(row[1])
+                    dname = os.path.join(date,"mountains","channel{:03d}".format(channel))
+                    if os.path.isdir(dname):
+                        dirnames.append(dname)
+
+        pwd = os.getcwd()
+        for dname in dirnames:
+            try:
+                os.chdir(dname)
+                mda_analyzer = MountainSortAnalyzer()
+            except Exception as ee:
+                print(dname)
+                if not arglist.skip_error:
+                    raise ee
+            finally:
+                os.chdir(pwd)
+
+
