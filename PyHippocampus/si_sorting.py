@@ -7,6 +7,7 @@ import json
 import csv
 from mountainlab_pytools import mdaio
 import sys
+import matplotlib as mpl
 import matplotlib.pylab as plt
 from matplotlib.gridspec import GridSpec
 import argparse
@@ -19,6 +20,8 @@ wong_colors = [(0.0,0.44705883,0.69803923),
                (0.3372549,0.7058824,0.9137255),
                (0.8352941,0.36862746,0.0),
                (0.9411765,0.89411765,0.25882354)]
+
+other_colors = mpl.colormaps['Paired'].colors
 
 def find_analyzers(basedir="."):
     """
@@ -46,7 +49,10 @@ def plot_summary(analyzer,save=True):
     if n_units == 0:
         return None
     unit_ids = analyzer.sorting.get_unit_ids()
-    unit_colors = {k: wong_colors[i] for i,k in enumerate(unit_ids)}
+    if n_units < len(wong_colors):
+        unit_colors = {k: wong_colors[i] for i,k in enumerate(unit_ids)}
+    else:
+        unit_colors = {k: other_colors[i] for i,k in enumerate(unit_ids)}
     fig = plt.figure(layout="constrained")
     fig.set_size_inches((9.7, 6.8))
     nrows = 1+n_units
@@ -97,6 +103,7 @@ class MountainSortAnalyzer():
         sorting = si.read_mda_sorting(firings_file, sampling_rate)
         recording = si.read_mda_recording(raw_data_dir,raw_fname=raw_data_file)
         self.curation = curation
+        self.curated_analyzer = None
 
         # create the analyzer
 
@@ -133,7 +140,9 @@ class MountainSortAnalyzer():
                                 backend='spikeinterface_gui')
 
     def plot_summary(self):
-        fig = plot_summary(self.analyzer)
+        print("Curated_analyzer: {}".format(self.curated_analyzer))
+        if self.curated_analyzer is not None:
+            fig = plot_summary(self.curated_analyzer)
         if fig is not None:
             bb,qq = os.path.split(self.folder)
             fig.savefig(os.path.join(bb, "curated_sorting_analyzer.pdf"))
@@ -201,7 +210,11 @@ class MountainSortAnalyzer():
 
                 clean_sorting_analyzer = si.apply_curation(self.analyzer, curation_dict=curation_dict)
                 clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder)
-                self.analyzer = clean_sorting_analyzer
+                self.curated_analyzer = clean_sorting_analyzer
+        else:
+            # load the analyzer
+            clean_sorting_analyzer = si.load_sorting_analyzer(curation_folder)
+            self.curated_analyzer = clean_sorting_analyzer
 
 def parse_args():
     parser = argparse.ArgumentParser("Spike sorting curation")
