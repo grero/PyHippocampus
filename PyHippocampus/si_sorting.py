@@ -93,7 +93,7 @@ class MountainSortAnalyzer():
             with open(params_file, "w") as fid:
                 dd = {'samplerate': sampling_rate}
                 fid.write(json.dumps(dd))
-        
+
         sorting = si.read_mda_sorting(firings_file, sampling_rate)
         recording = si.read_mda_recording(raw_data_dir,raw_fname=raw_data_file)
         self.curation = curation
@@ -184,12 +184,12 @@ class MountainSortAnalyzer():
             cellname = "cell{:02d}".format(unit_id)
             if not os.path.isdir(cellname):
                 os.mkdir(cellname)
-            spfile = os.path.join(cellname, "spiketrain.csv") 
+            spfile = os.path.join(cellname, "spiketrain.csv")
             with open(spfile,"w") as fid:
                 writer = csv.writer(fid)
                 print(type(sptimes))
                 writer.writerows(sptimes)
-                
+
     def apply_curation(self):
         curation_folder = "curated_sorting_analyzer"
         if not os.path.isdir(curation_folder):
