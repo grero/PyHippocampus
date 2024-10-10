@@ -103,6 +103,7 @@ class MountainSortAnalyzer():
         sorting = si.read_mda_sorting(firings_file, sampling_rate)
         recording = si.read_mda_recording(raw_data_dir,raw_fname=raw_data_file)
         self.curation = curation
+        self.curated_analyzer = None
 
         # create the analyzer
 
@@ -139,7 +140,9 @@ class MountainSortAnalyzer():
                                 backend='spikeinterface_gui')
 
     def plot_summary(self):
-        fig = plot_summary(self.analyzer)
+        print("Curated_analyzer: {}".format(self.curated_analyzer))
+        if self.curated_analyzer is not None:
+            fig = plot_summary(self.curated_analyzer)
         if fig is not None:
             bb,qq = os.path.split(self.folder)
             fig.savefig(os.path.join(bb, "curated_sorting_analyzer.pdf"))
@@ -207,7 +210,11 @@ class MountainSortAnalyzer():
 
                 clean_sorting_analyzer = si.apply_curation(self.analyzer, curation_dict=curation_dict)
                 clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder)
-                self.analyzer = clean_sorting_analyzer
+                self.curated_analyzer = clean_sorting_analyzer
+        else:
+            # load the analyzer
+            clean_sorting_analyzer = si.load_sorting_analyzer(curation_folder)
+            self.curated_analyzer = clean_sorting_analyzer
 
 def parse_args():
     parser = argparse.ArgumentParser("Spike sorting curation")
