@@ -201,19 +201,14 @@ class MountainSortAnalyzer():
 
     def apply_curation(self):
         curation_folder = "curated_sorting_analyzer"
-        if not os.path.isdir(curation_folder):
-            curation_json = os.path.join(self.folder, "spikeinterface_gui","curation_data.json")
-            if os.path.isfile(curation_json):
-                curation_dict = json.load(open(curation_json))
-                if not "format_version" in curation_dict:
-                    curation_dict["format_version"] = "1"
+        curation_json = os.path.join(self.folder, "spikeinterface_gui","curation_data.json")
+        if os.path.isfile(curation_json):
+            curation_dict = json.load(open(curation_json))
+            if not "format_version" in curation_dict:
+                curation_dict["format_version"] = "1"
 
-                clean_sorting_analyzer = si.apply_curation(self.analyzer, curation_dict=curation_dict)
-                clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder)
-                self.curated_analyzer = clean_sorting_analyzer
-        else:
-            # load the analyzer
-            clean_sorting_analyzer = si.load_sorting_analyzer(curation_folder)
+            clean_sorting_analyzer = si.apply_curation(self.analyzer, curation_dict=curation_dict)
+            #clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder, rewrite=True)
             self.curated_analyzer = clean_sorting_analyzer
 
 def parse_args():
