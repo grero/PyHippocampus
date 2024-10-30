@@ -188,7 +188,7 @@ class MountainSortAnalyzer():
                 if jj == len(_start_times)-1: # the end
                     end_idx = None
                 else:
-                    end_idx = _start_times["start_indices"][0][jj+1][0]
+                    end_idx = _start_times["start_indices"][0][jj+1][0]-1
                 start_indices[session_name] = (start_idx,end_idx)
         else:
             start_indices = {"session01": (1,None)}
