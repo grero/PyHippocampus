@@ -204,6 +204,11 @@ class MountainSortAnalyzer():
     def save_spiketrain(self, sptimes,unit_path):
         if not os.path.isdir(unit_path):
             os.makedirs(unit_path)
+        else:
+            r = input("{} already exists. Ovewrite y/n [n]?".format(unit_path))
+            if r != "y":
+                return None
+        print("Writing cell to {}".format(unit_path))
         spfile = os.path.join(unit_path, "spiketrain.csv")
         with open(spfile, "w") as fid:
             writer = csv.writer(fid)
