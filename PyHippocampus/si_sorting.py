@@ -199,7 +199,7 @@ class MountainSortAnalyzer():
                 print(type(sptimes))
                 writer.writerows(sptimes)
 
-    def apply_curation(self):
+    def apply_curation(self,savelevel=1):
         curation_folder = "curated_sorting_analyzer"
         curation_json = os.path.join(self.folder, "spikeinterface_gui","curation_data.json")
         if os.path.isfile(curation_json):
@@ -208,7 +208,11 @@ class MountainSortAnalyzer():
                 curation_dict["format_version"] = "1"
 
             clean_sorting_analyzer = si.apply_curation(self.analyzer, curation_dict=curation_dict)
-            #clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder, rewrite=True)
+            if savelevel > 0:
+                if os.path.isdir(curation_folder):
+                    shutil.move(curation_folder, "curation_folder_old")
+                clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder)
+	     
             self.curated_analyzer = clean_sorting_analyzer
 
 def parse_args():
