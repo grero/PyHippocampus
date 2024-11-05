@@ -264,23 +264,7 @@ def parse_args():
 
 if __name__ == "__main__":
     arglist = parse_args()
-    if not (arglist.features_only or arglist.create_spiketrains):
-        mda_analyzer = MountainSortAnalyzer()
-        app = mkQApp()
-        win = MainWindow(mda_analyzer.analyzer, curation=mda_analyzer.curation)
-        win.show()
-        app.exec()
-        # once the window closes, apply the curation and create the spike trains
-        mda_analyzer.apply_curation()
-        mda_analyzer.save_as_mda()
-        mda_analyzer.plot_summary()
-        #mda_analyzer.create_spiketrains()
-    elif arglist.create_spiketrains:
-        mda_analyzer = MountainSortAnalyzer()
-        mda_analyzer.apply_curation()
-        mda_analyzer.create_spiketrains()
-
-    elif arglist.channels_file:
+    if arglist.channels_file:
         dirnames = []
         with open(arglist.channels_file,"r") as fid:
                 reader = csv.reader(fid)
@@ -299,11 +283,32 @@ if __name__ == "__main__":
             try:
                 os.chdir(dname)
                 mda_analyzer = MountainSortAnalyzer()
+                if arglist.create_spiketrains:
+                    mda_analyzer.apply_curation()
+                    mda_analyzer.create_spiketrains()
             except Exception as ee:
                 print(dname)
                 if not arglist.skip_error:
                     raise ee
             finally:
                 os.chdir(pwd)
+    else:
+        if not (arglist.features_only or arglist.create_spiketrains):
+            mda_analyzer = MountainSortAnalyzer()
+            app = mkQApp()
+            win = MainWindow(mda_analyzer.analyzer, curation=mda_analyzer.curation)
+            win.show()
+            app.exec()
+            # once the window closes, apply the curation and create the spike trains
+            mda_analyzer.apply_curation()
+            mda_analyzer.save_as_mda()
+            mda_analyzer.plot_summary()
+            #mda_analyzer.create_spiketrains()
+        elif arglist.create_spiketrains:
+            mda_analyzer = MountainSortAnalyzer()
+            mda_analyzer.apply_curation()
+            mda_analyzer.create_spiketrains()
+
+    
 
 
