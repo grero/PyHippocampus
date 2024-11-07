@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
 	name="PyHippocampus",
-	version="0.1",
+	version="0.1.0",
 	description="""Tools for processing NHP hippocampus data""",
 	url="https://github.com/shihchengyen/PyHippocampus.git",
 	author="Shih-Cheng Yen & friends",
