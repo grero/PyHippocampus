@@ -11,6 +11,9 @@ import matplotlib as mpl
 import matplotlib.pylab as plt
 from matplotlib.gridspec import GridSpec
 import argparse
+import scipy
+import shutil
+import DataProcessingTools as DPT
 
 # nice colors than matplotlib's default
 wong_colors = [(0.0,0.44705883,0.69803923),
@@ -90,6 +93,7 @@ def plot_summary(analyzer,save=True):
     return fig
 
 class MountainSortAnalyzer():
+    level = "channel"
     def __init__(self, raw_data_file="dataset/raw_data.mda", firings_file="output/firings.mda",
                        sampling_rate=30000.0,redo=False, curation=True):
         self.sampling_rate = sampling_rate
@@ -104,6 +108,14 @@ class MountainSortAnalyzer():
         recording = si.read_mda_recording(raw_data_dir,raw_fname=raw_data_file)
         self.curation = curation
         self.curated_analyzer = None
+        # figure out the array based on the channel, and that we use 32 channels per array
+        # note that should should change when we start using neuropixels
+        rst,channel = os.path.split(os.getcwd())
+        rst,_ = os.path.split(rst)
+        rst,date = os.path.split(rst)
+        self.date = date
+        self.channel = int(channel[-3:])
+        self.array = int(np.floor(self.channel/32))+1
 
         # create the analyzer
 
@@ -169,37 +181,84 @@ class MountainSortAnalyzer():
 
                 mdaio.writemda(firings, curated_firings_file, dtype='float64')
 
-    def create_spiketrains(self):
+    def get_start_indices(self):
+        start_indices = {} 
+        if os.path.isfile("start_times.mat"):
+            _start_times = scipy.io.loadmat("start_times.mat")
+            for jj in range(len(_start_times["start_indices"])):
+                session_name =  _start_times["start_indices"][1][jj][0] 
+                start_idx = _start_times["start_indices"][0][jj][0]-1 # because we are coming from matlab which uses 1-based indexing
+                if jj == len(_start_times)-1: # the end
+                    end_idx = None
+                else:
+                    end_idx = _start_times["start_indices"][0][jj+1][0]-1
+                start_indices[session_name] = (start_idx,end_idx)
+        else:
+            start_indices = {"session01": (1,None)}
+        return start_indices
+
+    def get_cell_path(self, session, unit_id):
+        unit_path = os.path.join("..", "..", session, 
+                                 "array{:02d}".format(self.array),
+                                "channel{:03d}".format(self.channel),
+                                "cell{:02d}".format(unit_id))
+        return unit_path
+
+    def save_spiketrain(self, sptimes,templates, unit_path):
+        if not os.path.isdir(unit_path):
+            os.makedirs(unit_path)
+        else:
+            r = input("{} already exists. Ovewrite y/n [n]?".format(unit_path))
+            if r != "y":
+                return None
+        print("Writing cell to {}".format(unit_path))
+        spfile = os.path.join(unit_path, "spiketrain.csv")
+        with open(spfile, "w") as fid:
+            writer = csv.writer(fid)
+            writer.writerows(sptimes)
+        # save templates
+        template_file = os.path.join(unit_path, "template.mda")
+        mdaio.writemda(templates, template_file, dtype='float64')
+        # also save meta data
+        # this is super-hackish; read the version from version.py
+        if __name__ == "__main__":
+            # we are running this from a script, so import the package to get the version number
+            import PyHippocampus as ph
+            __version__ = ph.__version__
+        else:
+            dd,ff = os.path.split(__file__)
+            _meta = json.load(open(os.path.join(dd, 'version.json')))
+            __version__ = _meta["version"]
+        meta = {"version": __version__}
+        meta_file = os.path.join(unit_path, "meta.json")
+        with open(meta_file, "w") as fid:
+                fid.write(json.dumps(meta))
+        
+    def create_spiketrains(self,savelevel=1):
         # read the spikes.npy file from either if the curated folder, if it exists,
         # or the uncurated one
-        curated_folder = "curated_sorting_analyzer"
-        if os.path.isdir(curated_folder):
-            spikes_file = os.path.join(curated_folder,"sorting","spikes.npy")
-        else:
-            spikes_file = os.path.join(self.folder,"sorting","spikes.npy")
+        start_indices = self.get_start_indices()
 
-        spikes = np.load(spikes_file)
-        units = {}
-        for sp in spikes:
-            unit_id = sp[1]
-            # convert from acquistion units to miliseconds
-            sptime = sp[0]/(self.sampling_rate/1000.0)
-            if not unit_id in units:
-                units[unit_id] = []
-            units[unit_id].append(sptime)
+        if self.curated_analyzer is None:
+            self.apply_curation(savelevel-1)
+        
+        templates = self.curated_analyzer.get_extension("templates")
+        unit_ids = self.curated_analyzer.sorting.get_unit_ids()
+        for ii,uid in enumerate(unit_ids):
+            spikes = self.curated_analyzer.sorting.get_unit_spike_train(uid)
+            for sn,sidx in start_indices.items():
+                sidx0 = np.searchsorted(spikes, sidx[0])[0]
+                if sidx[1] is None:
+                    sidx1 = len(spikes)-1
+                else:
+                    sidx1 = np.searchsorted(spikes, sidx[1])[0]
+                # convert from acquistion units to miliseconds
+                sptimes = [(spikes[ii]-sidx[0])/(self.sampling_rate/1000.0) for ii in range(sidx0,sidx1)]
+                unit_path = self.get_cell_path(sn, ii+1)
+                self.save_spiketrain(sptimes, templates.data['average'][ii,:,:], unit_path)
 
-        # create cell directories
-        for unit_id,sptimes in units.items():
-            cellname = "cell{:02d}".format(unit_id)
-            if not os.path.isdir(cellname):
-                os.mkdir(cellname)
-            spfile = os.path.join(cellname, "spiketrain.csv")
-            with open(spfile,"w") as fid:
-                writer = csv.writer(fid)
-                print(type(sptimes))
-                writer.writerows(sptimes)
 
-    def apply_curation(self):
+    def apply_curation(self,savelevel=0):
         curation_folder = "curated_sorting_analyzer"
         curation_json = os.path.join(self.folder, "spikeinterface_gui","curation_data.json")
         if os.path.isfile(curation_json):
@@ -208,7 +267,11 @@ class MountainSortAnalyzer():
                 curation_dict["format_version"] = "1"
 
             clean_sorting_analyzer = si.apply_curation(self.analyzer, curation_dict=curation_dict)
-            #clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder, rewrite=True)
+            if savelevel > 0:
+                if os.path.isdir(curation_folder):
+                    shutil.move(curation_folder, "curation_folder_old")
+                clean_sorting_analyzer.save_as(format="binary_folder", folder=curation_folder)
+	     
             self.curated_analyzer = clean_sorting_analyzer
 
 def parse_args():
@@ -217,22 +280,12 @@ def parse_args():
     parser.add_argument("--channels_file", type=str, help="A csv file with a list of channels to sort",
                         default="")
     parser.add_argument("--skip_error", action='store_true', help="Whether to skip channels with errors")
+    parser.add_argument("--create_spiketrains", action='store_true', help="Create spiketrains from existing curated sorting")
     return parser.parse_args()
 
 if __name__ == "__main__":
     arglist = parse_args()
-    if not arglist.features_only:
-        mda_analyzer = MountainSortAnalyzer()
-        app = mkQApp()
-        win = MainWindow(mda_analyzer.analyzer, curation=mda_analyzer.curation)
-        win.show()
-        app.exec()
-        # once the window closes, apply the curation and create the spike trains
-        mda_analyzer.apply_curation()
-        mda_analyzer.save_as_mda()
-        mda_analyzer.plot_summary()
-        #mda_analyzer.create_spiketrains()
-    elif arglist.channels_file:
+    if arglist.channels_file:
         dirnames = []
         with open(arglist.channels_file,"r") as fid:
                 reader = csv.reader(fid)
@@ -251,11 +304,32 @@ if __name__ == "__main__":
             try:
                 os.chdir(dname)
                 mda_analyzer = MountainSortAnalyzer()
+                if arglist.create_spiketrains:
+                    mda_analyzer.apply_curation()
+                    mda_analyzer.create_spiketrains()
             except Exception as ee:
                 print(dname)
                 if not arglist.skip_error:
                     raise ee
             finally:
                 os.chdir(pwd)
+    else:
+        if not (arglist.features_only or arglist.create_spiketrains):
+            mda_analyzer = MountainSortAnalyzer()
+            app = mkQApp()
+            win = MainWindow(mda_analyzer.analyzer, curation=mda_analyzer.curation)
+            win.show()
+            app.exec()
+            # once the window closes, apply the curation and create the spike trains
+            mda_analyzer.apply_curation()
+            mda_analyzer.save_as_mda()
+            mda_analyzer.plot_summary()
+            #mda_analyzer.create_spiketrains()
+        elif arglist.create_spiketrains:
+            mda_analyzer = MountainSortAnalyzer()
+            mda_analyzer.apply_curation()
+            mda_analyzer.create_spiketrains()
+
+    
 
 

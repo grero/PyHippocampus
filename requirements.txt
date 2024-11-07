@@ -14,3 +14,4 @@ PyQt5
 spikeinterface @ git+https://github.com/grero/spikeinterface.git
 spikeinterface_gui
 mountainlab_pytools
+DataProcessingTools @ git+http://github.com/grero/DataProcessingTools.git
