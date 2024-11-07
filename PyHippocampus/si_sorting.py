@@ -201,7 +201,7 @@ class MountainSortAnalyzer():
                                 "cell{:02d}".format(unit_id))
         return unit_path
 
-    def save_spiketrain(self, sptimes,unit_path):
+    def save_spiketrain(self, sptimes,templates, unit_path):
         if not os.path.isdir(unit_path):
             os.makedirs(unit_path)
         else:
@@ -213,6 +213,9 @@ class MountainSortAnalyzer():
         with open(spfile, "w") as fid:
             writer = csv.writer(fid)
             writer.writerows(sptimes)
+        # save templates
+        template_file = os.path.join(unit_path, "template.mda")
+        mdaio.writemda(templates, template_file, dtype='float64')
         
     def create_spiketrains(self,savelevel=1):
         # read the spikes.npy file from either if the curated folder, if it exists,
@@ -221,7 +224,8 @@ class MountainSortAnalyzer():
 
         if self.curated_analyzer is None:
             self.apply_curation(savelevel-1)
-
+        
+        templates = self.curated_analyzer.get_extension("templates")
         unit_ids = self.curated_analyzer.sorting.get_unit_ids()
         for ii,uid in enumerate(unit_ids):
             spikes = self.curated_analyzer.sorting.get_unit_spike_train(uid)
@@ -234,7 +238,7 @@ class MountainSortAnalyzer():
                 # convert from acquistion units to miliseconds
                 sptimes = [(spikes[ii]-sidx[0])/(self.sampling_rate/1000.0) for ii in range(sidx0,sidx1)]
                 unit_path = self.get_cell_path(sn, ii+1)
-                self.save_spiketrain(sptimes, unit_path)
+                self.save_spiketrain(sptimes, templates.data['average'][ii,:,:], unit_path)
 
 
     def apply_curation(self,savelevel=0):
