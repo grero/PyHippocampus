@@ -11,6 +11,9 @@ import matplotlib as mpl
 import matplotlib.pylab as plt
 from matplotlib.gridspec import GridSpec
 import argparse
+import scipy
+import shutil
+import DataProcessingTools as DPT
 
 # nice colors than matplotlib's default
 wong_colors = [(0.0,0.44705883,0.69803923),
