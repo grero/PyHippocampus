@@ -216,6 +216,20 @@ class MountainSortAnalyzer():
         # save templates
         template_file = os.path.join(unit_path, "template.mda")
         mdaio.writemda(templates, template_file, dtype='float64')
+        # also save meta data
+        # this is super-hackish; read the version from version.py
+        if __name__ == "__main__":
+            # we are running this from a script, so import the package to get the version number
+            import PyHippocampus as ph
+            __version__ = ph.__version__
+        else:
+            dd,ff = os.path.split(__file__)
+            _meta = json.load(open(os.path.join(dd, 'version.json')))
+            __version__ = _meta["version"]
+        meta = {"version": __version__}
+        meta_file = os.path.join(unit_path, "meta.json")
+        with open(meta_file, "w") as fid:
+                fid.write(json.dumps(meta))
         
     def create_spiketrains(self,savelevel=1):
         # read the spikes.npy file from either if the curated folder, if it exists,
