@@ -8,7 +8,7 @@ From terminal do
 
 ```bash
 conda create -n hippocampus python==3.9
-conda activate hipoocampus
+conda activate hippocampus
 ```
 
 Then, clone this repository, for instance in `~/Documents/python/PyHippocampus`
